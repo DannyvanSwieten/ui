@@ -1,6 +1,7 @@
 pub mod application;
 pub mod application_delegate;
 pub mod build_context;
+pub mod canvas;
 pub mod constraints;
 pub mod layout_ctx;
 pub mod message;

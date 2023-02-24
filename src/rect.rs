@@ -26,6 +26,13 @@ impl Rect {
         }
     }
 
+    pub fn position(&self) -> Point2D {
+        Point2D {
+            x: self.left,
+            y: self.top,
+        }
+    }
+
     pub fn size(&self) -> Size2D {
         Size2D {
             width: self.right - self.left,

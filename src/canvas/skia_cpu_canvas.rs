@@ -1,0 +1,163 @@
+use skia_safe::{ISize, Surface, TextBlob};
+
+use crate::{point::Point2D, rect::Rect, size::Size2D};
+
+use super::{color::Color, font::Font, paint::Paint, Canvas2D};
+
+pub struct SkiaCanvas {
+    surface: Surface,
+    pixels: Vec<u8>,
+    pub size: ISize,
+}
+
+impl SkiaCanvas {
+    pub fn new(w: i32, h: i32) -> Self {
+        let surface = Surface::new_raster_n32_premul(skia_safe::ISize::new(w, h));
+        let mut pixels = Vec::new();
+        pixels.resize(4 * w as usize * h as usize, 0);
+        if let Some(surface) = surface {
+            Self {
+                surface,
+                size: skia_safe::ISize::new(w, h),
+                pixels,
+            }
+        } else {
+            panic!()
+        }
+    }
+
+    pub fn pixels(&mut self) -> Option<&[u8]> {
+        let w = self.surface.width();
+        let info = self.surface.image_info();
+        if self.surface.read_pixels(
+            &info,
+            &mut self.pixels,
+            w as usize * 4,
+            skia_safe::IPoint::new(0, 0),
+        ) {
+            Some(&self.pixels)
+        } else {
+            None
+        }
+    }
+
+    pub fn flush(&mut self) {
+        self.surface.flush_and_submit();
+    }
+}
+
+impl Into<skia_safe::Point> for Point2D {
+    fn into(self) -> skia_safe::Point {
+        skia_safe::Point::new(self.x, self.y)
+    }
+}
+
+impl Into<skia_safe::Size> for Size2D {
+    fn into(self) -> skia_safe::Size {
+        skia_safe::Size::new(self.width, self.height)
+    }
+}
+
+impl Into<skia_safe::Rect> for Rect {
+    fn into(self) -> skia_safe::Rect {
+        skia_safe::Rect::from_point_and_size(self.position(), self.size())
+    }
+}
+
+impl From<&Point2D> for skia_safe::Point {
+    fn from(value: &Point2D) -> Self {
+        skia_safe::Point {
+            x: value.x,
+            y: value.y,
+        }
+    }
+}
+
+impl From<&Rect> for skia_safe::Rect {
+    fn from(value: &Rect) -> Self {
+        skia_safe::Rect::from_point_and_size(value.position(), value.size())
+    }
+}
+
+impl From<&Color> for skia_safe::Color4f {
+    fn from(value: &Color) -> Self {
+        skia_safe::Color4f::from_bytes_rgba(value.to_u32())
+    }
+}
+
+impl From<&Paint> for skia_safe::Paint {
+    fn from(value: &Paint) -> Self {
+        let mut p = skia_safe::Paint::new(
+            skia_safe::Color4f::from_bytes_rgba(value.color().to_u32()),
+            None,
+        );
+        p.set_anti_alias(true);
+        p
+    }
+}
+
+impl From<&Font> for skia_safe::Font {
+    fn from(value: &Font) -> Self {
+        let mut font = skia_safe::Font::new(
+            skia_safe::Typeface::new(value.typeface(), skia_safe::FontStyle::normal()).unwrap(),
+            value.size(),
+        );
+        font.set_edging(skia_safe::font::Edging::SubpixelAntiAlias);
+        font
+    }
+}
+
+impl Canvas2D for SkiaCanvas {
+    fn clear(&mut self, color: &Color) {
+        self.surface.canvas().clear(color);
+    }
+
+    fn save(&mut self) {
+        self.surface.canvas().save();
+    }
+
+    fn restore(&mut self) {
+        self.surface.canvas().restore();
+    }
+
+    fn translate(&mut self, point: &Point2D) {
+        self.surface.canvas().translate((point.x, point.y));
+    }
+    fn draw_rect(&mut self, rect: &Rect, paint: &Paint) {
+        let rect: skia_safe::Rect = rect.into();
+        self.surface.canvas().draw_rect(&rect, &paint.into());
+    }
+
+    fn draw_rounded_rect(&mut self, rect: &Rect, rx: f32, ry: f32, paint: &Paint) {
+        let rect: skia_safe::Rect = rect.into();
+        self.surface
+            .canvas()
+            .draw_round_rect(&rect, rx, ry, &paint.into());
+    }
+
+    fn draw_circle(&mut self, center: &Point2D, radius: f32, paint: &Paint) {
+        self.surface
+            .canvas()
+            .draw_circle(*center, radius, &paint.into());
+    }
+
+    fn draw_string(&mut self, rect: &Rect, text: &str, font: &Font, paint: &Paint) {
+        let blob = TextBlob::from_str(text, &font.into());
+        let rect: skia_safe::Rect = rect.into();
+        if let Some(b) = blob {
+            let text_bounds = b.bounds();
+            let p = rect.center() - text_bounds.center();
+            self.surface
+                .canvas()
+                .draw_str(text, p, &font.into(), &paint.into());
+        }
+    }
+
+    // fn draw_text_blob(&mut self, pos: &Point, blob: &skia_safe::TextBlob, paint: &Paint) {
+    //     self.surface.canvas().draw_text_blob(blob, *pos, paint);
+    // }
+
+    // fn draw_paragraph(&mut self, pos: &Point, paragraph: &skia_safe::textlayout::Paragraph) {
+    //     paragraph.paint(self.surface.canvas(), *pos);
+    // }
+}
