@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 winit = "*"
-skia-safe = "*"
+skia-safe = "0.58.0"
+piet-common = "*"

@@ -1,6 +1,13 @@
 use crate::{
-    build_context::BuildCtx, constraints::BoxConstraints, layout_ctx::LayoutCtx, point::Point2D,
-    rect::Rect, size::Size2D, ui_state::UIState, value::Value,
+    build_context::BuildCtx,
+    canvas::{color::Color32f, font::Font, paint::Paint, Canvas2D},
+    constraints::BoxConstraints,
+    layout_ctx::LayoutCtx,
+    point::Point2D,
+    rect::Rect,
+    size::Size2D,
+    ui_state::UIState,
+    value::Value,
 };
 
 type Children = Vec<Box<dyn Widget>>;
@@ -19,6 +26,7 @@ pub trait Widget {
     }
 
     fn layout(&self, layout_ctx: &mut LayoutCtx, size: Size2D, children: &[usize]) {}
+    fn paint(&self, rect: &Rect, canvas: &mut dyn Canvas2D) {}
 }
 
 pub struct Label {
@@ -60,6 +68,12 @@ impl Widget for Label {
     ) -> Option<(f32, f32)> {
         Some((100.0, 50.0))
     }
+
+    fn paint(&self, rect: &Rect, canvas: &mut dyn Canvas2D) {
+        let font = Font::new("Arial", 18.0);
+        let paint = Paint::new(Color32f::new_grey(1.0));
+        canvas.draw_string(rect, &self.text, &font, &paint)
+    }
 }
 
 pub struct Center {
@@ -86,7 +100,7 @@ impl Widget for Center {
         &self,
         children: &[usize],
         constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
+        _: &LayoutCtx,
     ) -> Option<(f32, f32)> {
         // Something, Somewhere, went terribly wrong
         assert_eq!(1, children.len());

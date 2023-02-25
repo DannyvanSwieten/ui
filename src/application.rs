@@ -59,6 +59,10 @@ impl Application {
             while let Some(message) = self.pending_messages.pop() {
                 delegate.handle_message(message, &state);
             }
+
+            for ui in &mut user_interfaces {
+                ui.1.paint()
+            }
         });
     }
 

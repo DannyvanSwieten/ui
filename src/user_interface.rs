@@ -1,8 +1,14 @@
 use std::collections::HashMap;
 
 use crate::{
-    build_context::BuildCtx, constraints::BoxConstraints, layout_ctx::LayoutCtx, rect::Rect,
-    size::Size2D, ui_state::UIState, widget::Widget,
+    build_context::BuildCtx,
+    canvas::{skia_cpu_canvas::SkiaCanvas, Canvas2D},
+    constraints::BoxConstraints,
+    layout_ctx::LayoutCtx,
+    rect::Rect,
+    size::Size2D,
+    ui_state::UIState,
+    widget::Widget,
 };
 
 pub struct Element {
@@ -59,16 +65,19 @@ pub struct UserInterface {
     root_id: usize,
     width: f32,
     height: f32,
+    canvas: Box<dyn Canvas2D>,
 }
 
 impl UserInterface {
     pub fn new(root: Box<dyn Widget>, width: f32, height: f32) -> Self {
+        let canvas = Box::new(SkiaCanvas::new(width as _, height as _));
         let mut this = Self {
             next_id: 0,
             elements: HashMap::new(),
             root_id: 0,
             width,
             height,
+            canvas,
         };
 
         let root_id = this.add_box_element(root);
@@ -157,5 +166,15 @@ impl UserInterface {
                 self.layout_element(layout_ctx, *child)
             }
         }
+    }
+
+    fn paint_element(&mut self, id: usize) {
+        if let Some(element) = self.elements.get_mut(&id) {
+            element.widget.paint(&element.bounds, self.canvas.as_mut())
+        }
+    }
+
+    pub fn paint(&mut self) {
+        self.paint_element(self.root_id)
     }
 }
