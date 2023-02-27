@@ -51,12 +51,12 @@ impl Color32f {
     }
 }
 
-impl Into<Color8u> for Color32f {
-    fn into(self) -> Color8u {
-        let r = (self.r * 255.0) as u8;
-        let g = (self.g * 255.0) as u8;
-        let b = (self.b * 255.0) as u8;
-        let a = (self.a * 255.0) as u8;
+impl From<Color32f> for Color8u {
+    fn from(val: Color32f) -> Self {
+        let r = (val.r * 255.0) as u8;
+        let g = (val.g * 255.0) as u8;
+        let b = (val.b * 255.0) as u8;
+        let a = (val.a * 255.0) as u8;
         Color8u { r, g, b, a }
     }
 }

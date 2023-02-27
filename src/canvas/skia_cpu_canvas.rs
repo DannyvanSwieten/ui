@@ -27,6 +27,7 @@ impl SkiaCanvas {
     }
 
     pub fn pixels(&mut self) -> Option<&[u8]> {
+        self.surface.flush_and_submit();
         let w = self.surface.width();
         let info = self.surface.image_info();
         if self.surface.read_pixels(
@@ -46,21 +47,21 @@ impl SkiaCanvas {
     }
 }
 
-impl Into<skia_safe::Point> for Point2D {
-    fn into(self) -> skia_safe::Point {
-        skia_safe::Point::new(self.x, self.y)
+impl From<Point2D> for skia_safe::Point {
+    fn from(val: Point2D) -> Self {
+        skia_safe::Point::new(val.x, val.y)
     }
 }
 
-impl Into<skia_safe::Size> for Size2D {
-    fn into(self) -> skia_safe::Size {
-        skia_safe::Size::new(self.width, self.height)
+impl From<Size2D> for skia_safe::Size {
+    fn from(val: Size2D) -> Self {
+        skia_safe::Size::new(val.width, val.height)
     }
 }
 
-impl Into<skia_safe::Rect> for Rect {
-    fn into(self) -> skia_safe::Rect {
-        skia_safe::Rect::from_point_and_size(self.position(), self.size())
+impl From<Rect> for skia_safe::Rect {
+    fn from(val: Rect) -> Self {
+        skia_safe::Rect::from_point_and_size(val.position(), val.size())
     }
 }
 
@@ -103,6 +104,7 @@ impl From<&Font> for skia_safe::Font {
             value.size(),
         );
         font.set_edging(skia_safe::font::Edging::SubpixelAntiAlias);
+        font.set_subpixel(true);
         font
     }
 }
@@ -125,14 +127,14 @@ impl Canvas2D for SkiaCanvas {
     }
     fn draw_rect(&mut self, rect: &Rect, paint: &Paint) {
         let rect: skia_safe::Rect = rect.into();
-        self.surface.canvas().draw_rect(&rect, &paint.into());
+        self.surface.canvas().draw_rect(rect, &paint.into());
     }
 
     fn draw_rounded_rect(&mut self, rect: &Rect, rx: f32, ry: f32, paint: &Paint) {
         let rect: skia_safe::Rect = rect.into();
         self.surface
             .canvas()
-            .draw_round_rect(&rect, rx, ry, &paint.into());
+            .draw_round_rect(rect, rx, ry, &paint.into());
     }
 
     fn draw_circle(&mut self, center: &Point2D, radius: f32, paint: &Paint) {
@@ -147,10 +149,17 @@ impl Canvas2D for SkiaCanvas {
         if let Some(b) = blob {
             let text_bounds = b.bounds();
             let p = rect.center() - text_bounds.center();
+            // self.surface
+            //     .canvas()
+            //     .draw_str(text, p, &font.into(), &paint.into());
             self.surface
                 .canvas()
-                .draw_str(text, p, &font.into(), &paint.into());
+                .draw_text_blob(&b, (50, 50), &paint.into());
         }
+    }
+
+    fn pixels(&mut self) -> Option<&[u8]> {
+        SkiaCanvas::pixels(self)
     }
 
     // fn draw_text_blob(&mut self, pos: &Point, blob: &skia_safe::TextBlob, paint: &Paint) {

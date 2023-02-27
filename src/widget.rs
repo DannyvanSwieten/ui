@@ -2,6 +2,7 @@ use crate::{
     build_context::BuildCtx,
     canvas::{color::Color32f, font::Font, paint::Paint, Canvas2D},
     constraints::BoxConstraints,
+    event::Event,
     layout_ctx::LayoutCtx,
     point::Point2D,
     rect::Rect,
@@ -27,6 +28,7 @@ pub trait Widget {
 
     fn layout(&self, layout_ctx: &mut LayoutCtx, size: Size2D, children: &[usize]) {}
     fn paint(&self, rect: &Rect, canvas: &mut dyn Canvas2D) {}
+    fn event(&mut self, event: &Event) {}
 }
 
 pub struct Label {
@@ -66,11 +68,11 @@ impl Widget for Label {
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
     ) -> Option<(f32, f32)> {
-        Some((100.0, 50.0))
+        Some((200.0, 150.0))
     }
 
     fn paint(&self, rect: &Rect, canvas: &mut dyn Canvas2D) {
-        let font = Font::new("Arial", 18.0);
+        let font = Font::new("Consolas", 34.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
         canvas.draw_string(rect, &self.text, &font, &paint)
     }

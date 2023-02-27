@@ -2,9 +2,14 @@ use std::collections::HashMap;
 
 use crate::{
     build_context::BuildCtx,
-    canvas::{skia_cpu_canvas::SkiaCanvas, Canvas2D},
+    canvas::{
+        color::{Color, Color32f},
+        skia_cpu_canvas::SkiaCanvas,
+        Canvas2D,
+    },
     constraints::BoxConstraints,
     layout_ctx::LayoutCtx,
+    point::Point2D,
     rect::Rect,
     size::Size2D,
     ui_state::UIState,
@@ -57,6 +62,10 @@ impl Element {
         self.widget
             .calculate_size(&self.children, constraints, layout_ctx)
     }
+
+    pub fn hit_test(&self, point: &Point2D) -> bool {
+        self.bounds.hit_test(point)
+    }
 }
 
 pub struct UserInterface {
@@ -87,8 +96,14 @@ impl UserInterface {
         this
     }
 
+    pub fn resize(&mut self, width: f32, height: f32) {
+        self.width = width;
+        self.height = height;
+        self.canvas = Box::new(SkiaCanvas::new(width as _, height as _));
+    }
+
     fn next_id(&mut self) -> usize {
-        self.next_id = self.next_id + 1;
+        self.next_id += 1;
         self.next_id
     }
 
@@ -169,12 +184,34 @@ impl UserInterface {
     }
 
     fn paint_element(&mut self, id: usize) {
-        if let Some(element) = self.elements.get_mut(&id) {
-            element.widget.paint(&element.bounds, self.canvas.as_mut())
+        let children = if let Some(element) = self.elements.get_mut(&id) {
+            element.widget.paint(&element.bounds, self.canvas.as_mut());
+            Some(element.children.clone())
+        } else {
+            None
+        };
+
+        if let Some(children) = children {
+            for child in children {
+                self.paint_element(child);
+            }
         }
     }
 
     pub fn paint(&mut self) {
+        self.canvas.clear(&Color::from(Color32f::new_grey(0.0)));
         self.paint_element(self.root_id)
+    }
+
+    pub fn pixels(&mut self) -> Option<&[u8]> {
+        self.canvas.pixels()
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width as _
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height as _
     }
 }
