@@ -14,21 +14,21 @@ use crate::{
 type Children = Option<Vec<Box<dyn Widget>>>;
 
 pub trait Widget {
-    fn build(&mut self, build_ctx: &mut BuildCtx) -> Children {
+    fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
         None
     }
     fn calculate_size(
         &self,
-        children: &[usize],
-        constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
+        _children: &[usize],
+        _constraints: &BoxConstraints,
+        _layout_ctx: &LayoutCtx,
     ) -> Option<Size2D> {
         None
     }
 
-    fn layout(&self, layout_ctx: &mut LayoutCtx, size: Size2D, children: &[usize]) {}
-    fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas2D) {}
-    fn mouse_event(&mut self, event: &MouseEvent, message_ctx: &mut MessageCtx) {}
+    fn layout(&self, _layout_ctx: &mut LayoutCtx, _size: Size2D, _children: &[usize]) {}
+    fn paint(&self, _paint_ctx: &PaintCtx, _canvas: &mut dyn Canvas2D) {}
+    fn mouse_event(&mut self, _event: &MouseEvent, _message_ctx: &mut MessageCtx) {}
 }
 
 pub struct Label {
@@ -62,13 +62,13 @@ impl Widget for Label {
         None
     }
 
-    fn layout(&self, layout_ctx: &mut LayoutCtx, size: Size2D, children: &[usize]) {}
+    fn layout(&self, _layout_ctx: &mut LayoutCtx, _size: Size2D, _children: &[usize]) {}
 
     fn calculate_size(
         &self,
-        children: &[usize],
-        constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
+        _children: &[usize],
+        _constraints: &BoxConstraints,
+        _layout_ctx: &LayoutCtx,
     ) -> Option<Size2D> {
         Some(Size2D::new(200.0, 150.0))
     }
@@ -139,15 +139,15 @@ impl TextButton {
 }
 
 impl Widget for TextButton {
-    fn build(&mut self, build_ctx: &mut BuildCtx) -> Children {
+    fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
         None
     }
 
     fn calculate_size(
         &self,
-        children: &[usize],
-        constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
+        _children: &[usize],
+        _constraints: &BoxConstraints,
+        _layout_ctx: &LayoutCtx,
     ) -> Option<Size2D> {
         Some(Size2D::new(100.0, 50.0))
     }
@@ -203,7 +203,7 @@ impl Widget for TextButton {
 }
 
 impl Widget for Center {
-    fn build(&mut self, build_ctx: &mut BuildCtx) -> Children {
+    fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
         Some(vec![(*self.child)()])
     }
 
@@ -263,15 +263,15 @@ impl Row {
 }
 
 impl Widget for Row {
-    fn build(&mut self, build_ctx: &mut BuildCtx) -> Children {
+    fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
         (self.children)()
     }
 
     fn calculate_size(
         &self,
-        children: &[usize],
+        _children: &[usize],
         constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
+        _layout_ctx: &LayoutCtx,
     ) -> Option<Size2D> {
         Some(constraints.max_size())
     }

@@ -12,7 +12,6 @@ use crate::{
     event::{Event, MouseEvent},
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
-    mutation::Mutation,
     point::Point2D,
     rect::Rect,
     size::Size2D,
@@ -113,7 +112,7 @@ impl UserInterface {
         this
     }
 
-    pub fn resize(&mut self, width: f32, height: f32, state: &UIState) {
+    pub fn resize(&mut self, width: f32, height: f32, _state: &UIState) {
         self.width = width;
         self.height = height;
         self.elements
