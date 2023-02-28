@@ -5,7 +5,7 @@ use ui::{
     mutation::Mutation,
     ui_state::UIState,
     value::{Value, Var},
-    widget::{Center, Label, Row, TextButton},
+    widget::{Label, Row, TextButton},
     window_request::WindowRequest,
 };
 
@@ -19,23 +19,22 @@ impl ApplicationDelegate for AppDelegate {
 
     fn app_will_start(&self, app: &mut Application) {
         app.request_window(
-            WindowRequest::new(500, 500)
+            WindowRequest::new(480, 240)
                 .with_title("Label Example")
                 .with_ui(|_| {
-                    Box::new(Center::new(|| {
-                        Box::new(Row::new(|| {
-                            Some(vec![
-                                Box::new(TextButton::new("Hello World")),
-                                Box::new(Label::new(Value::Binding("hello".into()))),
-                            ])
-                        }))
+                    Box::new(Row::new(|| {
+                        Some(vec![
+                            Box::new(TextButton::new("Btn").on_click(|message_ctx| {
+                                message_ctx.dispatch(
+                                    "SET_LABEL_TEXT",
+                                    vec![Var::String("Label set by button")],
+                                )
+                            })),
+                            Box::new(Label::new(Value::Binding("hello".into()))),
+                        ])
                     }))
                 }),
         );
-    }
-
-    fn app_started(&self, app: &mut Application) {
-        app.dispatch(Message::new("SET_LABEL_TEXT").with_args(&[Var::String("Set Label Text")]))
     }
 
     fn handle_message(&mut self, message: Message, _: &UIState) -> Option<Mutation> {

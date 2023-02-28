@@ -11,6 +11,8 @@ use crate::{
     constraints::BoxConstraints,
     event::{Event, MouseEvent},
     layout_ctx::LayoutCtx,
+    message_context::MessageCtx,
+    mutation::Mutation,
     point::Point2D,
     rect::Rect,
     size::Size2D,
@@ -129,7 +131,7 @@ impl UserInterface {
                 Size2D::new(width, height),
             ));
         self.canvas = Box::new(SkiaCanvas::new(width as _, height as _));
-        self.layout(state)
+        self.layout()
     }
 
     fn next_id(&mut self) -> usize {
@@ -171,8 +173,17 @@ impl UserInterface {
         }
     }
 
+    fn rebuild_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
+        let element = self.elements.remove(&id);
+        if let Some(mut element) = element {
+            element.widget.build(build_ctx);
+            self.elements.insert(id, element);
+        }
+    }
+
     fn build_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
         if let Some(element) = self.elements.get_mut(&id) {
+            build_ctx.id = id;
             if let Some(children) = element.widget.build(build_ctx) {
                 for child in children.into_iter() {
                     let child_id = self.add_box_element(child);
@@ -185,13 +196,14 @@ impl UserInterface {
         }
     }
 
-    pub fn build(&mut self, state: &UIState) {
+    pub fn build(&mut self, state: &mut UIState) {
         let mut build_ctx = BuildCtx::new(self.root_id, state);
         self.build_element(&mut build_ctx, self.root_id);
-        self.layout(state)
+        self.layout();
+        // state.bind(build_ctx.bindings())
     }
 
-    pub fn layout(&mut self, state: &UIState) {
+    pub fn layout(&mut self) {
         self.layout_element(self.root_id);
     }
 
@@ -241,7 +253,7 @@ impl UserInterface {
         let children = if let Some(element) = self.elements.get_mut(&id) {
             let paint_ctx = PaintCtx::new(&element.global_bounds, &element.local_bounds);
             self.canvas.save();
-            self.canvas.translate(&element.global_bounds.position());
+            self.canvas.translate(&element.local_bounds.position());
             element.widget.paint(&paint_ctx, self.canvas.as_mut());
             Some(element.children_copy())
         } else {
@@ -273,22 +285,23 @@ impl UserInterface {
         }
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent) {
+    fn mouse_event(&mut self, event: &MouseEvent, message_ctx: &mut MessageCtx) {
         let mut hit = None;
         self.hit_test(self.root_id, event.local_position(), &mut hit);
         println!("Hit element: {}", hit.unwrap_or(0));
         if let Some(hit) = hit {
             if let Some(element) = self.elements.get_mut(&hit) {
-                element
-                    .widget
-                    .mouse_event(&event.to_local(&element.global_bounds.position()))
+                element.widget.mouse_event(
+                    &event.to_local(&element.global_bounds.position()),
+                    message_ctx,
+                )
             }
         }
     }
 
-    pub fn event(&mut self, event: &Event) {
+    pub fn event(&mut self, event: &Event, message_ctx: &mut MessageCtx) {
         match event {
-            Event::Mouse(mouse_event) => self.mouse_event(mouse_event),
+            Event::Mouse(mouse_event) => self.mouse_event(mouse_event, message_ctx),
             Event::Key(_) => todo!(),
         }
     }
@@ -303,5 +316,13 @@ impl UserInterface {
 
     pub fn height(&self) -> u32 {
         self.height as _
+    }
+
+    pub fn handle_mutations(&mut self, elements: &[usize], state: &mut UIState) {
+        for id in elements {
+            let mut build_ctx = BuildCtx::new(*id, state);
+            self.rebuild_element(&mut build_ctx, *id);
+            self.layout_element(*id)
+        }
     }
 }

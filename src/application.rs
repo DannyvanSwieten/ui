@@ -10,8 +10,9 @@ use winit::{
 
 use crate::{
     application_delegate::ApplicationDelegate, canvas::canvas_renderer::CanvasRenderer,
-    event::MouseEvent, gpu::GpuApi, message::Message, mouse_event, point::Point2D,
-    ui_state::UIState, user_interface::UserInterface, window_request::WindowRequest,
+    event::MouseEvent, gpu::GpuApi, message::Message, message_context::MessageCtx, mouse_event,
+    point::Point2D, ui_state::UIState, user_interface::UserInterface,
+    window_request::WindowRequest,
 };
 
 use pollster::block_on;
@@ -35,7 +36,7 @@ impl Application {
 
     fn run(mut self, mut delegate: impl ApplicationDelegate + 'static) {
         delegate.app_will_start(&mut self);
-        let state = delegate.create_ui_state();
+        let mut state = delegate.create_ui_state();
         delegate.app_started(&mut self);
         let event_loop = EventLoop::new();
         let mut windows = HashMap::new();
@@ -44,6 +45,7 @@ impl Application {
         let gpu = block_on(GpuApi::new());
         let mut last_mouse_position = Point2D::new(0.0, 0.0);
         event_loop.run(move |event, event_loop, control_flow| {
+            let mut message_ctx = MessageCtx::default();
             match event {
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
@@ -100,9 +102,10 @@ impl Application {
                                 &last_mouse_position,
                                 &last_mouse_position,
                             );
-                            ui.event(&crate::event::Event::Mouse(MouseEvent::MouseDown(
-                                mouse_event,
-                            )));
+                            ui.event(
+                                &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
+                                &mut message_ctx,
+                            );
                         }
                     }
                     ElementState::Released => {
@@ -112,9 +115,10 @@ impl Application {
                                 &last_mouse_position,
                                 &last_mouse_position,
                             );
-                            ui.event(&crate::event::Event::Mouse(MouseEvent::MouseUp(
-                                mouse_event,
-                            )));
+                            ui.event(
+                                &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
+                                &mut message_ctx,
+                            );
                         }
                     }
                 },
@@ -134,9 +138,10 @@ impl Application {
                             &last_mouse_position,
                             &last_mouse_position,
                         );
-                        ui.event(&crate::event::Event::Mouse(MouseEvent::MouseMove(
-                            mouse_event,
-                        )));
+                        ui.event(
+                            &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
+                            &mut message_ctx,
+                        );
 
                         println!(
                             "Last mouse position: {} - {}",
@@ -162,7 +167,7 @@ impl Application {
                     let mut ui =
                         UserInterface::new(root, request.width as f32, request.height as f32);
                     let instant = Instant::now();
-                    ui.build(&state);
+                    ui.build(&mut state);
                     let instant = Instant::now() - instant;
                     println!("UI Full build took: {} milliseconds", instant.as_millis());
                     user_interfaces.insert(window.id(), ui);
@@ -190,15 +195,23 @@ impl Application {
                 windows.insert(window.id(), window);
             }
 
-            while let Some(message) = self.pending_messages.pop() {
-                delegate.handle_message(message, &state);
+            for message in message_ctx.messages() {
+                self.dispatch(message)
             }
-        });
-    }
 
-    pub fn build_ui(&mut self) {
-        // let build_ctx = self.ui.build(&self.state);
-        // self.state.bind(build_ctx.bindings())
+            let mut dirty_elements = Vec::new();
+            while let Some(message) = self.pending_messages.pop() {
+                if let Some(mutation) = delegate.handle_message(message, &state) {
+                    if let Some(elements) = state.set(&mutation.name, mutation.value) {
+                        dirty_elements.extend(elements.clone())
+                    }
+                }
+            }
+
+            user_interfaces.iter_mut().for_each(|(_, ui)| {
+                ui.handle_mutations(&dirty_elements, &mut state);
+            });
+        });
     }
 
     pub fn request_window(&mut self, request: WindowRequest) {

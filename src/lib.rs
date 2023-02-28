@@ -7,6 +7,7 @@ pub mod event;
 pub mod gpu;
 pub mod layout_ctx;
 pub mod message;
+pub mod message_context;
 pub mod mouse_event;
 pub mod mutation;
 pub mod point;

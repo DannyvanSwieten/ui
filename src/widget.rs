@@ -4,10 +4,10 @@ use crate::{
     constraints::BoxConstraints,
     event::MouseEvent,
     layout_ctx::LayoutCtx,
+    message_context::MessageCtx,
     point::Point2D,
     rect::Rect,
     size::Size2D,
-    ui_state::UIState,
     value::Value,
 };
 
@@ -28,7 +28,7 @@ pub trait Widget {
 
     fn layout(&self, layout_ctx: &mut LayoutCtx, size: Size2D, children: &[usize]) {}
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas2D) {}
-    fn mouse_event(&mut self, event: &MouseEvent) {}
+    fn mouse_event(&mut self, event: &MouseEvent, message_ctx: &mut MessageCtx) {}
 }
 
 pub struct Label {
@@ -62,6 +62,8 @@ impl Widget for Label {
         None
     }
 
+    fn layout(&self, layout_ctx: &mut LayoutCtx, size: Size2D, children: &[usize]) {}
+
     fn calculate_size(
         &self,
         children: &[usize],
@@ -74,7 +76,12 @@ impl Widget for Label {
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas2D) {
         let font = Font::new("Consolas", 34.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
-        canvas.draw_string(paint_ctx.local_bounds(), &self.text, &font, &paint)
+        canvas.draw_string(
+            &Rect::new_from_size(paint_ctx.local_bounds().size()),
+            &self.text,
+            &font,
+            &paint,
+        )
     }
 }
 
@@ -99,12 +106,15 @@ enum ButtonState {
     Hovered,
 }
 
+pub type ClickHandler = Option<Box<dyn Fn(&mut MessageCtx)>>;
+
 pub struct TextButton {
     active_paint: Paint,
     inactive_paint: Paint,
     hover_paint: Paint,
     state: ButtonState,
     text: String,
+    click_handler: ClickHandler,
 }
 
 impl TextButton {
@@ -115,7 +125,16 @@ impl TextButton {
             inactive_paint: Paint::new(Color32f::new_grey(0.05)),
             hover_paint: Paint::new(Color32f::new_grey(0.15)),
             text: text.into(),
+            click_handler: None,
         }
+    }
+
+    pub fn on_click<F>(mut self, click_handler: F) -> Self
+    where
+        F: Fn(&mut MessageCtx) + 'static,
+    {
+        self.click_handler = Some(Box::new(click_handler));
+        self
     }
 }
 
@@ -130,39 +149,53 @@ impl Widget for TextButton {
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
     ) -> Option<Size2D> {
-        Some(Size2D::new(100.0, 100.0))
+        Some(Size2D::new(100.0, 50.0))
     }
 
     fn layout(&self, _: &mut LayoutCtx, _: Size2D, _: &[usize]) {}
 
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas2D) {
         match self.state {
-            ButtonState::Active => {
-                canvas.draw_rounded_rect(paint_ctx.local_bounds(), 4.0, 4.0, &self.active_paint)
-            }
-            ButtonState::Inactive => {
-                canvas.draw_rounded_rect(paint_ctx.local_bounds(), 4.0, 4.0, &self.inactive_paint)
-            }
-            ButtonState::Hovered => {
-                canvas.draw_rounded_rect(paint_ctx.local_bounds(), 4.0, 4.0, &self.hover_paint)
-            }
+            ButtonState::Active => canvas.draw_rounded_rect(
+                &Rect::new_from_size(paint_ctx.local_bounds().size()),
+                4.0,
+                4.0,
+                &self.active_paint,
+            ),
+            ButtonState::Inactive => canvas.draw_rounded_rect(
+                &Rect::new_from_size(paint_ctx.local_bounds().size()),
+                4.0,
+                4.0,
+                &self.inactive_paint,
+            ),
+            ButtonState::Hovered => canvas.draw_rounded_rect(
+                &Rect::new_from_size(paint_ctx.local_bounds().size()),
+                4.0,
+                4.0,
+                &self.hover_paint,
+            ),
         }
 
         let text_paint = Paint::new(Color32f::new_grey(1.0));
         canvas.draw_string(
-            paint_ctx.local_bounds(),
+            &Rect::new_from_size(paint_ctx.local_bounds().size()),
             &self.text,
             &Font::new("Arial", 24.0),
             &text_paint,
         );
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent) {
+    fn mouse_event(&mut self, event: &MouseEvent, message_ctx: &mut MessageCtx) {
         match event {
             MouseEvent::MouseMove(_) => self.state = ButtonState::Hovered,
             MouseEvent::MouseEnter(_) => (),
             MouseEvent::MouseLeave(_) => (),
-            MouseEvent::MouseUp(_) => self.state = ButtonState::Inactive,
+            MouseEvent::MouseUp(_) => {
+                self.state = ButtonState::Inactive;
+                if let Some(handler) = &self.click_handler {
+                    (handler)(message_ctx)
+                }
+            }
             MouseEvent::MouseDown(_) => self.state = ButtonState::Active,
             MouseEvent::MouseDrag(_) => (),
         }
@@ -271,7 +304,10 @@ impl Widget for Row {
         let mut x = 0.0;
         for (id, child_size) in &child_sizes {
             if let Some(child_size) = child_size {
-                layout_ctx.set_child_position(*id, Point2D::new(x, 0.0));
+                layout_ctx.set_child_position(
+                    *id,
+                    Point2D::new(x, size.height / 2.0 - child_size.height / 2.0),
+                );
                 x += child_size.width;
             } else {
                 layout_ctx.set_child_bounds(

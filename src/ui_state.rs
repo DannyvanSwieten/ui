@@ -37,6 +37,14 @@ impl UIState {
             }
         }
     }
+
+    pub fn bind_one(&mut self, id: usize, name: &str) {
+        if !self.dependees.contains_key(name) {
+            self.dependees.insert(name.to_string(), vec![id]);
+        } else {
+            self.dependees.get_mut(name).unwrap().push(id);
+        }
+    }
 }
 
 impl Default for UIState {
