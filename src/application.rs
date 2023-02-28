@@ -3,15 +3,15 @@ use std::{collections::HashMap, time::Instant};
 use wgpu::{CompositeAlphaMode, PresentMode, SurfaceConfiguration, TextureFormat, TextureUsages};
 use winit::{
     dpi::LogicalSize,
-    event::{ElementState, Event, MouseButton, WindowEvent},
+    event::{ElementState, Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{WindowBuilder, WindowId},
 };
 
 use crate::{
     application_delegate::ApplicationDelegate, canvas::canvas_renderer::CanvasRenderer,
-    gpu::GpuApi, message::Message, ui_state::UIState, user_interface::UserInterface,
-    window_request::WindowRequest,
+    event::MouseEvent, gpu::GpuApi, message::Message, mouse_event, point::Point2D,
+    ui_state::UIState, user_interface::UserInterface, window_request::WindowRequest,
 };
 
 use pollster::block_on;
@@ -42,6 +42,7 @@ impl Application {
         let mut user_interfaces: HashMap<WindowId, UserInterface> = HashMap::new();
         let mut canvas_renderers: HashMap<WindowId, CanvasRenderer> = HashMap::new();
         let gpu = block_on(GpuApi::new());
+        let mut last_mouse_position = Point2D::new(0.0, 0.0);
         event_loop.run(move |event, event_loop, control_flow| {
             match event {
                 Event::WindowEvent {
@@ -70,7 +71,7 @@ impl Application {
                         renderer.rebuild(config);
                     }
                     if let Some(ui) = user_interfaces.get_mut(&window_id) {
-                        ui.resize(size.width as _, size.height as _)
+                        ui.resize(size.width as _, size.height as _, &state)
                     }
                 }
                 Event::MainEventsCleared => {
@@ -92,9 +93,57 @@ impl Application {
                     event: WindowEvent::MouseInput { state: s, .. },
                     window_id,
                 } => match s {
-                    ElementState::Pressed => (),
-                    ElementState::Released => (),
+                    ElementState::Pressed => {
+                        if let Some(ui) = user_interfaces.get_mut(&window_id) {
+                            let mouse_event = mouse_event::MouseEvent::new(
+                                0,
+                                &last_mouse_position,
+                                &last_mouse_position,
+                            );
+                            ui.event(&crate::event::Event::Mouse(MouseEvent::MouseDown(
+                                mouse_event,
+                            )));
+                        }
+                    }
+                    ElementState::Released => {
+                        if let Some(ui) = user_interfaces.get_mut(&window_id) {
+                            let mouse_event = mouse_event::MouseEvent::new(
+                                0,
+                                &last_mouse_position,
+                                &last_mouse_position,
+                            );
+                            ui.event(&crate::event::Event::Mouse(MouseEvent::MouseUp(
+                                mouse_event,
+                            )));
+                        }
+                    }
                 },
+                Event::WindowEvent {
+                    event:
+                        WindowEvent::CursorMoved {
+                            device_id: _,
+                            position,
+                            ..
+                        },
+                    window_id,
+                } => {
+                    if let Some(ui) = user_interfaces.get_mut(&window_id) {
+                        last_mouse_position = Point2D::new(position.x as _, position.y as _);
+                        let mouse_event = mouse_event::MouseEvent::new(
+                            0,
+                            &last_mouse_position,
+                            &last_mouse_position,
+                        );
+                        ui.event(&crate::event::Event::Mouse(MouseEvent::MouseMove(
+                            mouse_event,
+                        )));
+
+                        println!(
+                            "Last mouse position: {} - {}",
+                            last_mouse_position.x, last_mouse_position.y
+                        )
+                    }
+                }
                 _ => *control_flow = ControlFlow::Poll,
             }
 

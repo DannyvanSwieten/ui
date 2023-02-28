@@ -1,4 +1,4 @@
-use skia_safe::{ISize, Surface, TextBlob};
+use skia_safe::{ISize, Point, Surface, TextBlob};
 
 use crate::{point::Point2D, rect::Rect, size::Size2D};
 
@@ -148,13 +148,11 @@ impl Canvas2D for SkiaCanvas {
         let rect: skia_safe::Rect = rect.into();
         if let Some(b) = blob {
             let text_bounds = b.bounds();
-            let p = rect.center() - text_bounds.center();
-            // self.surface
-            //     .canvas()
-            //     .draw_str(text, p, &font.into(), &paint.into());
-            self.surface
-                .canvas()
-                .draw_text_blob(&b, (50, 50), &paint.into());
+            let text_bounds =
+                text_bounds.with_offset(Point::new(text_bounds.x().abs(), text_bounds.y() / 2.0));
+            let p = rect.center()
+                - Point::new(text_bounds.center_x() / 2.0, text_bounds.center_y() / 2.0);
+            self.surface.canvas().draw_text_blob(&b, p, &paint.into());
         }
     }
 

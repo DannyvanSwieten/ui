@@ -1,5 +1,5 @@
 use crate::{point::Point2D, size::Size2D};
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Rect {
     left: f32,
     right: f32,
@@ -12,8 +12,8 @@ impl Rect {
         Self {
             left: position.x,
             top: position.y,
-            right: size.width,
-            bottom: size.height,
+            right: position.x + size.width,
+            bottom: position.y + size.height,
         }
     }
 
@@ -24,6 +24,14 @@ impl Rect {
             right: size.width,
             bottom: size.height,
         }
+    }
+
+    pub fn set_position(&mut self, position: Point2D) {
+        let size = self.size();
+        self.left = position.x;
+        self.right = position.x + size.width;
+        self.top = position.y;
+        self.bottom = position.y + size.height;
     }
 
     pub fn position(&self) -> Point2D {

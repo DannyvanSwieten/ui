@@ -20,3 +20,14 @@ impl std::ops::Sub<Point2D> for Point2D {
         }
     }
 }
+
+impl std::ops::Add<Point2D> for Point2D {
+    type Output = Self;
+
+    fn add(self, rhs: Point2D) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}

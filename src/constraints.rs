@@ -1,3 +1,5 @@
+use crate::size::Size2D;
+
 #[derive(Default)]
 pub struct BoxConstraints {
     min_width: Option<f32>,
@@ -88,5 +90,12 @@ impl BoxConstraints {
 
     pub fn has_max(&self) -> bool {
         self.max_width.is_some() && self.max_height.is_some()
+    }
+
+    pub fn max_size(&self) -> Size2D {
+        Size2D::new(
+            self.max_width.unwrap_or(0.0),
+            self.max_height.unwrap_or(0.0),
+        )
     }
 }

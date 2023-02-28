@@ -5,7 +5,7 @@ use ui::{
     mutation::Mutation,
     ui_state::UIState,
     value::{Value, Var},
-    widget::{Center, Label},
+    widget::{Center, Label, Row, TextButton},
     window_request::WindowRequest,
 };
 
@@ -23,7 +23,12 @@ impl ApplicationDelegate for AppDelegate {
                 .with_title("Label Example")
                 .with_ui(|_| {
                     Box::new(Center::new(|| {
-                        Box::new(Label::new(Value::Binding("hello".to_string())))
+                        Box::new(Row::new(|| {
+                            Some(vec![
+                                Box::new(TextButton::new("Hello World")),
+                                Box::new(Label::new(Value::Binding("hello".into()))),
+                            ])
+                        }))
                     }))
                 }),
         );

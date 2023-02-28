@@ -4,10 +4,12 @@ use crate::{
     build_context::BuildCtx,
     canvas::{
         color::{Color, Color32f},
+        paint_ctx::PaintCtx,
         skia_cpu_canvas::SkiaCanvas,
         Canvas2D,
     },
     constraints::BoxConstraints,
+    event::{Event, MouseEvent},
     layout_ctx::LayoutCtx,
     point::Point2D,
     rect::Rect,
@@ -19,7 +21,8 @@ use crate::{
 pub struct Element {
     widget: Box<dyn Widget>,
     children: Vec<usize>,
-    bounds: Rect,
+    local_bounds: Rect,
+    global_bounds: Rect,
 }
 
 impl Element {
@@ -27,7 +30,8 @@ impl Element {
         Self {
             widget: Box::new(widget),
             children: Vec::new(),
-            bounds: Rect::default(),
+            local_bounds: Rect::default(),
+            global_bounds: Rect::default(),
         }
     }
 
@@ -35,7 +39,8 @@ impl Element {
         Self {
             widget,
             children: Vec::new(),
-            bounds: Rect::default(),
+            local_bounds: Rect::default(),
+            global_bounds: Rect::default(),
         }
     }
     pub fn add_child(&mut self, id: usize) {
@@ -46,25 +51,33 @@ impl Element {
         self.children.extend(ids)
     }
 
-    pub fn set_bounds(&mut self, bounds: Rect) {
-        self.bounds = bounds;
+    pub fn set_local_bounds(&mut self, bounds: &Rect) {
+        self.local_bounds = *bounds
+    }
+
+    pub fn set_global_bounds(&mut self, bounds: &Rect) {
+        self.global_bounds = *bounds
     }
 
     pub fn children(&self) -> &[usize] {
         &self.children
     }
 
+    pub fn children_copy(&self) -> Vec<usize> {
+        self.children.clone()
+    }
+
     pub fn calculate_size(
         &self,
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
-    ) -> Option<(f32, f32)> {
+    ) -> Option<Size2D> {
         self.widget
             .calculate_size(&self.children, constraints, layout_ctx)
     }
 
     pub fn hit_test(&self, point: &Point2D) -> bool {
-        self.bounds.hit_test(point)
+        self.global_bounds.hit_test(point)
     }
 }
 
@@ -90,16 +103,33 @@ impl UserInterface {
         };
 
         let root_id = this.add_box_element(root);
-        this.elements.get_mut(&root_id).unwrap().bounds =
+        this.elements.get_mut(&root_id).unwrap().local_bounds =
+            Rect::new_from_size(Size2D::new(width, height));
+        this.elements.get_mut(&root_id).unwrap().global_bounds =
             Rect::new_from_size(Size2D::new(width, height));
         this.root_id = root_id;
         this
     }
 
-    pub fn resize(&mut self, width: f32, height: f32) {
+    pub fn resize(&mut self, width: f32, height: f32, state: &UIState) {
         self.width = width;
         self.height = height;
+        self.elements
+            .get_mut(&self.root_id)
+            .unwrap()
+            .set_local_bounds(&Rect::new(
+                Point2D::new(0.0, 0.0),
+                Size2D::new(width, height),
+            ));
+        self.elements
+            .get_mut(&self.root_id)
+            .unwrap()
+            .set_global_bounds(&Rect::new(
+                Point2D::new(0.0, 0.0),
+                Size2D::new(width, height),
+            ));
         self.canvas = Box::new(SkiaCanvas::new(width as _, height as _));
+        self.layout(state)
     }
 
     fn next_id(&mut self) -> usize {
@@ -133,7 +163,7 @@ impl UserInterface {
         id: usize,
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
-    ) -> Option<(f32, f32)> {
+    ) -> Option<Size2D> {
         if let Some(element) = self.elements.get(&id) {
             element.calculate_size(constraints, layout_ctx)
         } else {
@@ -162,31 +192,58 @@ impl UserInterface {
     }
 
     pub fn layout(&mut self, state: &UIState) {
-        let mut layout_ctx = LayoutCtx::new(self);
-        self.layout_element(&mut layout_ctx, self.root_id);
-        for (id, bounds) in layout_ctx.bounds() {
-            if let Some(element) = self.elements.get_mut(&id) {
-                element.set_bounds(bounds);
-            }
-        }
+        self.layout_element(self.root_id);
     }
 
-    pub fn layout_element(&self, layout_ctx: &mut LayoutCtx, id: usize) {
-        if let Some(element) = self.elements.get(&id) {
-            element
-                .widget
-                .layout(layout_ctx, element.bounds.size(), &element.children);
+    pub fn layout_element(&mut self, id: usize) {
+        let mut layout_ctx = LayoutCtx::new(self);
+        let children = if let Some(element) = self.elements.get(&id) {
+            element.widget.layout(
+                &mut layout_ctx,
+                element.local_bounds.size(),
+                &element.children,
+            );
+            Some(element.children_copy())
+        } else {
+            None
+        };
 
-            for child in element.children() {
-                self.layout_element(layout_ctx, *child)
+        let child_local_bounds = layout_ctx.bounds();
+        let mut child_global_bounds = HashMap::new();
+        if let Some(element) = self.elements.get(&id) {
+            for (id, rect) in &child_local_bounds {
+                let mut global_bounds = *rect;
+                global_bounds.set_position(element.global_bounds.position() + rect.position());
+                child_global_bounds.insert(*id, global_bounds);
+            }
+        }
+
+        for (id, bounds) in &child_local_bounds {
+            if let Some(element) = self.elements.get_mut(id) {
+                element.set_local_bounds(bounds);
+            }
+        }
+
+        for (id, bounds) in &child_global_bounds {
+            if let Some(element) = self.elements.get_mut(id) {
+                element.set_global_bounds(bounds);
+            }
+        }
+
+        if let Some(children) = children {
+            for child in children {
+                self.layout_element(child)
             }
         }
     }
 
     fn paint_element(&mut self, id: usize) {
         let children = if let Some(element) = self.elements.get_mut(&id) {
-            element.widget.paint(&element.bounds, self.canvas.as_mut());
-            Some(element.children.clone())
+            let paint_ctx = PaintCtx::new(&element.global_bounds, &element.local_bounds);
+            self.canvas.save();
+            self.canvas.translate(&element.global_bounds.position());
+            element.widget.paint(&paint_ctx, self.canvas.as_mut());
+            Some(element.children_copy())
         } else {
             None
         };
@@ -196,11 +253,44 @@ impl UserInterface {
                 self.paint_element(child);
             }
         }
+
+        self.canvas.restore()
     }
 
     pub fn paint(&mut self) {
         self.canvas.clear(&Color::from(Color32f::new_grey(0.0)));
         self.paint_element(self.root_id)
+    }
+
+    fn hit_test(&self, id: usize, position: &Point2D, hit: &mut Option<usize>) {
+        if let Some(element) = self.elements.get(&id) {
+            if element.hit_test(position) {
+                *hit = Some(id);
+                for child in element.children() {
+                    self.hit_test(*child, position, hit)
+                }
+            }
+        }
+    }
+
+    fn mouse_event(&mut self, event: &MouseEvent) {
+        let mut hit = None;
+        self.hit_test(self.root_id, event.local_position(), &mut hit);
+        println!("Hit element: {}", hit.unwrap_or(0));
+        if let Some(hit) = hit {
+            if let Some(element) = self.elements.get_mut(&hit) {
+                element
+                    .widget
+                    .mouse_event(&event.to_local(&element.global_bounds.position()))
+            }
+        }
+    }
+
+    pub fn event(&mut self, event: &Event) {
+        match event {
+            Event::Mouse(mouse_event) => self.mouse_event(mouse_event),
+            Event::Key(_) => todo!(),
+        }
     }
 
     pub fn pixels(&mut self) -> Option<&[u8]> {

@@ -1,5 +1,6 @@
 use super::color::Color;
 
+#[derive(Default)]
 pub struct Paint {
     color: Color,
 }

@@ -6,6 +6,7 @@ pub mod canvas_renderer;
 pub mod color;
 pub mod font;
 pub mod paint;
+pub mod paint_ctx;
 pub mod skia_cpu_canvas;
 pub trait Canvas2D {
     fn clear(&mut self, color: &Color);

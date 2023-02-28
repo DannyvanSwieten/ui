@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{constraints::BoxConstraints, rect::Rect, user_interface::UserInterface};
+use crate::{
+    constraints::BoxConstraints, point::Point2D, rect::Rect, size::Size2D,
+    user_interface::UserInterface,
+};
 
 pub struct LayoutCtx<'a> {
     user_interface: &'a UserInterface,
@@ -24,12 +27,21 @@ impl<'a> LayoutCtx<'a> {
         id: usize,
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
-    ) -> Option<(f32, f32)> {
+    ) -> Option<Size2D> {
         self.user_interface
             .calculate_element_size(id, constraints, layout_ctx)
     }
 
-    pub fn set_child_rect(&mut self, id: usize, rect: Rect) {
+    pub fn set_child_bounds(&mut self, id: usize, rect: Rect) {
         self.bounds.insert(id, rect);
+    }
+
+    pub fn set_child_position(&mut self, id: usize, position: Point2D) {
+        if let Some(bounds) = self.bounds.get_mut(&id) {
+            bounds.set_position(position);
+        } else {
+            self.bounds
+                .insert(id, Rect::new(position, Size2D::new(0.0, 0.0)));
+        }
     }
 }
