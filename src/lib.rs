@@ -4,6 +4,7 @@ pub mod build_context;
 pub mod canvas;
 pub mod constraints;
 pub mod event;
+pub mod event_context;
 pub mod gpu;
 pub mod layout_ctx;
 pub mod message;

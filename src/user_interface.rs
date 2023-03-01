@@ -10,6 +10,7 @@ use crate::{
     },
     constraints::BoxConstraints,
     event::{Event, MouseEvent},
+    event_context::EventCtx,
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     point::Point2D,
@@ -89,6 +90,7 @@ pub struct UserInterface {
     width: f32,
     height: f32,
     canvas: Box<dyn Canvas2D>,
+    drag_source: Option<usize>,
 }
 
 impl UserInterface {
@@ -101,6 +103,7 @@ impl UserInterface {
             width,
             height,
             canvas,
+            drag_source: None,
         };
 
         let root_id = this.add_box_element(root);
@@ -290,10 +293,10 @@ impl UserInterface {
         println!("Hit element: {}", hit.unwrap_or(0));
         if let Some(hit) = hit {
             if let Some(element) = self.elements.get_mut(&hit) {
-                element.widget.mouse_event(
-                    &event.to_local(&element.global_bounds.position()),
-                    message_ctx,
-                )
+                let local_event = event.to_local(&element.global_bounds.position());
+                let mut event_ctx = EventCtx::new(hit, Some(&local_event));
+                element.widget.mouse_event(&mut event_ctx, message_ctx);
+                self.drag_source = event_ctx.drag_source()
             }
         }
 

@@ -3,17 +3,14 @@ use crate::{
     rect::Rect, size::Size2D,
 };
 
-use super::{Children, Widget};
+use super::{Child, Children, Widget};
 
 pub struct Center {
-    child: Box<dyn Fn() -> Box<dyn Widget>>,
+    child: Child,
 }
 
 impl Center {
-    pub fn new<C>(child: C) -> Self
-    where
-        C: Fn() -> Box<dyn Widget> + 'static,
-    {
+    pub fn new<C>(child: Child) -> Self {
         Self {
             child: Box::new(child),
         }

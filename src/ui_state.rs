@@ -30,7 +30,7 @@ impl UIState {
     }
 
     pub fn set(&mut self, name: &str, value: Var) {
-        self.values.insert(name.to_string(), value.clone());
+        self.values.insert(name.to_string(), value);
         if let Some(dependees) = self.dependees.get(name) {
             self.updates.extend_from_slice(dependees);
         }

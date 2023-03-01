@@ -3,6 +3,7 @@ use crate::{
     canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas2D},
     constraints::BoxConstraints,
     event::MouseEvent,
+    event_context::EventCtx,
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     rect::Rect,
@@ -96,8 +97,8 @@ impl Widget for TextButton {
         );
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent, message_ctx: &mut MessageCtx) {
-        match event {
+    fn mouse_event(&mut self, event_ctx: &mut EventCtx, message_ctx: &mut MessageCtx) {
+        match event_ctx.mouse_event() {
             MouseEvent::MouseMove(_) => self.state = ButtonState::Hovered,
             MouseEvent::MouseEnter(_) => (),
             MouseEvent::MouseLeave(_) => (),

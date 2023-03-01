@@ -3,16 +3,19 @@ use crate::{
     canvas::{paint_ctx::PaintCtx, Canvas2D},
     constraints::BoxConstraints,
     event::MouseEvent,
+    event_context::EventCtx,
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     size::Size2D,
 };
 
 pub mod center;
+pub mod drag_source;
 pub mod flex;
 pub mod label;
 pub mod text_button;
 
+type Child = Box<dyn Fn() -> Box<dyn Widget>>;
 type Children = Option<Vec<Box<dyn Widget>>>;
 
 pub trait Widget {
@@ -30,5 +33,5 @@ pub trait Widget {
 
     fn layout(&self, _layout_ctx: &mut LayoutCtx, _size: Size2D, _children: &[usize]) {}
     fn paint(&self, _paint_ctx: &PaintCtx, _canvas: &mut dyn Canvas2D) {}
-    fn mouse_event(&mut self, _event: &MouseEvent, _message_ctx: &mut MessageCtx) {}
+    fn mouse_event(&mut self, _event_ctx: &mut EventCtx, _message_ctx: &mut MessageCtx) {}
 }
