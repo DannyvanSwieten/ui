@@ -38,7 +38,7 @@ impl Widget for DragSource {
     fn mouse_event(
         &mut self,
         event_ctx: &mut EventCtx,
-        message_ctx: &mut crate::message_context::MessageCtx,
+        _message_ctx: &mut crate::message_context::MessageCtx,
     ) {
         if let crate::event::MouseEvent::MouseDragStart(_mouse_event) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
