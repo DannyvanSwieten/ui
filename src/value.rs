@@ -1,8 +1,9 @@
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum Var {
     Real(f32),
     Integer(i32),
-    String(&'static str),
+    StringLiteral(&'static str),
+    String(String),
 }
 
 pub enum Value {
@@ -15,7 +16,8 @@ impl ToString for Var {
         match self {
             Var::Real(r) => r.to_string(),
             Var::Integer(i) => i.to_string(),
-            Var::String(s) => s.to_string(),
+            Var::String(s) => s.clone(),
+            Var::StringLiteral(s) => s.to_string(),
         }
     }
 }

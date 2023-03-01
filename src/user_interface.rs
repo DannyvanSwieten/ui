@@ -284,7 +284,7 @@ impl UserInterface {
         }
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent, message_ctx: &mut MessageCtx) {
+    fn mouse_event(&mut self, event: &MouseEvent, message_ctx: &mut MessageCtx) -> Option<usize> {
         let mut hit = None;
         self.hit_test(self.root_id, event.local_position(), &mut hit);
         println!("Hit element: {}", hit.unwrap_or(0));
@@ -296,9 +296,11 @@ impl UserInterface {
                 )
             }
         }
+
+        hit
     }
 
-    pub fn event(&mut self, event: &Event, message_ctx: &mut MessageCtx) {
+    pub fn event(&mut self, event: &Event, message_ctx: &mut MessageCtx) -> Option<usize> {
         match event {
             Event::Mouse(mouse_event) => self.mouse_event(mouse_event, message_ctx),
             Event::Key(_) => todo!(),
@@ -317,11 +319,14 @@ impl UserInterface {
         self.height as _
     }
 
-    pub fn handle_mutations(&mut self, elements: &[usize], state: &mut UIState) {
-        for id in elements {
-            let mut build_ctx = BuildCtx::new(*id, state);
-            self.rebuild_element(&mut build_ctx, *id);
-            self.layout_element(*id)
+    pub fn handle_mutations(&mut self, state: &mut UIState) {
+        let updates = state.updates().to_vec();
+        for id in updates {
+            let mut build_ctx = BuildCtx::new(id, state);
+            self.rebuild_element(&mut build_ctx, id);
+            self.layout_element(id)
         }
+
+        state.clear_updates()
     }
 }

@@ -12,6 +12,8 @@ pub enum MouseEvent {
     MouseUp(super::mouse_event::MouseEvent),
     MouseDown(super::mouse_event::MouseEvent),
     MouseDrag(super::mouse_event::MouseEvent),
+    MouseDragStart(super::mouse_event::MouseEvent),
+    MouseDragEnd(super::mouse_event::MouseEvent),
 }
 
 impl MouseEvent {
@@ -23,6 +25,8 @@ impl MouseEvent {
             Self::MouseUp(event) => event.local_position(),
             Self::MouseDown(event) => event.local_position(),
             Self::MouseDrag(event) => event.local_position(),
+            Self::MouseDragStart(event) => event.local_position(),
+            Self::MouseDragEnd(event) => event.local_position(),
         }
     }
 
@@ -34,6 +38,8 @@ impl MouseEvent {
             Self::MouseUp(event) => Self::MouseUp(event.to_local(position)),
             Self::MouseDown(event) => Self::MouseDown(event.to_local(position)),
             Self::MouseDrag(event) => Self::MouseDrag(event.to_local(position)),
+            Self::MouseDragStart(event) => Self::MouseDrag(event.to_local(position)),
+            Self::MouseDragEnd(event) => Self::MouseDrag(event.to_local(position)),
         }
     }
 }

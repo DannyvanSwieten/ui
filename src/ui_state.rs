@@ -5,6 +5,7 @@ use crate::value::Var;
 pub struct UIState {
     values: HashMap<String, Var>,
     dependees: HashMap<String, Vec<usize>>,
+    updates: Vec<usize>,
 }
 
 impl UIState {
@@ -12,16 +13,27 @@ impl UIState {
         Self {
             values: HashMap::new(),
             dependees: HashMap::new(),
+            updates: Vec::new(),
         }
+    }
+
+    pub fn clear_updates(&mut self) {
+        self.updates.clear()
+    }
+
+    pub fn updates(&self) -> &[usize] {
+        &self.updates
     }
 
     pub fn register(&mut self, name: &str, default_value: Var) {
         self.values.insert(name.to_string(), default_value);
     }
 
-    pub fn set(&mut self, name: &str, value: Var) -> Option<&Vec<usize>> {
-        self.values.insert(name.to_string(), value);
-        self.dependees.get(name)
+    pub fn set(&mut self, name: &str, value: Var) {
+        self.values.insert(name.to_string(), value.clone());
+        if let Some(dependees) = self.dependees.get(name) {
+            self.updates.extend_from_slice(dependees);
+        }
     }
 
     pub fn get(&self, name: &str) -> Option<&Var> {

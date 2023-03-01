@@ -44,6 +44,10 @@ impl Application {
         let mut canvas_renderers: HashMap<WindowId, CanvasRenderer> = HashMap::new();
         let gpu = block_on(GpuApi::new());
         let mut last_mouse_position = Point2D::new(0.0, 0.0);
+        let mut mouse_down_states = HashMap::new();
+        let mut mouse_down_id = None;
+        let mut mouse_move_id = None;
+        let mut drag_start = None;
         event_loop.run(move |event, event_loop, control_flow| {
             let mut message_ctx = MessageCtx::default();
             match event {
@@ -102,10 +106,11 @@ impl Application {
                                 &last_mouse_position,
                                 &last_mouse_position,
                             );
-                            ui.event(
+                            mouse_down_id = ui.event(
                                 &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
                                 &mut message_ctx,
                             );
+                            mouse_down_states.insert(window_id, true);
                         }
                     }
                     ElementState::Released => {
@@ -115,10 +120,24 @@ impl Application {
                                 &last_mouse_position,
                                 &last_mouse_position,
                             );
+
+                            if drag_start.is_some() {
+                                ui.event(
+                                    &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(
+                                        mouse_event,
+                                    )),
+                                    &mut message_ctx,
+                                );
+
+                                drag_start = None
+                            }
+
                             ui.event(
                                 &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
                                 &mut message_ctx,
                             );
+                            mouse_down_id = None;
+                            mouse_down_states.insert(window_id, false);
                         }
                     }
                 },
@@ -138,10 +157,31 @@ impl Application {
                             &last_mouse_position,
                             &last_mouse_position,
                         );
-                        ui.event(
+                        mouse_move_id = ui.event(
                             &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
                             &mut message_ctx,
                         );
+
+                        if let Some(mouse_down) = mouse_down_states.get(&window_id) {
+                            if *mouse_down {
+                                if drag_start.is_none() {
+                                    drag_start = Some(last_mouse_position);
+                                    ui.event(
+                                        &crate::event::Event::Mouse(MouseEvent::MouseDragStart(
+                                            mouse_event,
+                                        )),
+                                        &mut message_ctx,
+                                    );
+                                } else {
+                                    ui.event(
+                                        &crate::event::Event::Mouse(MouseEvent::MouseDrag(
+                                            mouse_event,
+                                        )),
+                                        &mut message_ctx,
+                                    );
+                                }
+                            }
+                        }
 
                         println!(
                             "Last mouse position: {} - {}",
@@ -199,17 +239,12 @@ impl Application {
                 self.dispatch(message)
             }
 
-            let mut dirty_elements = Vec::new();
             while let Some(message) = self.pending_messages.pop() {
-                if let Some(mutation) = delegate.handle_message(message, &state) {
-                    if let Some(elements) = state.set(&mutation.name, mutation.value) {
-                        dirty_elements.extend(elements.clone())
-                    }
-                }
+                delegate.handle_message(message, &mut state);
             }
 
             user_interfaces.iter_mut().for_each(|(_, ui)| {
-                ui.handle_mutations(&dirty_elements, &mut state);
+                ui.handle_mutations(&mut state);
             });
         });
     }

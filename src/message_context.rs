@@ -1,4 +1,4 @@
-use crate::{message::Message, value::Var};
+use crate::message::Message;
 
 #[derive(Default)]
 pub struct MessageCtx {
@@ -6,11 +6,8 @@ pub struct MessageCtx {
 }
 
 impl MessageCtx {
-    pub fn dispatch(&mut self, target: &str, args: Vec<Var>) {
-        self.messages.push(Message {
-            target: target.into(),
-            args,
-        })
+    pub fn dispatch(&mut self, message: Message) {
+        self.messages.push(message)
     }
 
     pub fn messages(self) -> Vec<Message> {
