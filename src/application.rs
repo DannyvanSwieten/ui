@@ -45,8 +45,6 @@ impl Application {
         let gpu = block_on(GpuApi::new());
         let mut last_mouse_position = Point2D::new(0.0, 0.0);
         let mut mouse_down_states = HashMap::new();
-        let mut mouse_down_id = None;
-        let mut mouse_move_id = None;
         let mut drag_start = None;
         event_loop.run(move |event, event_loop, control_flow| {
             let mut message_ctx = MessageCtx::default();
@@ -106,7 +104,7 @@ impl Application {
                                 &last_mouse_position,
                                 &last_mouse_position,
                             );
-                            mouse_down_id = ui.event(
+                            ui.event(
                                 &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
                                 &mut message_ctx,
                             );
@@ -136,7 +134,6 @@ impl Application {
                                 &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
                                 &mut message_ctx,
                             );
-                            mouse_down_id = None;
                             mouse_down_states.insert(window_id, false);
                         }
                     }
@@ -151,21 +148,12 @@ impl Application {
                     window_id,
                 } => {
                     if let Some(ui) = user_interfaces.get_mut(&window_id) {
-                        last_mouse_position = Point2D::new(position.x as _, position.y as _);
-                        let mouse_event = mouse_event::MouseEvent::new(
-                            0,
-                            &last_mouse_position,
-                            &last_mouse_position,
-                        );
-                        mouse_move_id = ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
-                            &mut message_ctx,
-                        );
-
+                        let position = Point2D::new(position.x as _, position.y as _);
+                        let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
                         if let Some(mouse_down) = mouse_down_states.get(&window_id) {
                             if *mouse_down {
                                 if drag_start.is_none() {
-                                    drag_start = Some(last_mouse_position);
+                                    drag_start = Some(position);
                                     ui.event(
                                         &crate::event::Event::Mouse(MouseEvent::MouseDragStart(
                                             mouse_event,
@@ -173,6 +161,11 @@ impl Application {
                                         &mut message_ctx,
                                     );
                                 } else {
+                                    mouse_event = mouse_event
+                                        .with_delta(
+                                            *mouse_event.global_position() - last_mouse_position,
+                                        )
+                                        .with_drag_start(drag_start);
                                     ui.event(
                                         &crate::event::Event::Mouse(MouseEvent::MouseDrag(
                                             mouse_event,
@@ -181,13 +174,14 @@ impl Application {
                                     );
                                 }
                             }
+                        } else {
+                            ui.event(
+                                &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
+                                &mut message_ctx,
+                            );
                         }
-
-                        println!(
-                            "Last mouse position: {} - {}",
-                            last_mouse_position.x, last_mouse_position.y
-                        )
                     }
+                    last_mouse_position = Point2D::new(position.x as _, position.y as _);
                 }
                 _ => *control_flow = ControlFlow::Poll,
             }

@@ -10,7 +10,10 @@ pub struct Center {
 }
 
 impl Center {
-    pub fn new<C>(child: Child) -> Self {
+    pub fn new<C>(child: C) -> Self
+    where
+        C: Fn() -> Box<dyn Widget> + 'static,
+    {
         Self {
             child: Box::new(child),
         }

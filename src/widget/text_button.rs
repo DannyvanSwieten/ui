@@ -99,19 +99,33 @@ impl Widget for TextButton {
 
     fn mouse_event(&mut self, event_ctx: &mut EventCtx, message_ctx: &mut MessageCtx) {
         match event_ctx.mouse_event() {
-            MouseEvent::MouseMove(_) => self.state = ButtonState::Hovered,
-            MouseEvent::MouseEnter(_) => (),
-            MouseEvent::MouseLeave(_) => (),
+            MouseEvent::MouseMove(_) => event_ctx.set_state(|state| {
+                if let Some(state) = state.downcast_mut::<ButtonState>() {
+                    *state = ButtonState::Hovered;
+                }
+            }),
+            MouseEvent::MouseDown(_) => event_ctx.set_state(|state| {
+                if let Some(state) = state.downcast_mut::<ButtonState>() {
+                    *state = ButtonState::Active;
+                }
+            }),
             MouseEvent::MouseUp(_) => {
                 self.state = ButtonState::Inactive;
                 if let Some(handler) = &self.click_handler {
                     (handler)(message_ctx)
                 }
+
+                event_ctx.set_state(|state| {
+                    if let Some(state) = state.downcast_mut::<ButtonState>() {
+                        *state = ButtonState::Active;
+                    }
+                })
             }
-            MouseEvent::MouseDown(_) => self.state = ButtonState::Active,
-            MouseEvent::MouseDrag(_) => (),
-            MouseEvent::MouseDragStart(_) => (),
-            MouseEvent::MouseDragEnd(_) => (),
+            _ => (),
         }
+    }
+
+    fn state(&self) -> Option<Box<dyn std::any::Any>> {
+        Some(Box::new(ButtonState::Inactive))
     }
 }

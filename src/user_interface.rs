@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 use crate::{
     build_context::BuildCtx,
@@ -22,6 +22,7 @@ use crate::{
 
 pub struct Element {
     widget: Box<dyn Widget>,
+    widget_state: Option<Box<dyn Any>>,
     children: Vec<usize>,
     local_bounds: Rect,
     global_bounds: Rect,
@@ -29,20 +30,24 @@ pub struct Element {
 
 impl Element {
     pub fn new<W: Widget + 'static>(widget: W) -> Self {
+        let widget_state = widget.state();
         Self {
             widget: Box::new(widget),
             children: Vec::new(),
             local_bounds: Rect::default(),
             global_bounds: Rect::default(),
+            widget_state,
         }
     }
 
     pub fn new_box(widget: Box<dyn Widget>) -> Self {
+        let widget_state = widget.state();
         Self {
             widget,
             children: Vec::new(),
             local_bounds: Rect::default(),
             global_bounds: Rect::default(),
+            widget_state,
         }
     }
     pub fn add_child(&mut self, id: usize) {
@@ -91,6 +96,7 @@ pub struct UserInterface {
     height: f32,
     canvas: Box<dyn Canvas2D>,
     drag_source: Option<usize>,
+    drag_source_offset: Option<Point2D>,
 }
 
 impl UserInterface {
@@ -104,6 +110,7 @@ impl UserInterface {
             height,
             canvas,
             drag_source: None,
+            drag_source_offset: None,
         };
 
         let root_id = this.add_box_element(root);
@@ -251,11 +258,16 @@ impl UserInterface {
         }
     }
 
-    fn paint_element(&mut self, id: usize) {
+    fn paint_element(&mut self, id: usize, offset: Option<Point2D>) {
         let children = if let Some(element) = self.elements.get_mut(&id) {
-            let paint_ctx = PaintCtx::new(&element.global_bounds, &element.local_bounds);
+            let mut global_bounds = element.global_bounds;
+            global_bounds = global_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
+            let mut local_bounds = element.local_bounds;
+            local_bounds = local_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
+
+            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds);
             self.canvas.save();
-            self.canvas.translate(&element.local_bounds.position());
+            self.canvas.translate(&local_bounds.position());
             element.widget.paint(&paint_ctx, self.canvas.as_mut());
             Some(element.children_copy())
         } else {
@@ -264,7 +276,7 @@ impl UserInterface {
 
         if let Some(children) = children {
             for child in children {
-                self.paint_element(child);
+                self.paint_element(child, offset);
             }
         }
 
@@ -273,31 +285,96 @@ impl UserInterface {
 
     pub fn paint(&mut self) {
         self.canvas.clear(&Color::from(Color32f::new_grey(0.0)));
-        self.paint_element(self.root_id)
+        self.paint_element(self.root_id, None);
+        if let Some(drag_source) = self.drag_source {
+            self.paint_element(drag_source, self.drag_source_offset)
+        }
     }
 
-    fn hit_test(&self, id: usize, position: &Point2D, hit: &mut Option<usize>) {
+    pub fn set_drag_source_position(&mut self, pos: Point2D) {
+        self.drag_source_offset = Some(pos)
+    }
+
+    pub fn update_drag_source_position(&mut self, offset: Option<Point2D>) {
+        self.drag_source_offset = offset;
+    }
+
+    fn hit_test(
+        &self,
+        id: usize,
+        position: &Point2D,
+        intercepted: &mut Vec<usize>,
+        hit: &mut Option<usize>,
+    ) {
         if let Some(element) = self.elements.get(&id) {
             if element.hit_test(position) {
-                *hit = Some(id);
+                if element.widget.intercept_mouse_events() {
+                    intercepted.push(id);
+                } else {
+                    *hit = Some(id);
+                }
+
                 for child in element.children() {
-                    self.hit_test(*child, position, hit)
+                    self.hit_test(*child, position, intercepted, hit)
                 }
             }
         }
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, message_ctx: &mut MessageCtx) -> Option<usize> {
+        let mut intercepted = Vec::new();
         let mut hit = None;
-        self.hit_test(self.root_id, event.local_position(), &mut hit);
-        println!("Hit element: {}", hit.unwrap_or(0));
+        self.hit_test(
+            self.root_id,
+            event.local_position(),
+            &mut intercepted,
+            &mut hit,
+        );
         if let Some(hit) = hit {
             if let Some(element) = self.elements.get_mut(&hit) {
                 let local_event = event.to_local(&element.global_bounds.position());
                 let mut event_ctx = EventCtx::new(hit, Some(&local_event));
                 element.widget.mouse_event(&mut event_ctx, message_ctx);
-                self.drag_source = event_ctx.drag_source()
+                if self.drag_source.is_none() {
+                    self.drag_source = event_ctx.drag_source()
+                }
+                if let Some(set_state) = event_ctx.state_mut() {
+                    if let Some(state) = &mut element.widget_state {
+                        (set_state)(state.as_mut())
+                    }
+
+                    self.layout_element(hit)
+                }
             }
+        }
+
+        for intercept in intercepted {
+            if let Some(element) = self.elements.get_mut(&intercept) {
+                let local_event = event.to_local(&element.global_bounds.position());
+                let mut event_ctx = EventCtx::new(intercept, Some(&local_event));
+                element.widget.mouse_event(&mut event_ctx, message_ctx);
+                if self.drag_source.is_none() {
+                    self.drag_source = event_ctx.drag_source()
+                }
+                if let Some(set_state) = event_ctx.state_mut() {
+                    if let Some(state) = &mut element.widget_state {
+                        (set_state)(state.as_mut())
+                    }
+
+                    self.layout_element(intercept)
+                }
+            }
+        }
+
+        if let MouseEvent::MouseDrag(drag_event) = event {
+            if self.drag_source.is_some() {
+                self.update_drag_source_position(drag_event.offset_to_drag_start())
+            }
+        }
+
+        if let MouseEvent::MouseUp(_) = event {
+            self.drag_source = None;
+            self.drag_source_offset = None;
         }
 
         hit

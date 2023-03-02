@@ -38,8 +38,8 @@ impl MouseEvent {
             Self::MouseUp(event) => Self::MouseUp(event.to_local(position)),
             Self::MouseDown(event) => Self::MouseDown(event.to_local(position)),
             Self::MouseDrag(event) => Self::MouseDrag(event.to_local(position)),
-            Self::MouseDragStart(event) => Self::MouseDrag(event.to_local(position)),
-            Self::MouseDragEnd(event) => Self::MouseDrag(event.to_local(position)),
+            Self::MouseDragStart(event) => Self::MouseDragStart(event.to_local(position)),
+            Self::MouseDragEnd(event) => Self::MouseDragEnd(event.to_local(position)),
         }
     }
 }

@@ -15,6 +15,7 @@ pub struct MouseEvent {
     global_position: Point2D,
     local_position: Point2D,
     delta_position: Point2D,
+    drag_start: Option<Point2D>,
 }
 
 impl MouseEvent {
@@ -24,6 +25,7 @@ impl MouseEvent {
             global_position: *global_position,
             local_position: *local_position,
             delta_position: Point2D::new(0., 0.),
+            drag_start: None,
         }
     }
 
@@ -44,7 +46,28 @@ impl MouseEvent {
             global_position: *global_position,
             local_position: *local_position,
             delta_position: *delta_position,
+            drag_start: None,
         }
+    }
+
+    pub fn with_delta(mut self, delta: Point2D) -> Self {
+        self.delta_position = delta;
+        self
+    }
+
+    pub fn with_drag_start(mut self, start: Option<Point2D>) -> Self {
+        self.drag_start = start;
+        self
+    }
+
+    pub fn offset_to_drag_start(&self) -> Option<Point2D> {
+        self.drag_start
+            .as_ref()
+            .map(|drag_start| self.global_position - *drag_start)
+    }
+
+    pub fn drag_start(&self) -> &Option<Point2D> {
+        &self.drag_start
     }
 
     pub fn is_control_down(&self) -> bool {

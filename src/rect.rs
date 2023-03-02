@@ -51,4 +51,12 @@ impl Rect {
     pub fn hit_test(&self, point: &Point2D) -> bool {
         point.x >= self.left && point.x < self.right && point.y >= self.top && point.y < self.bottom
     }
+
+    pub fn with_offset(mut self, point: Point2D) -> Self {
+        self.left += point.x;
+        self.right += point.x;
+        self.top += point.y;
+        self.bottom += point.y;
+        self
+    }
 }
