@@ -18,9 +18,8 @@ impl ApplicationDelegate for AppDelegate {
             WindowRequest::new(480, 240)
                 .with_title("Label Example")
                 .with_ui(|_| {
-                    Box::new(Center::new(|| {
-                        Box::new(DragSource::new(|| Box::new(TextButton::new("Button"))))
-                    }))
+                    Center::new(|| DragSource::new(|| TextButton::new("Button").into()).into())
+                        .into()
                 }),
         );
     }

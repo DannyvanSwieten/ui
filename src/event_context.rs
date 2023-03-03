@@ -8,15 +8,21 @@ pub struct EventCtx<'a> {
     drag_source: Option<usize>,
     mouse_event: Option<&'a MouseEvent>,
     set_state: SetState,
+    state: &'a Option<Box<dyn Any>>,
 }
 
 impl<'a> EventCtx<'a> {
-    pub fn new(id: usize, mouse_event: Option<&'a MouseEvent>) -> Self {
+    pub fn new(
+        id: usize,
+        mouse_event: Option<&'a MouseEvent>,
+        state: &'a Option<Box<dyn Any>>,
+    ) -> Self {
         Self {
             id,
             drag_source: None,
             mouse_event,
             set_state: None,
+            state,
         }
     }
 
@@ -43,5 +49,20 @@ impl<'a> EventCtx<'a> {
 
     pub fn state_mut(&mut self) -> &mut SetState {
         &mut self.set_state
+    }
+
+    pub fn consume_state(self) -> SetState {
+        self.set_state
+    }
+
+    pub fn state<T>(&self) -> Option<&T>
+    where
+        T: 'static,
+    {
+        if let Some(state) = self.state {
+            state.as_ref().downcast_ref::<T>()
+        } else {
+            None
+        }
     }
 }

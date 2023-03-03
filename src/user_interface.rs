@@ -265,7 +265,7 @@ impl UserInterface {
             let mut local_bounds = element.local_bounds;
             local_bounds = local_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
 
-            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds);
+            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, &element.widget_state);
             self.canvas.save();
             self.canvas.translate(&local_bounds.position());
             element.widget.paint(&paint_ctx, self.canvas.as_mut());
@@ -333,12 +333,13 @@ impl UserInterface {
         if let Some(hit) = hit {
             if let Some(element) = self.elements.get_mut(&hit) {
                 let local_event = event.to_local(&element.global_bounds.position());
-                let mut event_ctx = EventCtx::new(hit, Some(&local_event));
+                let mut event_ctx = EventCtx::new(hit, Some(&local_event), &element.widget_state);
                 element.widget.mouse_event(&mut event_ctx, message_ctx);
                 if self.drag_source.is_none() {
                     self.drag_source = event_ctx.drag_source()
                 }
-                if let Some(set_state) = event_ctx.state_mut() {
+                let set_state = event_ctx.consume_state();
+                if let Some(mut set_state) = set_state {
                     if let Some(state) = &mut element.widget_state {
                         (set_state)(state.as_mut())
                     }
@@ -351,12 +352,14 @@ impl UserInterface {
         for intercept in intercepted {
             if let Some(element) = self.elements.get_mut(&intercept) {
                 let local_event = event.to_local(&element.global_bounds.position());
-                let mut event_ctx = EventCtx::new(intercept, Some(&local_event));
+                let mut event_ctx =
+                    EventCtx::new(intercept, Some(&local_event), &element.widget_state);
                 element.widget.mouse_event(&mut event_ctx, message_ctx);
                 if self.drag_source.is_none() {
                     self.drag_source = event_ctx.drag_source()
                 }
-                if let Some(set_state) = event_ctx.state_mut() {
+                let set_state = event_ctx.consume_state();
+                if let Some(mut set_state) = set_state {
                     if let Some(state) = &mut element.widget_state {
                         (set_state)(state.as_mut())
                     }

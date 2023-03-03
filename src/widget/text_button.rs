@@ -24,7 +24,6 @@ pub struct TextButton {
     active_paint: Paint,
     inactive_paint: Paint,
     hover_paint: Paint,
-    state: ButtonState,
     text: String,
     click_handler: ClickHandler,
 }
@@ -32,7 +31,6 @@ pub struct TextButton {
 impl TextButton {
     pub fn new(text: &str) -> Self {
         Self {
-            state: ButtonState::Inactive,
             active_paint: Paint::new(Color32f::new_grey(0.25)),
             inactive_paint: Paint::new(Color32f::new_grey(0.05)),
             hover_paint: Paint::new(Color32f::new_grey(0.15)),
@@ -67,25 +65,28 @@ impl Widget for TextButton {
     fn layout(&self, _: &mut LayoutCtx, _: Size2D, _: &[usize]) {}
 
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas2D) {
-        match self.state {
-            ButtonState::Active => canvas.draw_rounded_rect(
-                &Rect::new_from_size(paint_ctx.local_bounds().size()),
-                4.0,
-                4.0,
-                &self.active_paint,
-            ),
-            ButtonState::Inactive => canvas.draw_rounded_rect(
-                &Rect::new_from_size(paint_ctx.local_bounds().size()),
-                4.0,
-                4.0,
-                &self.inactive_paint,
-            ),
-            ButtonState::Hovered => canvas.draw_rounded_rect(
-                &Rect::new_from_size(paint_ctx.local_bounds().size()),
-                4.0,
-                4.0,
-                &self.hover_paint,
-            ),
+        let state = paint_ctx.state::<ButtonState>();
+        if let Some(state) = state {
+            match state {
+                ButtonState::Active => canvas.draw_rounded_rect(
+                    &Rect::new_from_size(paint_ctx.local_bounds().size()),
+                    4.0,
+                    4.0,
+                    &self.active_paint,
+                ),
+                ButtonState::Inactive => canvas.draw_rounded_rect(
+                    &Rect::new_from_size(paint_ctx.local_bounds().size()),
+                    4.0,
+                    4.0,
+                    &self.inactive_paint,
+                ),
+                ButtonState::Hovered => canvas.draw_rounded_rect(
+                    &Rect::new_from_size(paint_ctx.local_bounds().size()),
+                    4.0,
+                    4.0,
+                    &self.hover_paint,
+                ),
+            }
         }
 
         let text_paint = Paint::new(Color32f::new_grey(1.0));
@@ -110,14 +111,13 @@ impl Widget for TextButton {
                 }
             }),
             MouseEvent::MouseUp(_) => {
-                self.state = ButtonState::Inactive;
                 if let Some(handler) = &self.click_handler {
                     (handler)(message_ctx)
                 }
 
                 event_ctx.set_state(|state| {
                     if let Some(state) = state.downcast_mut::<ButtonState>() {
-                        *state = ButtonState::Active;
+                        *state = ButtonState::Inactive;
                     }
                 })
             }

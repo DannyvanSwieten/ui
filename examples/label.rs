@@ -21,17 +21,20 @@ impl ApplicationDelegate for AppDelegate {
             WindowRequest::new(480, 240)
                 .with_title("Label Example")
                 .with_ui(|_| {
-                    Box::new(Row::new(|| {
+                    Row::new(|| {
                         Some(vec![
-                            Box::new(TextButton::new("Btn").on_click(|message_ctx| {
-                                message_ctx.dispatch(
-                                    Message::new("set_text")
-                                        .with_string_literal("Label set by button"),
-                                )
-                            })),
-                            Box::new(Label::new(Value::Binding("hello".into()))),
+                            TextButton::new("Btn")
+                                .on_click(|message_ctx| {
+                                    message_ctx.dispatch(
+                                        Message::new("set_text")
+                                            .with_string_literal("Label set by button"),
+                                    )
+                                })
+                                .into(),
+                            Label::new(Value::Binding("hello".into())).into(),
                         ])
-                    }))
+                    })
+                    .into()
                 }),
         );
     }

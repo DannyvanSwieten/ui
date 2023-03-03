@@ -45,3 +45,12 @@ pub trait Widget {
         false
     }
 }
+
+impl<T> From<T> for Box<dyn Widget>
+where
+    T: Widget + 'static,
+{
+    fn from(value: T) -> Self {
+        Box::new(value)
+    }
+}
