@@ -25,12 +25,12 @@ impl UIState {
         &self.updates
     }
 
-    pub fn register(&mut self, name: &str, default_value: Var) {
-        self.values.insert(name.to_string(), default_value);
+    pub fn register(&mut self, name: &str, default_value: impl Into<Var>) {
+        self.values.insert(name.to_string(), default_value.into());
     }
 
-    pub fn set(&mut self, name: &str, value: Var) {
-        self.values.insert(name.to_string(), value);
+    pub fn set(&mut self, name: &str, value: impl Into<Var>) {
+        self.values.insert(name.to_string(), value.into());
         if let Some(dependees) = self.dependees.get(name) {
             self.updates.extend_from_slice(dependees);
         }

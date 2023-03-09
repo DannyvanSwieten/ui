@@ -3,7 +3,7 @@ use ui::{
     application_delegate::ApplicationDelegate,
     message::Message,
     ui_state::UIState,
-    value::{Value, Var},
+    value::Value,
     widget::{flex::Row, label::Label, text_button::TextButton},
     window_request::WindowRequest,
 };
@@ -12,7 +12,7 @@ pub struct AppDelegate;
 impl ApplicationDelegate for AppDelegate {
     fn create_ui_state(&self) -> UIState {
         let mut state = UIState::new();
-        state.register("hello", Var::StringLiteral("Hello World!"));
+        state.register("hello", "Hello World!");
         state
     }
 
