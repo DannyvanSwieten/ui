@@ -26,8 +26,7 @@ impl ApplicationDelegate for AppDelegate {
                             TextButton::new("Btn")
                                 .on_click(|message_ctx| {
                                     message_ctx.dispatch(
-                                        Message::new("set_text")
-                                            .with_string_literal("Label set by button"),
+                                        Message::new("set_text").with_arg("Label set by button"),
                                     )
                                 })
                                 .into(),
