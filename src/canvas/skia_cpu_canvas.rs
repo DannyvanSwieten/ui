@@ -84,7 +84,13 @@ impl From<&Rect> for skia_safe::Rect {
 
 impl From<&Color> for skia_safe::Color4f {
     fn from(value: &Color) -> Self {
-        skia_safe::Color4f::from_bytes_rgba(value.to_u32())
+        const MAX: f32 = u8::MAX as f32;
+        skia_safe::Color4f::new(
+            value.r as f32 / MAX,
+            value.g as f32 / MAX,
+            value.b as f32 / MAX,
+            value.a as f32 / MAX,
+        )
     }
 }
 
