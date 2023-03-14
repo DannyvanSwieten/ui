@@ -84,16 +84,15 @@ impl From<&Rect> for skia_safe::Rect {
 
 impl From<&Color> for skia_safe::Color4f {
     fn from(value: &Color) -> Self {
-        skia_safe::Color4f::from_bytes_rgba(value.to_u32())
+        let (r, g, b, a) = value.as_floats();
+        skia_safe::Color4f::new(r, g, b, a)
     }
 }
 
 impl From<&Paint> for skia_safe::Paint {
     fn from(value: &Paint) -> Self {
-        let mut p = skia_safe::Paint::new(
-            skia_safe::Color4f::from_bytes_rgba(value.color().to_u32()),
-            None,
-        );
+        let (r, g, b, a) = value.color().as_floats();
+        let mut p = skia_safe::Paint::new(skia_safe::Color4f::new(r, g, b, a), None);
         p.set_anti_alias(true);
         p
     }
