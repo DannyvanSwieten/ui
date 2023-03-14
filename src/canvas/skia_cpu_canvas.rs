@@ -84,18 +84,8 @@ impl From<&Rect> for skia_safe::Rect {
 
 impl From<&Color> for skia_safe::Color4f {
     fn from(value: &Color) -> Self {
-<<<<<<< HEAD
         let (r, g, b, a) = value.as_floats();
         skia_safe::Color4f::new(r, g, b, a)
-=======
-        const MAX: f32 = u8::MAX as f32;
-        skia_safe::Color4f::new(
-            value.r as f32 / MAX,
-            value.g as f32 / MAX,
-            value.b as f32 / MAX,
-            value.a as f32 / MAX,
-        )
->>>>>>> c6bd350c9caf1d235a50ab6b820095e1367e9605
     }
 }
 
