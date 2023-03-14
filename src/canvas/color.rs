@@ -18,13 +18,13 @@ impl Color8u {
         r | g | b | a
     }
 
-    pub fn as_floats(&self) -> (f32, f32, f32, f32) {
-        (
+    pub fn as_floats(&self) -> [f32; 4] {
+        [
             self.r as f32 / 255.0,
             self.g as f32 / 255.0,
             self.b as f32 / 255.0,
             self.a as f32 / 255.0,
-        )
+        ]
     }
 }
 
