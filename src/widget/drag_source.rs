@@ -4,13 +4,54 @@ use crate::{event_context::EventCtx, rect::Rect};
 
 use super::{Child, Widget};
 
-pub struct DragSourceInfo {
-    data: Box<dyn Any>,
+pub enum DragSourceWidget {
+    Id(usize),
+    Widget(Box<dyn Widget>),
+}
+
+pub struct DragSourceItem {
+    widget: DragSourceWidget,
+    data: Option<Box<dyn Any>>,
+}
+
+impl DragSourceItem {
+    pub fn widget(&self) -> &DragSourceWidget {
+        &self.widget
+    }
+
+    pub fn new(widget: DragSourceWidget) -> DragSourceItem {
+        Self { widget, data: None }
+    }
+}
+
+pub struct DragSourceData {
+    items: Vec<DragSourceItem>,
+}
+
+impl DragSourceData {
+    pub fn new() -> Self {
+        Self { items: Vec::new() }
+    }
+
+    pub fn with_item(mut self, item: DragSourceItem) -> Self {
+        self.items.push(item);
+        self
+    }
+
+    pub fn items(&self) -> &[DragSourceItem] {
+        &self.items
+    }
+}
+
+impl Default for DragSourceData {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 pub struct DragSource {
     child: Child,
-    drag_start: Option<Box<dyn Fn() -> DragSourceInfo>>,
+    drag_start: Option<Box<dyn Fn() -> DragSourceData>>,
 }
 
 impl DragSource {
@@ -26,7 +67,7 @@ impl DragSource {
 
     pub fn with_drag_start<F>(mut self, handler: F) -> Self
     where
-        F: Fn() -> DragSourceInfo + 'static,
+        F: Fn() -> DragSourceData + 'static,
     {
         self.drag_start = Some(Box::new(handler));
         self
@@ -63,9 +104,17 @@ impl Widget for DragSource {
     ) {
         if let crate::event::MouseEvent::MouseDragStart(_mouse_event) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
-            event_ctx.set_drag_source()
-            // If the DragTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
-            // If the DragTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
+            if let Some(handler) = &self.drag_start {
+                event_ctx.set_drag_source(handler())
+            } else {
+                event_ctx.set_drag_source(
+                    DragSourceData::new()
+                        .with_item(DragSourceItem::new(DragSourceWidget::Id(event_ctx.id()))),
+                )
+            }
+
+            // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
+            // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
         }
     }
 

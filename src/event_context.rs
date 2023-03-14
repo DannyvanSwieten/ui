@@ -1,11 +1,11 @@
 use std::any::Any;
 
-use crate::event::MouseEvent;
+use crate::{event::MouseEvent, widget::drag_source::DragSourceData};
 pub type SetState = Option<Box<dyn FnMut(&mut dyn Any)>>;
 
 pub struct EventCtx<'a> {
     id: usize,
-    drag_source: Option<usize>,
+    drag_source: Option<DragSourceData>,
     mouse_event: Option<&'a MouseEvent>,
     set_state: SetState,
     state: &'a Option<Box<dyn Any>>,
@@ -26,8 +26,12 @@ impl<'a> EventCtx<'a> {
         }
     }
 
-    pub fn set_drag_source(&mut self) {
-        self.drag_source = Some(self.id)
+    pub fn id(&self) -> usize {
+        self.id
+    }
+
+    pub fn set_drag_source(&mut self, data: DragSourceData) {
+        self.drag_source = Some(data)
     }
 
     pub fn set_drag_source_id(&mut self, id: usize) {}
@@ -36,8 +40,8 @@ impl<'a> EventCtx<'a> {
         self.mouse_event.unwrap()
     }
 
-    pub fn drag_source(&self) -> Option<usize> {
-        self.drag_source
+    pub fn drag_source(&mut self) -> Option<DragSourceData> {
+        self.drag_source.take()
     }
 
     pub fn set_state<F>(&mut self, s: F)

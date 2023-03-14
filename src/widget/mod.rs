@@ -12,7 +12,7 @@ use crate::{
 
 pub mod center;
 pub mod drag_source;
-pub mod drag_target;
+pub mod drop_target;
 pub mod flex;
 pub mod label;
 pub mod text_button;

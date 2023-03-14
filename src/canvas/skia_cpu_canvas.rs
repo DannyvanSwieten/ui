@@ -11,14 +11,16 @@ pub struct SkiaCanvas {
 }
 
 impl SkiaCanvas {
-    pub fn new(w: i32, h: i32) -> Self {
+    pub fn new(dpi: f32, w: i32, h: i32) -> Self {
         let surface = Surface::new_raster_n32_premul(skia_safe::ISize::new(w, h));
         let mut pixels = Vec::new();
         pixels.resize(4 * w as usize * h as usize, 0);
+        let width = w as f32 * dpi;
+        let height = h as f32 * dpi;
         if let Some(surface) = surface {
             Self {
                 surface,
-                size: skia_safe::ISize::new(w, h),
+                size: skia_safe::ISize::new(width as i32, height as i32),
                 pixels,
             }
         } else {
@@ -158,6 +160,10 @@ impl Canvas2D for SkiaCanvas {
 
     fn pixels(&mut self) -> Option<&[u8]> {
         SkiaCanvas::pixels(self)
+    }
+
+    fn scale(&mut self, size: &Size2D) {
+        self.surface.canvas().scale((size.width, size.height));
     }
 
     // fn draw_text_blob(&mut self, pos: &Point, blob: &skia_safe::TextBlob, paint: &Paint) {
