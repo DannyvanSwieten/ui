@@ -295,7 +295,9 @@ impl UserInterface {
             for item in data.items() {
                 match item.widget() {
                     DragSourceWidget::Id(id) => self.paint_element(*id, offset),
-                    DragSourceWidget::Widget(_) => todo!(),
+                    DragSourceWidget::Widget(widget) => {
+                        println!("Custom widget not implemented yet")
+                    }
                 }
             }
 
@@ -305,7 +307,8 @@ impl UserInterface {
 
     pub fn paint(&mut self) {
         // self.canvas.scale(&Size2D::new(self.dpi, self.dpi));
-        self.canvas.clear(&Color::from(Color32f::new_grey(0.0)));
+        let c = Color::from(Color32f::new_grey(0.0));
+        self.canvas.clear(&c);
         self.paint_element(self.root_id, None);
         self.paint_drag_source(self.drag_source_offset);
     }

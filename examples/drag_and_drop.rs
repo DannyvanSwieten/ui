@@ -16,7 +16,7 @@ impl ApplicationDelegate for AppDelegate {
     fn app_will_start(&self, app: &mut Application) {
         app.request_window(
             WindowRequest::new(480, 240)
-                .with_title("Label Example")
+                .with_title("Drag and Drop Example")
                 .with_ui(|_| {
                     Center::new(|| DragSource::new(|| TextButton::new("Button").into()).into())
                         .into()
