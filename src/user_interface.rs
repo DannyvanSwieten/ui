@@ -105,7 +105,9 @@ pub struct UserInterface {
 
 impl UserInterface {
     pub fn new(root: Box<dyn Widget>, dpi: f32, width: f32, height: f32) -> Self {
-        let canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
+        let width = width * dpi;
+        let height = height * dpi;
+        let canvas = Box::new(SkiaCanvas::new(width as _, height as _));
         let mut this = Self {
             next_id: 0,
             elements: HashMap::new(),
@@ -144,7 +146,7 @@ impl UserInterface {
                 Point2D::new(0.0, 0.0),
                 Size2D::new(width, height),
             ));
-        self.canvas = Box::new(SkiaCanvas::new(self.dpi, width as _, height as _));
+        self.canvas = Box::new(SkiaCanvas::new(width as _, height as _));
         self.layout()
     }
 
@@ -302,7 +304,7 @@ impl UserInterface {
     }
 
     pub fn paint(&mut self) {
-        self.canvas.scale(&Size2D::new(self.dpi, self.dpi));
+        // self.canvas.scale(&Size2D::new(self.dpi, self.dpi));
         self.canvas.clear(&Color::from(Color32f::new_grey(0.0)));
         self.paint_element(self.root_id, None);
         self.paint_drag_source(self.drag_source_offset);
