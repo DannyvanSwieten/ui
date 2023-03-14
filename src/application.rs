@@ -200,8 +200,12 @@ impl Application {
                     .expect("Window creation failed");
                 if let Some(builder) = request.builder() {
                     let root = (*builder)(&mut self.state);
-                    let mut ui =
-                        UserInterface::new(root, request.width as f32, request.height as f32);
+                    let mut ui = UserInterface::new(
+                        root,
+                        window.scale_factor() as f32,
+                        request.width as f32,
+                        request.height as f32,
+                    );
                     let instant = Instant::now();
                     ui.build(&mut state);
                     let instant = Instant::now() - instant;

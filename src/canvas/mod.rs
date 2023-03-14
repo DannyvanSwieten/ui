@@ -1,4 +1,8 @@
-use crate::{point::Point2D, rect::Rect};
+use crate::{
+    point::Point2D,
+    rect::Rect,
+    size::{self, Size2D},
+};
 
 use self::{color::Color, font::Font, paint::Paint};
 
@@ -14,6 +18,7 @@ pub trait Canvas2D {
     fn save(&mut self);
     fn restore(&mut self);
     fn translate(&mut self, point: &Point2D);
+    fn scale(&mut self, size: &Size2D);
 
     fn draw_rect(&mut self, rect: &Rect, paint: &Paint);
     fn draw_rounded_rect(&mut self, rect: &Rect, rx: f32, ry: f32, paint: &Paint);
