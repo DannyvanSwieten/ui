@@ -91,6 +91,11 @@ impl Element {
     }
 }
 
+pub struct ElementTree {
+    elements: HashMap<usize, Element>,
+    root_id: usize,
+}
+
 pub struct UserInterface {
     next_id: usize,
     elements: HashMap<usize, Element>,
