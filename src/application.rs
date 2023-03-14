@@ -49,12 +49,14 @@ impl Application {
         event_loop.run(move |event, event_loop, control_flow| {
             let mut message_ctx = MessageCtx::default();
             match event {
+                Event::LoopDestroyed => delegate.app_will_quit(),
+
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
                     window_id,
                 } => {
                     windows.remove(&window_id);
-                    if windows.is_empty() {
+                    if windows.is_empty() && delegate.quit_when_last_window_closes() {
                         *control_flow = ControlFlow::Exit
                     }
                 }
