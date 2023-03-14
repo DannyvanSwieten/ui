@@ -1,9 +1,9 @@
 #[derive(Default)]
 pub struct Color8u {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
 }
 
 impl Color8u {
@@ -22,10 +22,10 @@ impl Color8u {
 pub type Color = Color8u;
 
 pub struct Color32f {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
 }
 
 impl Color32f {
