@@ -13,18 +13,17 @@ impl Message {
         }
     }
 
-    pub fn with_args(mut self, args: &[Var]) -> Self {
-        self.args = args.into();
+    pub fn with_args<I>(mut self, args: I) -> Self
+    where
+        I: IntoIterator,
+        <I as IntoIterator>::Item: Into<Var>,
+    {
+        self.args.extend(args.into_iter().map(Into::into));
         self
     }
 
-    pub fn with_arg(mut self, arg: Var) -> Self {
-        self.args.push(arg);
-        self
-    }
-
-    pub fn with_string_literal(mut self, s: &'static str) -> Self {
-        self.args.push(Var::StringLiteral(s));
+    pub fn with_arg(mut self, arg: impl Into<Var>) -> Self {
+        self.args.push(arg.into());
         self
     }
 }
