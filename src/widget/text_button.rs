@@ -50,7 +50,7 @@ impl TextButton {
 
 impl Widget for TextButton {
     fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
-        None
+        vec![]
     }
 
     fn calculate_size(

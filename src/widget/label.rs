@@ -38,7 +38,7 @@ impl Widget for Label {
             }
         }
 
-        None
+        vec![]
     }
 
     fn layout(&self, _layout_ctx: &mut LayoutCtx, _size: Size2D, _children: &[usize]) {}

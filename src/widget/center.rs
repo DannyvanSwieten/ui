@@ -22,7 +22,7 @@ impl Center {
 
 impl Widget for Center {
     fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
-        Some(vec![(*self.child)()])
+        vec![(*self.child)()]
     }
 
     fn calculate_size(

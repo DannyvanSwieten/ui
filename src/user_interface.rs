@@ -203,12 +203,10 @@ impl UserInterface {
     fn build_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
         if let Some(element) = self.elements.get_mut(&id) {
             build_ctx.id = id;
-            if let Some(children) = element.widget.build(build_ctx) {
-                for child in children.into_iter() {
-                    let child_id = self.add_box_element(child);
-                    self.build_element(build_ctx, child_id);
-                    self.add_child(id, child_id);
-                }
+            for child in element.widget.build(build_ctx) {
+                let child_id = self.add_box_element(child);
+                self.build_element(build_ctx, child_id);
+                self.add_child(id, child_id);
             }
         } else {
             panic!()

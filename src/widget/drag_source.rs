@@ -2,7 +2,7 @@ use std::any::Any;
 
 use crate::{event_context::EventCtx, rect::Rect};
 
-use super::{Child, Widget};
+use super::{Child, Children, Widget};
 
 pub enum DragSourceWidget {
     Id(usize),
@@ -75,8 +75,8 @@ impl DragSource {
 }
 
 impl Widget for DragSource {
-    fn build(&mut self, _build_ctx: &mut crate::build_context::BuildCtx) -> super::Children {
-        Some(vec![(self.child)()])
+    fn build(&mut self, _build_ctx: &mut crate::build_context::BuildCtx) -> Children {
+        vec![(self.child)()]
     }
 
     fn calculate_size(

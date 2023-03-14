@@ -22,7 +22,7 @@ impl ApplicationDelegate for AppDelegate {
                 .with_title("Label Example")
                 .with_ui(|_| {
                     Row::new(|| {
-                        Some(vec![
+                        vec![
                             TextButton::new("Btn")
                                 .on_click(|message_ctx| {
                                     message_ctx.dispatch(
@@ -31,7 +31,7 @@ impl ApplicationDelegate for AppDelegate {
                                 })
                                 .into(),
                             Label::new(Value::Binding("hello".into())).into(),
-                        ])
+                        ]
                     })
                     .into()
                 }),

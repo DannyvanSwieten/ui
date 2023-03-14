@@ -18,11 +18,11 @@ pub mod label;
 pub mod text_button;
 
 type Child = Box<dyn Fn() -> Box<dyn Widget>>;
-type Children = Option<Vec<Box<dyn Widget>>>;
+type Children = Vec<Box<dyn Widget>>;
 
 pub trait Widget {
     fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
-        None
+        vec![]
     }
 
     fn state(&self) -> Option<Box<dyn Any>> {

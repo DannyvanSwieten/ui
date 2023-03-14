@@ -1,6 +1,6 @@
 use crate::{event_context::EventCtx, rect::Rect};
 
-use super::{Child, Widget};
+use super::{Child, Children, Widget};
 
 pub struct DropTarget {
     child: Child,
@@ -18,8 +18,8 @@ impl DropTarget {
 }
 
 impl Widget for DropTarget {
-    fn build(&mut self, _build_ctx: &mut crate::build_context::BuildCtx) -> super::Children {
-        Some(vec![(self.child)()])
+    fn build(&mut self, _build_ctx: &mut crate::build_context::BuildCtx) -> Children {
+        vec![(self.child)()]
     }
 
     fn calculate_size(
