@@ -21,7 +21,7 @@ impl Center {
 }
 
 impl Widget for Center {
-    fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
+    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![(*self.child)()]
     }
 

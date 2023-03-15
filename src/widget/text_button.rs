@@ -49,7 +49,7 @@ impl TextButton {
 }
 
 impl Widget for TextButton {
-    fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
+    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![]
     }
 
@@ -98,7 +98,7 @@ impl Widget for TextButton {
         );
     }
 
-    fn mouse_event(&mut self, event_ctx: &mut EventCtx, message_ctx: &mut MessageCtx) {
+    fn mouse_event(&self, event_ctx: &mut EventCtx, message_ctx: &mut MessageCtx) {
         match event_ctx.mouse_event() {
             MouseEvent::MouseMove(_) => event_ctx.set_state(|state| {
                 if let Some(state) = state.downcast_mut::<ButtonState>() {

@@ -1,11 +1,12 @@
 use std::any::Any;
 
-use crate::rect::Rect;
+use crate::{rect::Rect, ui_state::UIState};
 
 pub struct PaintCtx<'a> {
     global_bounds: &'a Rect,
     local_bounds: &'a Rect,
     state: &'a Option<Box<dyn Any>>,
+    ui_state: &'a UIState,
 }
 
 impl<'a> PaintCtx<'a> {
@@ -13,12 +14,18 @@ impl<'a> PaintCtx<'a> {
         global_bounds: &'a Rect,
         local_bounds: &'a Rect,
         state: &'a Option<Box<dyn Any>>,
+        ui_state: &'a UIState,
     ) -> Self {
         Self {
             global_bounds,
             local_bounds,
             state,
+            ui_state,
         }
+    }
+
+    pub fn ui_state(&self) -> &'a UIState {
+        self.ui_state
     }
 
     pub fn global_bounds(&self) -> &'a Rect {

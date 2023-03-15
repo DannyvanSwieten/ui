@@ -21,7 +21,7 @@ type Child = Box<dyn Fn() -> Box<dyn Widget>>;
 type Children = Vec<Box<dyn Widget>>;
 
 pub trait Widget {
-    fn build(&mut self, _build_ctx: &mut BuildCtx) -> Children {
+    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![]
     }
 
@@ -40,7 +40,7 @@ pub trait Widget {
 
     fn layout(&self, _layout_ctx: &mut LayoutCtx, _size: Size2D, _children: &[usize]) {}
     fn paint(&self, _paint_ctx: &PaintCtx, _canvas: &mut dyn Canvas2D) {}
-    fn mouse_event(&mut self, _event_ctx: &mut EventCtx, _message_ctx: &mut MessageCtx) {}
+    fn mouse_event(&self, _event_ctx: &mut EventCtx, _message_ctx: &mut MessageCtx) {}
     fn intercept_mouse_events(&self) -> bool {
         false
     }

@@ -31,11 +31,9 @@ impl Label {
 }
 
 impl Widget for Label {
-    fn build(&mut self, build_ctx: &mut BuildCtx) -> Children {
+    fn build(&self, build_ctx: &mut BuildCtx) -> Children {
         if let Some(binding) = &self.binding {
-            if let Some(var) = build_ctx.bind(binding) {
-                self.text = var.to_string()
-            }
+            build_ctx.bind(binding);
         }
 
         vec![]
@@ -55,9 +53,16 @@ impl Widget for Label {
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas2D) {
         let font = Font::new("Consolas", 34.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
+        let text = if let Some(binding) = &self.binding {
+            paint_ctx.ui_state().get(&binding)
+        } else {
+            None
+        };
+
+        let text = text.unwrap();
         canvas.draw_string(
             &Rect::new_from_size(paint_ctx.local_bounds().size()),
-            &self.text,
+            &text.to_string(),
             &font,
             &paint,
         )

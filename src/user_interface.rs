@@ -9,6 +9,7 @@ use crate::{
         Canvas2D,
     },
     constraints::BoxConstraints,
+    element::Element,
     event::{Event, MouseEvent},
     event_context::EventCtx,
     layout_ctx::LayoutCtx,
@@ -22,79 +23,6 @@ use crate::{
         Widget,
     },
 };
-
-pub struct Element {
-    widget: Box<dyn Widget>,
-    widget_state: Option<Box<dyn Any>>,
-    children: Vec<usize>,
-    local_bounds: Rect,
-    global_bounds: Rect,
-}
-
-impl Element {
-    pub fn new<W: Widget + 'static>(widget: W) -> Self {
-        let widget_state = widget.state();
-        Self {
-            widget: Box::new(widget),
-            children: Vec::new(),
-            local_bounds: Rect::default(),
-            global_bounds: Rect::default(),
-            widget_state,
-        }
-    }
-
-    pub fn new_box(widget: Box<dyn Widget>) -> Self {
-        let widget_state = widget.state();
-        Self {
-            widget,
-            children: Vec::new(),
-            local_bounds: Rect::default(),
-            global_bounds: Rect::default(),
-            widget_state,
-        }
-    }
-    pub fn add_child(&mut self, id: usize) {
-        self.children.push(id)
-    }
-
-    pub fn add_children(&mut self, ids: Vec<usize>) {
-        self.children.extend(ids)
-    }
-
-    pub fn set_local_bounds(&mut self, bounds: &Rect) {
-        self.local_bounds = *bounds
-    }
-
-    pub fn set_global_bounds(&mut self, bounds: &Rect) {
-        self.global_bounds = *bounds
-    }
-
-    pub fn children(&self) -> &[usize] {
-        &self.children
-    }
-
-    pub fn children_copy(&self) -> Vec<usize> {
-        self.children.clone()
-    }
-
-    pub fn calculate_size(
-        &self,
-        constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
-        self.widget
-            .calculate_size(&self.children, constraints, layout_ctx)
-    }
-
-    pub fn hit_test(&self, point: &Point2D) -> bool {
-        self.global_bounds.hit_test(point)
-    }
-}
-
-pub struct ElementTree {
-    elements: HashMap<usize, Element>,
-    root_id: usize,
-}
 
 pub struct UserInterface {
     next_id: usize,
@@ -126,10 +54,14 @@ impl UserInterface {
         };
 
         let root_id = this.add_box_element(root);
-        this.elements.get_mut(&root_id).unwrap().local_bounds =
-            Rect::new_from_size(Size2D::new(width, height));
-        this.elements.get_mut(&root_id).unwrap().global_bounds =
-            Rect::new_from_size(Size2D::new(width, height));
+        this.elements
+            .get_mut(&root_id)
+            .unwrap()
+            .set_local_bounds(&Rect::new_from_size(Size2D::new(width, height)));
+        this.elements
+            .get_mut(&root_id)
+            .unwrap()
+            .set_global_bounds(&Rect::new_from_size(Size2D::new(width, height)));
         this.root_id = root_id;
         this
     }
@@ -197,7 +129,7 @@ impl UserInterface {
     fn rebuild_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
         let element = self.elements.remove(&id);
         if let Some(mut element) = element {
-            element.widget.build(build_ctx);
+            element.widget().build(build_ctx);
             self.elements.insert(id, element);
         }
     }
@@ -205,7 +137,7 @@ impl UserInterface {
     fn build_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
         if let Some(element) = self.elements.get_mut(&id) {
             build_ctx.id = id;
-            for child in element.widget.build(build_ctx) {
+            for child in element.widget().build(build_ctx) {
                 let child_id = self.add_box_element(child);
                 self.build_element(build_ctx, child_id);
                 self.add_child(id, child_id);
@@ -229,10 +161,10 @@ impl UserInterface {
     pub fn layout_element(&mut self, id: usize) {
         let mut layout_ctx = LayoutCtx::new(self);
         let children = if let Some(element) = self.elements.get(&id) {
-            element.widget.layout(
+            element.widget().layout(
                 &mut layout_ctx,
-                element.local_bounds.size(),
-                &element.children,
+                element.local_bounds().size(),
+                element.children(),
             );
             Some(element.children_copy())
         } else {
@@ -244,7 +176,7 @@ impl UserInterface {
         if let Some(element) = self.elements.get(&id) {
             for (id, rect) in &child_local_bounds {
                 let mut global_bounds = *rect;
-                global_bounds.set_position(element.global_bounds.position() + rect.position());
+                global_bounds.set_position(element.global_bounds().position() + rect.position());
                 child_global_bounds.insert(*id, global_bounds);
             }
         }
@@ -268,17 +200,22 @@ impl UserInterface {
         }
     }
 
-    fn paint_element(&mut self, id: usize, offset: Option<Point2D>) {
+    fn paint_element(&mut self, id: usize, offset: Option<Point2D>, ui_state: &UIState) {
         let children = if let Some(element) = self.elements.get_mut(&id) {
-            let mut global_bounds = element.global_bounds;
+            let mut global_bounds = *element.global_bounds();
             global_bounds = global_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
-            let mut local_bounds = element.local_bounds;
+            let mut local_bounds = *element.local_bounds();
             local_bounds = local_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
 
-            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, &element.widget_state);
+            let paint_ctx = PaintCtx::new(
+                &global_bounds,
+                &local_bounds,
+                &element.widget_state(),
+                ui_state,
+            );
             self.canvas.save();
             self.canvas.translate(&local_bounds.position());
-            element.widget.paint(&paint_ctx, self.canvas.as_mut());
+            element.widget().paint(&paint_ctx, self.canvas.as_mut());
             Some(element.children_copy())
         } else {
             None
@@ -286,18 +223,18 @@ impl UserInterface {
 
         if let Some(children) = children {
             for child in children {
-                self.paint_element(child, offset);
+                self.paint_element(child, offset, ui_state);
             }
         }
 
         self.canvas.restore()
     }
 
-    fn paint_drag_source(&mut self, offset: Option<Point2D>) {
+    fn paint_drag_source(&mut self, offset: Option<Point2D>, ui_state: &UIState) {
         if let Some(data) = self.drag_source.take() {
             for item in data.items() {
                 match item.widget() {
-                    DragSourceWidget::Id(id) => self.paint_element(*id, offset),
+                    DragSourceWidget::Id(id) => self.paint_element(*id, offset, ui_state),
                     DragSourceWidget::Widget(_) => {
                         println!("Custom widget not implemented yet")
                     }
@@ -308,14 +245,14 @@ impl UserInterface {
         }
     }
 
-    pub fn paint(&mut self) {
+    pub fn paint(&mut self, ui_state: &UIState) {
         self.canvas.save();
         self.canvas.scale(&Size2D::new(self.dpi, self.dpi));
         let c = Color::from(Color32f::new_grey(0.0));
         self.canvas.clear(&c);
-        self.paint_element(self.root_id, None);
+        self.paint_element(self.root_id, None, ui_state);
         self.canvas.restore();
-        self.paint_drag_source(self.drag_source_offset);
+        self.paint_drag_source(self.drag_source_offset, ui_state);
     }
 
     pub fn set_drag_source_position(&mut self, pos: Point2D) {
@@ -335,7 +272,7 @@ impl UserInterface {
     ) {
         if let Some(element) = self.elements.get(&id) {
             if element.hit_test(position) {
-                if element.widget.intercept_mouse_events() {
+                if element.widget().intercept_mouse_events() {
                     intercepted.push(id);
                 } else {
                     *hit = Some(id);
@@ -359,15 +296,15 @@ impl UserInterface {
         );
         if let Some(hit) = hit {
             if let Some(element) = self.elements.get_mut(&hit) {
-                let local_event = event.to_local(&element.global_bounds.position());
-                let mut event_ctx = EventCtx::new(hit, Some(&local_event), &element.widget_state);
-                element.widget.mouse_event(&mut event_ctx, message_ctx);
+                let local_event = event.to_local(&element.global_bounds().position());
+                let mut event_ctx = EventCtx::new(hit, Some(&local_event), &element.widget_state());
+                element.widget().mouse_event(&mut event_ctx, message_ctx);
                 if self.drag_source.is_none() {
                     self.drag_source = event_ctx.drag_source()
                 }
                 let set_state = event_ctx.consume_state();
                 if let Some(mut set_state) = set_state {
-                    if let Some(state) = &mut element.widget_state {
+                    if let Some(state) = &mut element.widget_state_mut() {
                         (set_state)(state.as_mut())
                     }
 
@@ -378,16 +315,16 @@ impl UserInterface {
 
         for intercept in intercepted {
             if let Some(element) = self.elements.get_mut(&intercept) {
-                let local_event = event.to_local(&element.global_bounds.position());
+                let local_event = event.to_local(&element.global_bounds().position());
                 let mut event_ctx =
-                    EventCtx::new(intercept, Some(&local_event), &element.widget_state);
-                element.widget.mouse_event(&mut event_ctx, message_ctx);
+                    EventCtx::new(intercept, Some(&local_event), &element.widget_state());
+                element.widget().mouse_event(&mut event_ctx, message_ctx);
                 if self.drag_source.is_none() {
                     self.drag_source = event_ctx.drag_source()
                 }
                 let set_state = event_ctx.consume_state();
                 if let Some(mut set_state) = set_state {
-                    if let Some(state) = &mut element.widget_state {
+                    if let Some(state) = &mut element.widget_state_mut() {
                         (set_state)(state.as_mut())
                     }
 

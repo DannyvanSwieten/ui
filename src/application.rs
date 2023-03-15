@@ -84,7 +84,7 @@ impl Application {
                 }
                 Event::MainEventsCleared => {
                     for (id, ui) in &mut user_interfaces {
-                        ui.paint();
+                        ui.paint(&state);
                         let width = ui.width();
                         let height = ui.height();
                         if let Some(renderer) = canvas_renderers.get_mut(id) {

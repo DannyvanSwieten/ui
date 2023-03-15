@@ -75,7 +75,7 @@ impl DragSource {
 }
 
 impl Widget for DragSource {
-    fn build(&mut self, _build_ctx: &mut crate::build_context::BuildCtx) -> Children {
+    fn build(&self, _build_ctx: &mut crate::build_context::BuildCtx) -> Children {
         vec![(self.child)()]
     }
 
@@ -98,7 +98,7 @@ impl Widget for DragSource {
     }
 
     fn mouse_event(
-        &mut self,
+        &self,
         event_ctx: &mut EventCtx,
         _message_ctx: &mut crate::message_context::MessageCtx,
     ) {
