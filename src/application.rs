@@ -5,7 +5,7 @@ use winit::{
     dpi::LogicalSize,
     event::{ElementState, Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    window::{WindowBuilder, WindowId},
+    window::{Window, WindowBuilder, WindowId},
 };
 
 use crate::{
@@ -39,7 +39,7 @@ impl Application {
         let mut state = delegate.create_ui_state();
         delegate.app_started(&mut self);
         let event_loop = EventLoop::new();
-        let mut windows = HashMap::new();
+        let mut windows: HashMap<WindowId, Window> = HashMap::new();
         let mut user_interfaces: HashMap<WindowId, UserInterface> = HashMap::new();
         let mut canvas_renderers: HashMap<WindowId, CanvasRenderer> = HashMap::new();
         let gpu = block_on(GpuApi::new());
@@ -76,8 +76,10 @@ impl Application {
                         };
                         renderer.rebuild(config);
                     }
+                    let dpi = windows.get(&window_id).unwrap().scale_factor();
                     if let Some(ui) = user_interfaces.get_mut(&window_id) {
-                        ui.resize(size.width as _, size.height as _, &state)
+                        let size = size.to_logical::<f32>(dpi);
+                        ui.resize(dpi as f32, size.width as _, size.height as _, &state)
                     }
                 }
                 Event::MainEventsCleared => {
@@ -149,8 +151,10 @@ impl Application {
                         },
                     window_id,
                 } => {
+                    let dpi = windows.get(&window_id).unwrap().scale_factor();
+                    let position = position.to_logical::<f32>(dpi);
+                    let position = Point2D::new(position.x as _, position.y as _);
                     if let Some(ui) = user_interfaces.get_mut(&window_id) {
-                        let position = Point2D::new(position.x as _, position.y as _);
                         let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
                         if let Some(mouse_down) = mouse_down_states.get(&window_id) {
                             if *mouse_down {
@@ -228,7 +232,12 @@ impl Application {
                     surface.configure(&gpu.device, &config);
                     canvas_renderers.insert(
                         window.id(),
-                        CanvasRenderer::new(gpu.device.clone(), gpu.queue.clone(), surface),
+                        CanvasRenderer::new(
+                            gpu.device.clone(),
+                            gpu.queue.clone(),
+                            surface,
+                            window.scale_factor() as f32,
+                        ),
                     );
                 }
 

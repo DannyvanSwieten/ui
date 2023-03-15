@@ -6,14 +6,16 @@ pub struct CanvasRenderer {
     surface: Surface,
     device: Rc<Device>,
     queue: Rc<Queue>,
+    dpi: f32,
 }
 
 impl CanvasRenderer {
-    pub fn new(device: Rc<Device>, queue: Rc<Queue>, surface: Surface) -> Self {
+    pub fn new(device: Rc<Device>, queue: Rc<Queue>, surface: Surface, dpi: f32) -> Self {
         Self {
             surface,
             device,
             queue,
+            dpi,
         }
     }
 
@@ -23,6 +25,8 @@ impl CanvasRenderer {
         width: u32,
         height: u32,
     ) -> Result<SurfaceTexture, SurfaceError> {
+        let width = width as f32 * self.dpi;
+        let height = height as f32 * self.dpi;
         let output = self.surface.get_current_texture()?;
 
         let view = output
@@ -35,7 +39,7 @@ impl CanvasRenderer {
                 label: Some("Render Encoder"),
             });
 
-        let stride = width * 4;
+        let stride = width as u32 * 4;
         let texture_size = wgpu::Extent3d {
             width: width as _,
             height: height as _,

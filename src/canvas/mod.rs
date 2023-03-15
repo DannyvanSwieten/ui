@@ -1,8 +1,4 @@
-use crate::{
-    point::Point2D,
-    rect::Rect,
-    size::{self, Size2D},
-};
+use crate::{point::Point2D, rect::Rect, size::Size2D};
 
 use self::{color::Color, font::Font, paint::Paint};
 

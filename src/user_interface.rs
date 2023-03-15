@@ -102,6 +102,7 @@ pub struct UserInterface {
     root_id: usize,
     width: f32,
     height: f32,
+    dpi: f32,
     canvas: Box<dyn Canvas2D>,
     drag_source: Option<DragSourceData>,
     drag_source_offset: Option<Point2D>,
@@ -109,15 +110,16 @@ pub struct UserInterface {
 
 impl UserInterface {
     pub fn new(root: Box<dyn Widget>, dpi: f32, width: f32, height: f32) -> Self {
-        let width = width * dpi;
-        let height = height * dpi;
-        let canvas = Box::new(SkiaCanvas::new(width as _, height as _));
+        let width = width;
+        let height = height;
+        let canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
         let mut this = Self {
             next_id: 0,
             elements: HashMap::new(),
             root_id: 0,
             width,
             height,
+            dpi,
             canvas,
             drag_source: None,
             drag_source_offset: None,
@@ -132,7 +134,7 @@ impl UserInterface {
         this
     }
 
-    pub fn resize(&mut self, width: f32, height: f32, _state: &UIState) {
+    pub fn resize(&mut self, dpi: f32, width: f32, height: f32, _state: &UIState) {
         self.width = width;
         self.height = height;
         self.elements
@@ -149,7 +151,7 @@ impl UserInterface {
                 Point2D::new(0.0, 0.0),
                 Size2D::new(width, height),
             ));
-        self.canvas = Box::new(SkiaCanvas::new(width as _, height as _));
+        self.canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
         self.layout()
     }
 
@@ -296,7 +298,7 @@ impl UserInterface {
             for item in data.items() {
                 match item.widget() {
                     DragSourceWidget::Id(id) => self.paint_element(*id, offset),
-                    DragSourceWidget::Widget(widget) => {
+                    DragSourceWidget::Widget(_) => {
                         println!("Custom widget not implemented yet")
                     }
                 }
@@ -307,10 +309,12 @@ impl UserInterface {
     }
 
     pub fn paint(&mut self) {
-        // self.canvas.scale(&Size2D::new(self.dpi, self.dpi));
+        self.canvas.save();
+        self.canvas.scale(&Size2D::new(self.dpi, self.dpi));
         let c = Color::from(Color32f::new_grey(0.0));
         self.canvas.clear(&c);
         self.paint_element(self.root_id, None);
+        self.canvas.restore();
         self.paint_drag_source(self.drag_source_offset);
     }
 
