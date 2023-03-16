@@ -1,7 +1,7 @@
-use crate::element::next_element_id;
 use std::{
     collections::HashMap,
     ops::{Index, IndexMut},
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 pub struct Tree<T> {
@@ -72,4 +72,9 @@ impl<T> Node<T> {
             data,
         }
     }
+}
+
+pub static NEXT_ELEMENT_ID: AtomicUsize = AtomicUsize::new(0);
+pub fn next_element_id() -> usize {
+    NEXT_ELEMENT_ID.fetch_add(1, Ordering::SeqCst) + 1
 }
