@@ -22,7 +22,7 @@ pub struct UserInterface {
     canvas: Box<dyn Canvas2D>,
     drag_source: Option<DragSourceData>,
     drag_source_offset: Option<Point2D>,
-    drag_source_tree: Option<ElementTree>,
+    _drag_source_tree: Option<ElementTree>,
 }
 
 impl UserInterface {
@@ -34,7 +34,7 @@ impl UserInterface {
 
         Self {
             root_tree,
-            drag_source_tree: None,
+            _drag_source_tree: None,
             width,
             height,
             dpi,
@@ -62,7 +62,7 @@ impl UserInterface {
         self.root_tree.layout(state)
     }
 
-    fn paint_drag_source(&mut self, offset: Option<Point2D>, ui_state: &UIState) {
+    fn paint_drag_source(&mut self, _offset: Option<Point2D>, _ui_state: &UIState) {
         //todo!()
         // if let Some(data) = self.drag_source.take() {
         //     for item in data.items() {

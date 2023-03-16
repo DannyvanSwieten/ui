@@ -54,11 +54,11 @@ impl ElementTree {
         if let Some(hit) = hit {
             if let Some(element) = self.elements.get_mut(&hit) {
                 let local_event = event.to_local(&element.global_bounds().position());
-                let mut event_ctx = EventCtx::new(hit, Some(&local_event), &element.widget_state());
+                let mut event_ctx = EventCtx::new(hit, Some(&local_event), element.widget_state());
                 element
                     .widget()
                     .mouse_event(ui_state, &mut event_ctx, message_ctx);
-                if let Some(drag_source) = event_ctx.drag_source() {}
+                if let Some(_drag_source) = event_ctx.drag_source() {}
 
                 let set_state = event_ctx.consume_state();
                 if let Some(mut set_state) = set_state {
@@ -223,7 +223,7 @@ impl ElementTree {
 
     fn rebuild_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
         let element = self.elements.remove(&id);
-        if let Some(mut element) = element {
+        if let Some(element) = element {
             element.widget().build(build_ctx);
             self.elements.insert(id, element);
         }
@@ -255,7 +255,7 @@ impl ElementTree {
             let mut local_bounds = *element.local_bounds();
             local_bounds = local_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
 
-            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, &element.widget_state());
+            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, element.widget_state());
             canvas.save();
             canvas.translate(&local_bounds.position());
             element.widget().paint(&paint_ctx, ui_state, canvas);

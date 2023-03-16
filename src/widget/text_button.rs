@@ -65,7 +65,7 @@ impl Widget for TextButton {
 
     fn layout(&self, _ui_state: &UIState, _: &mut LayoutCtx, _: Size2D, _: &[usize]) {}
 
-    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas2D) {
+    fn paint(&self, paint_ctx: &PaintCtx, _: &UIState, canvas: &mut dyn Canvas2D) {
         let state = paint_ctx.state::<ButtonState>();
         if let Some(state) = state {
             match state {

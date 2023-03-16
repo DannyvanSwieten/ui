@@ -11,7 +11,7 @@ pub enum DragSourceWidget {
 
 pub struct DragSourceItem {
     widget: DragSourceWidget,
-    data: Option<Box<dyn Any>>,
+    _data: Option<Box<dyn Any>>,
 }
 
 impl DragSourceItem {
@@ -20,7 +20,10 @@ impl DragSourceItem {
     }
 
     pub fn new(widget: DragSourceWidget) -> DragSourceItem {
-        Self { widget, data: None }
+        Self {
+            widget,
+            _data: None,
+        }
     }
 }
 

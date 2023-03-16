@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use crate::{rect::Rect, ui_state::UIState};
+use crate::rect::Rect;
 
 pub struct PaintCtx<'a> {
     global_bounds: &'a Rect,
