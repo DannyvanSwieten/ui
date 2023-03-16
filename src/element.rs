@@ -9,9 +9,23 @@ pub fn next_element_id() -> usize {
 }
 
 use crate::{
-    constraints::BoxConstraints, layout_ctx::LayoutCtx, point::Point2D, rect::Rect, size::Size2D,
-    widget::Widget,
+    constraints::BoxConstraints,
+    layout_ctx::LayoutCtx,
+    point::Point2D,
+    rect::Rect,
+    size::Size2D,
+    widget::{Painter, Widget},
 };
+
+pub struct PainterElement {
+    painter: Box<dyn Painter>,
+    state: Option<Box<dyn Any>>,
+}
+
+pub struct WidgetElement {
+    widget: Box<dyn Widget>,
+    state: Option<Box<dyn Any>>,
+}
 
 pub struct Element {
     widget: Box<dyn Widget>,
