@@ -5,7 +5,7 @@ use ui::{
     ui_state::UIState,
     widget::{
         center::Center,
-        drag_source::{DragSource, DragSourceData, DragSourceItem, DragSourceWidget},
+        drag_source::{DragSource, DragSourceData, DragSourceItem},
         text_button::TextButton,
     },
     window_request::WindowRequest,
@@ -26,9 +26,7 @@ impl ApplicationDelegate for AppDelegate {
                         DragSource::new(|| TextButton::new("Button").into())
                             .with_drag_start(|| {
                                 DragSourceData::new().with_item(DragSourceItem::new(
-                                    DragSourceWidget::Widget(
-                                        TextButton::new("You're Dragging Me").into(),
-                                    ),
+                                    TextButton::new("You're Dragging Me").into(),
                                 ))
                             })
                             .into()
