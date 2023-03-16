@@ -18,9 +18,6 @@ enum ButtonState {
 pub type ClickHandler = Option<Box<dyn Fn(&mut MessageCtx)>>;
 
 pub struct TextButton {
-    active_paint: Paint,
-    inactive_paint: Paint,
-    hover_paint: Paint,
     text: String,
     click_handler: ClickHandler,
 }
@@ -28,9 +25,6 @@ pub struct TextButton {
 impl TextButton {
     pub fn new(text: &str) -> Self {
         Self {
-            active_paint: Paint::new(Color32f::new_grey(0.25)),
-            inactive_paint: Paint::new(Color32f::new_grey(0.05)),
-            hover_paint: Paint::new(Color32f::new_grey(0.15)),
             text: text.into(),
             click_handler: None,
         }
@@ -86,12 +80,7 @@ impl Widget for TextButton {
     }
 
     fn painter(&self) -> Option<Box<dyn Painter>> {
-        Some(Box::new(TextButtonPainter {
-            active_paint: self.active_paint,
-            inactive_paint: self.inactive_paint,
-            hover_paint: self.hover_paint,
-            text: self.text,
-        }))
+        Some(Box::new(TextButtonPainter::new(self.text.clone())))
     }
 }
 
@@ -100,6 +89,17 @@ pub struct TextButtonPainter {
     inactive_paint: Paint,
     hover_paint: Paint,
     text: String,
+}
+
+impl TextButtonPainter {
+    pub fn new(text: String) -> Self {
+        Self {
+            active_paint: Paint::new(Color32f::new_grey(0.25)),
+            inactive_paint: Paint::new(Color32f::new_grey(0.05)),
+            hover_paint: Paint::new(Color32f::new_grey(0.15)),
+            text,
+        }
+    }
 }
 
 impl Painter for TextButtonPainter {

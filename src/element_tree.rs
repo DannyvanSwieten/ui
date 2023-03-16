@@ -250,10 +250,13 @@ impl ElementTree {
             let mut local_bounds = *element.local_bounds();
             local_bounds = local_bounds.with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
 
-            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, element.widget_state());
-            canvas.save();
-            canvas.translate(&local_bounds.position());
-            element.widget().paint(&paint_ctx, ui_state, canvas);
+            if let Some(painter) = element.widget().painter() {
+                let paint_ctx =
+                    PaintCtx::new(&global_bounds, &local_bounds, element.widget_state());
+                canvas.save();
+                canvas.translate(&local_bounds.position());
+                painter.paint(&paint_ctx, ui_state, canvas);
+            }
             Some(element.children_copy())
         } else {
             None
