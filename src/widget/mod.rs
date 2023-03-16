@@ -21,8 +21,9 @@ pub mod text_button;
 type Child = Box<dyn Fn() -> Box<dyn Widget>>;
 type Children = Vec<Box<dyn Widget>>;
 
+#[allow(unused_variables)]
 pub trait Widget {
-    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
+    fn build(&self, build_ctx: &mut BuildCtx) -> Children {
         vec![]
     }
 
@@ -32,19 +33,19 @@ pub trait Widget {
 
     fn calculate_size(
         &self,
-        _children: &[usize],
-        _constraints: &BoxConstraints,
-        _layout_ctx: &LayoutCtx,
+        children: &[usize],
+        constraints: &BoxConstraints,
+        layout_ctx: &LayoutCtx,
     ) -> Option<Size2D> {
         None
     }
 
     fn layout(
         &self,
-        _ui_state: &UIState,
-        _layout_ctx: &mut LayoutCtx,
-        _size: Size2D,
-        _children: &[usize],
+        ui_state: &UIState,
+        layout_ctx: &mut LayoutCtx,
+        size: Size2D,
+        children: &[usize],
     ) {
     }
     fn paint(&self, _paint_ctx: &PaintCtx, _ui_state: &UIState, _canvas: &mut dyn Canvas2D) {}

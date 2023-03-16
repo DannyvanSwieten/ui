@@ -62,12 +62,12 @@ impl ElementTree {
         if let Some(hit) = hit {
             if let Some(element) = self.elements.get_mut(&hit) {
                 let local_event = event.to_local(&element.global_bounds().position());
-                let mut event_ctx = EventCtx::new(hit, Some(&local_event), &element.widget_state());
+                let mut event_ctx = EventCtx::new(hit, Some(&local_event), element.widget_state());
                 element
                     .widget()
                     .mouse_event(ui_state, &mut event_ctx, message_ctx);
                 if let Some(drag_source) = event_ctx.drag_source() {
-                    for item in drag_source.items() {
+                    for _item in drag_source.items() {
                         // item.widget().build(build_ctx);
                         todo!()
                     }
@@ -259,7 +259,7 @@ impl ElementTree {
             let mut local_bounds = *element.local_bounds();
             local_bounds = local_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
 
-            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, &element.widget_state());
+            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, element.widget_state());
             canvas.save();
             canvas.translate(&local_bounds.position());
             element.widget().paint(&paint_ctx, ui_state, canvas);
