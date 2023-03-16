@@ -1,5 +1,8 @@
 use crate::element::next_element_id;
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    ops::{Index, IndexMut},
+};
 
 pub struct Tree<T> {
     nodes: HashMap<usize, Node<T>>,
@@ -40,6 +43,20 @@ impl<T> Tree<T> {
         if let Some(node) = self.nodes.get_mut(&parent) {
             node.children.push(child)
         }
+    }
+}
+
+impl<T> Index<usize> for Tree<T> {
+    type Output = Node<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.nodes.get(&index).unwrap()
+    }
+}
+
+impl<T> IndexMut<usize> for Tree<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.nodes.get_mut(&index).unwrap()
     }
 }
 
