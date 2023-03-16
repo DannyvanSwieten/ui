@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::{
     build_context::BuildCtx,
     canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas2D},

@@ -6,16 +6,19 @@ use super::{Child, Children, Widget};
 
 pub struct DragSourceItem {
     widget: Box<dyn Widget>,
-    data: Option<Box<dyn Any>>,
+    _data: Option<Box<dyn Any>>,
 }
 
 impl DragSourceItem {
-    pub fn widget(&self) -> &Box<dyn Widget> {
-        &self.widget
+    pub fn widget(&self) -> &dyn Widget {
+        self.widget.as_ref()
     }
 
     pub fn new(widget: Box<dyn Widget>) -> DragSourceItem {
-        Self { widget, data: None }
+        Self {
+            widget,
+            _data: None,
+        }
     }
 }
 

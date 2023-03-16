@@ -84,7 +84,7 @@ impl ElementTree {
             if let Some(element) = self.elements.get_mut(&intercept) {
                 let local_event = event.to_local(&element.global_bounds().position());
                 let mut event_ctx =
-                    EventCtx::new(intercept, Some(&local_event), &element.widget_state());
+                    EventCtx::new(intercept, Some(&local_event), element.widget_state());
                 element
                     .widget()
                     .mouse_event(ui_state, &mut event_ctx, message_ctx);
