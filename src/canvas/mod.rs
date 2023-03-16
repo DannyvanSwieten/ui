@@ -1,6 +1,5 @@
-use crate::{point::Point2D, rect::Rect, size::Size2D};
-
 use self::{color::Color, font::Font, paint::Paint};
+use crate::geo::{Point2D, Rect, Size2D};
 
 pub mod canvas_renderer;
 pub mod color;
@@ -8,6 +7,7 @@ pub mod font;
 pub mod paint;
 pub mod paint_ctx;
 pub mod skia_cpu_canvas;
+
 pub trait Canvas2D {
     fn clear(&mut self, color: &Color);
 

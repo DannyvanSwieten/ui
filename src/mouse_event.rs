@@ -1,4 +1,4 @@
-use crate::point::Point2D;
+use crate::geo::Point2D;
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum MouseEventType {

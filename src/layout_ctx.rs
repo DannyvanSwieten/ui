@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    constraints::BoxConstraints, element_tree::ElementTree, point::Point2D, rect::Rect,
-    size::Size2D,
+    constraints::BoxConstraints,
+    element_tree::ElementTree,
+    geo::{Point2D, Rect, Size2D},
 };
 
 pub struct LayoutCtx<'a> {

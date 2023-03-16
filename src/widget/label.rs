@@ -2,9 +2,8 @@ use crate::{
     build_context::BuildCtx,
     canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas2D},
     constraints::BoxConstraints,
+    geo::{Rect, Size2D},
     layout_ctx::LayoutCtx,
-    rect::Rect,
-    size::Size2D,
     ui_state::UIState,
     value::Value,
 };

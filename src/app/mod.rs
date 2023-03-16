@@ -3,8 +3,8 @@ mod application_delegate;
 pub use application_delegate::ApplicationDelegate;
 
 use crate::{
-    canvas::canvas_renderer::CanvasRenderer, event::MouseEvent, gpu::GpuApi, message::Message,
-    message_context::MessageCtx, mouse_event, point::Point2D, ui_state::UIState,
+    canvas::canvas_renderer::CanvasRenderer, event::MouseEvent, geo::Point2D, gpu::GpuApi,
+    message::Message, message_context::MessageCtx, mouse_event, ui_state::UIState,
     user_interface::UserInterface, window_request::WindowRequest,
 };
 use pollster::block_on;

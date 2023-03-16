@@ -1,4 +1,4 @@
-use crate::{point::Point2D, size::Size2D};
+use super::{Point2D, Size2D};
 #[derive(Default, Clone, Copy)]
 pub struct Rect {
     left: f32,

@@ -7,11 +7,9 @@ use crate::{
     element::{next_element_id, Element},
     event::MouseEvent,
     event_context::{EventCtx, SetState},
+    geo::{Point2D, Rect, Size2D},
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
-    point::Point2D,
-    rect::Rect,
-    size::Size2D,
     ui_state::UIState,
     widget::Widget,
 };

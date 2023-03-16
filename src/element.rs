@@ -9,7 +9,9 @@ pub fn next_element_id() -> usize {
 }
 
 use crate::{
-    constraints::BoxConstraints, layout_ctx::LayoutCtx, point::Point2D, rect::Rect, size::Size2D,
+    constraints::BoxConstraints,
+    geo::{Point2D, Rect, Size2D},
+    layout_ctx::LayoutCtx,
     widget::Widget,
 };
 

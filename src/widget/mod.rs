@@ -5,9 +5,9 @@ use crate::{
     canvas::{paint_ctx::PaintCtx, Canvas2D},
     constraints::BoxConstraints,
     event_context::EventCtx,
+    geo::Size2D,
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
-    size::Size2D,
     ui_state::UIState,
 };
 

@@ -4,10 +4,9 @@ use crate::{
     constraints::BoxConstraints,
     event::MouseEvent,
     event_context::EventCtx,
+    geo::{Rect, Size2D},
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
-    rect::Rect,
-    size::Size2D,
     ui_state::UIState,
 };
 

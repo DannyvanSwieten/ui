@@ -1,6 +1,9 @@
-use crate::{event_context::EventCtx, rect::Rect, ui_state::UIState};
-
 use super::{Child, Children, Widget};
+use crate::{
+    event_context::EventCtx,
+    geo::{Rect, Size2D},
+    ui_state::UIState,
+};
 
 pub struct DropTarget {
     child: Child,
@@ -27,7 +30,7 @@ impl Widget for DropTarget {
         children: &[usize],
         constraints: &crate::constraints::BoxConstraints,
         layout_ctx: &crate::layout_ctx::LayoutCtx,
-    ) -> Option<crate::size::Size2D> {
+    ) -> Option<Size2D> {
         layout_ctx.preferred_size(children[0], constraints, layout_ctx)
     }
 
@@ -35,7 +38,7 @@ impl Widget for DropTarget {
         &self,
         _ui_state: &UIState,
         layout_ctx: &mut crate::layout_ctx::LayoutCtx,
-        size: crate::size::Size2D,
+        size: Size2D,
         children: &[usize],
     ) {
         layout_ctx.set_child_bounds(children[0], Rect::new_from_size(size))

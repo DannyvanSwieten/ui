@@ -1,4 +1,4 @@
-use crate::size::Size2D;
+use crate::geo::Size2D;
 
 #[derive(Default)]
 pub struct BoxConstraints {

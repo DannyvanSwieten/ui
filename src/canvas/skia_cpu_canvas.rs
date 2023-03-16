@@ -1,8 +1,6 @@
-use skia_safe::{ISize, Point, Surface, TextBlob};
-
-use crate::{point::Point2D, rect::Rect, size::Size2D};
-
 use super::{color::Color, font::Font, paint::Paint, Canvas2D};
+use crate::geo::{Point2D, Rect, Size2D};
+use skia_safe::{ISize, Point, Surface, TextBlob};
 
 pub struct SkiaCanvas {
     surface: Surface,
