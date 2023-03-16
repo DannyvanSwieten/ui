@@ -9,6 +9,7 @@ pub mod event;
 pub mod event_context;
 pub mod gpu;
 pub mod layout_ctx;
+pub mod material;
 pub mod message;
 pub mod message_context;
 pub mod mouse_event;
