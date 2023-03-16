@@ -1,12 +1,10 @@
 mod build_ctx;
 mod layout_ctx;
-mod widget_element;
 mod widget_tree;
 
 pub use build_ctx::BuildCtx;
 pub use layout_ctx::LayoutCtx;
-pub use widget_element::WidgetElement;
-pub use widget_tree::WidgetTree;
+pub use widget_tree::{WidgetElement, WidgetTree};
 
 use crate::{
     constraints::BoxConstraints, event_context::EventCtx, geo::Size, message_context::MessageCtx,
