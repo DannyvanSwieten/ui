@@ -18,14 +18,22 @@ impl<T> Tree<T> {
         tree
     }
 
+    pub fn root_id(&self) -> usize {
+        self.root
+    }
+
     pub fn add_node(&mut self, data: T) -> usize {
         let id = next_element_id();
         self.nodes.insert(id, Node::new(data));
         id
     }
 
-    pub fn node(&self, id: usize) -> Option<&Node<T>> {
+    pub fn get(&self, id: usize) -> Option<&Node<T>> {
         self.nodes.get(&id)
+    }
+
+    pub fn get_mut(&mut self, id: usize) -> Option<&mut Node<T>> {
+        self.nodes.get_mut(&id)
     }
 
     pub fn add_child(&mut self, parent: usize, child: usize) {

@@ -9,10 +9,9 @@ pub fn next_element_id() -> usize {
 }
 
 use crate::{
-    constraints::BoxConstraints,
-    geo::{Point, Rect, Size},
+    geo::{Point, Rect},
     painter::Painter,
-    widget::{LayoutCtx, Widget},
+    widget::Widget,
 };
 
 pub struct PainterElement {
@@ -28,7 +27,6 @@ pub struct WidgetElement {
 pub struct Element {
     widget: Box<dyn Widget>,
     widget_state: Option<Box<dyn Any>>,
-    children: Vec<usize>,
     local_bounds: Rect,
     global_bounds: Rect,
 }
@@ -38,7 +36,6 @@ impl Element {
         let widget_state = widget.state();
         Self {
             widget,
-            children: Vec::new(),
             local_bounds: Rect::default(),
             global_bounds: Rect::default(),
             widget_state,
@@ -57,14 +54,6 @@ impl Element {
         &mut self.widget_state
     }
 
-    pub fn add_child(&mut self, id: usize) {
-        self.children.push(id)
-    }
-
-    pub fn add_children(&mut self, ids: Vec<usize>) {
-        self.children.extend(ids)
-    }
-
     pub fn set_local_bounds(&mut self, bounds: &Rect) {
         self.local_bounds = *bounds
     }
@@ -81,25 +70,8 @@ impl Element {
         &self.global_bounds
     }
 
-    pub fn children(&self) -> &[usize] {
-        &self.children
-    }
-
-    pub fn children_copy(&self) -> Vec<usize> {
-        self.children.clone()
-    }
-
     pub fn set_state(&mut self, state: Box<dyn Any>) {
         self.widget_state = Some(state)
-    }
-
-    pub fn calculate_size(
-        &self,
-        constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
-    ) -> Option<Size> {
-        self.widget
-            .calculate_size(&self.children, constraints, layout_ctx)
     }
 
     pub fn hit_test(&self, point: &Point) -> bool {
