@@ -4,7 +4,7 @@ use crate::{
     geo::{Rect, Size},
     ui_state::UIState,
     value::Value,
-    widget::{BuildCtx, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, Children, LayoutCtx, Painter, Widget},
 };
 
 pub struct Label {
@@ -40,6 +40,18 @@ impl Widget for Label {
         Some(Size::new(200.0, 150.0))
     }
 
+    fn painter(&self) -> Option<Box<dyn Painter>> {
+        Some(Box::new(LabelPainter {
+            binding: self.binding.clone(),
+        }))
+    }
+}
+
+pub struct LabelPainter {
+    binding: Option<String>,
+}
+
+impl Painter for LabelPainter {
     fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas) {
         let font = Font::new("Consolas", 34.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
