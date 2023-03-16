@@ -2,7 +2,6 @@ pub mod app;
 pub mod canvas;
 pub mod constraints;
 pub mod element;
-pub mod element_tree;
 pub mod event;
 pub mod event_context;
 pub mod geo;

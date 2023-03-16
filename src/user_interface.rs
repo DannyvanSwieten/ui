@@ -4,13 +4,12 @@ use crate::{
         skia_cpu_canvas::SkiaCanvas,
         Canvas,
     },
-    element_tree::WidgetTree,
     event::{Event, MouseEvent},
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
     std::drag_source::DragSourceData,
     ui_state::UIState,
-    widget::Widget,
+    widget::{Widget, WidgetTree},
 };
 
 pub struct UserInterface {

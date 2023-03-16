@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::{
     canvas::Canvas,
     constraints::BoxConstraints,
-    element::WidgetElement,
     event::MouseEvent,
     event_context::{EventCtx, SetState},
     geo::{Point, Rect, Size},
@@ -11,7 +10,7 @@ use crate::{
     painter::PaintCtx,
     tree::Tree,
     ui_state::UIState,
-    widget::{BuildCtx, LayoutCtx, Widget},
+    widget::{BuildCtx, LayoutCtx, Widget, WidgetElement},
 };
 
 pub struct WidgetTree {

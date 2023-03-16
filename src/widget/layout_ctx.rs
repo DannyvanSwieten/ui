@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
 use crate::{
     constraints::BoxConstraints,
-    element_tree::WidgetTree,
     geo::{Point, Rect, Size},
+    widget::WidgetTree,
 };
+use std::collections::HashMap;
 
 pub struct LayoutCtx<'a> {
     element_tree: &'a WidgetTree,
