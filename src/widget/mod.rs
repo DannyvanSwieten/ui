@@ -65,3 +65,7 @@ where
         Box::new(value)
     }
 }
+
+pub trait Painter {
+    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas2D);
+}
