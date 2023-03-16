@@ -11,8 +11,18 @@ pub fn next_element_id() -> usize {
 use crate::{
     constraints::BoxConstraints,
     geo::{Point, Rect, Size},
-    widget::{LayoutCtx, Widget},
+    widget::{LayoutCtx, Painter, Widget},
 };
+
+pub struct PainterElement {
+    painter: Box<dyn Painter>,
+    state: Option<Box<dyn Any>>,
+}
+
+pub struct WidgetElement {
+    widget: Box<dyn Widget>,
+    state: Option<Box<dyn Any>>,
+}
 
 pub struct Element {
     widget: Box<dyn Widget>,
