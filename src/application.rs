@@ -10,9 +10,9 @@ use winit::{
 
 use crate::{
     application_delegate::ApplicationDelegate, canvas::canvas_renderer::CanvasRenderer,
-    event::MouseEvent, gpu::GpuApi, message::Message, message_context::MessageCtx, mouse_event,
-    point::Point2D, ui_state::UIState, user_interface::UserInterface,
-    window_request::WindowRequest,
+    event::MouseEvent, gpu::GpuApi, material::Material, message::Message,
+    message_context::MessageCtx, mouse_event, point::Point2D, ui_state::UIState,
+    user_interface::UserInterface, window_request::WindowRequest,
 };
 
 use pollster::block_on;
@@ -215,6 +215,7 @@ impl Application {
                         window.scale_factor() as f32,
                         request.width as f32,
                         request.height as f32,
+                        Material::new(),
                     );
                     let instant = Instant::now();
                     ui.build(&mut state);

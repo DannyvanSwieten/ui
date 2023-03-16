@@ -6,6 +6,7 @@ use crate::{
     },
     element_tree::ElementTree,
     event::{Event, MouseEvent},
+    material::{Material, MaterialStack},
     message_context::MessageCtx,
     point::Point2D,
     rect::Rect,
@@ -23,10 +24,17 @@ pub struct UserInterface {
     drag_source: Option<DragSourceData>,
     drag_source_offset: Option<Point2D>,
     drag_source_tree: Option<ElementTree>,
+    material_stack: MaterialStack,
 }
 
 impl UserInterface {
-    pub fn new(root_widget: Box<dyn Widget>, dpi: f32, width: f32, height: f32) -> Self {
+    pub fn new(
+        root_widget: Box<dyn Widget>,
+        dpi: f32,
+        width: f32,
+        height: f32,
+        base_material: Material,
+    ) -> Self {
         let width = width;
         let height = height;
         let canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
@@ -41,6 +49,7 @@ impl UserInterface {
             canvas,
             drag_source: None,
             drag_source_offset: None,
+            material_stack: MaterialStack::new(base_material),
         }
     }
 
