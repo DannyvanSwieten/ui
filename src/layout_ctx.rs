@@ -1,19 +1,19 @@
 use std::collections::HashMap;
 
 use crate::{
-    constraints::BoxConstraints, point::Point2D, rect::Rect, size::Size2D,
-    user_interface::UserInterface,
+    constraints::BoxConstraints, element_tree::ElementTree, point::Point2D, rect::Rect,
+    size::Size2D,
 };
 
 pub struct LayoutCtx<'a> {
-    user_interface: &'a UserInterface,
+    element_tree: &'a ElementTree,
     bounds: HashMap<usize, Rect>,
 }
 
 impl<'a> LayoutCtx<'a> {
-    pub fn new(user_interface: &'a UserInterface) -> Self {
+    pub fn new(element_tree: &'a ElementTree) -> Self {
         Self {
-            user_interface,
+            element_tree,
             bounds: HashMap::new(),
         }
     }
@@ -28,7 +28,7 @@ impl<'a> LayoutCtx<'a> {
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
     ) -> Option<Size2D> {
-        self.user_interface
+        self.element_tree
             .calculate_element_size(id, constraints, layout_ctx)
     }
 

@@ -111,6 +111,7 @@ impl Application {
                             ui.event(
                                 &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
                                 &mut message_ctx,
+                                &state,
                             );
                             mouse_down_states.insert(window_id, true);
                         }
@@ -129,6 +130,7 @@ impl Application {
                                         mouse_event,
                                     )),
                                     &mut message_ctx,
+                                    &state,
                                 );
 
                                 drag_start = None
@@ -137,6 +139,7 @@ impl Application {
                             ui.event(
                                 &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
                                 &mut message_ctx,
+                                &state,
                             );
                             mouse_down_states.insert(window_id, false);
                         }
@@ -165,6 +168,7 @@ impl Application {
                                             mouse_event,
                                         )),
                                         &mut message_ctx,
+                                        &state,
                                     );
                                 } else {
                                     mouse_event = mouse_event
@@ -177,6 +181,7 @@ impl Application {
                                             mouse_event,
                                         )),
                                         &mut message_ctx,
+                                        &state,
                                     );
                                 }
                             }
@@ -184,6 +189,7 @@ impl Application {
                             ui.event(
                                 &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
                                 &mut message_ctx,
+                                &state,
                             );
                         }
                     }

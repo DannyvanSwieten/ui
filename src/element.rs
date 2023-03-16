@@ -1,4 +1,12 @@
-use std::any::Any;
+use std::{
+    any::Any,
+    sync::atomic::{AtomicUsize, Ordering},
+};
+
+pub static NEXT_ELEMENT_ID: AtomicUsize = AtomicUsize::new(0);
+pub fn next_element_id() -> usize {
+    NEXT_ELEMENT_ID.fetch_add(1, Ordering::SeqCst) + 1
+}
 
 use crate::{
     constraints::BoxConstraints, layout_ctx::LayoutCtx, point::Point2D, rect::Rect, size::Size2D,
@@ -14,18 +22,7 @@ pub struct Element {
 }
 
 impl Element {
-    pub fn new<W: Widget + 'static>(widget: W) -> Self {
-        let widget_state = widget.state();
-        Self {
-            widget: Box::new(widget),
-            children: Vec::new(),
-            local_bounds: Rect::default(),
-            global_bounds: Rect::default(),
-            widget_state,
-        }
-    }
-
-    pub fn new_box(widget: Box<dyn Widget>) -> Self {
+    pub fn new(widget: Box<dyn Widget>) -> Self {
         let widget_state = widget.state();
         Self {
             widget,
