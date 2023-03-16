@@ -2,17 +2,17 @@ use std::collections::HashMap;
 
 use crate::{
     constraints::BoxConstraints,
-    element_tree::ElementTree,
+    element_tree::WidgetTree,
     geo::{Point, Rect, Size},
 };
 
 pub struct LayoutCtx<'a> {
-    element_tree: &'a ElementTree,
+    element_tree: &'a WidgetTree,
     bounds: HashMap<usize, Rect>,
 }
 
 impl<'a> LayoutCtx<'a> {
-    pub fn new(element_tree: &'a ElementTree) -> Self {
+    pub fn new(element_tree: &'a WidgetTree) -> Self {
         Self {
             element_tree,
             bounds: HashMap::new(),

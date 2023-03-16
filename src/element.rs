@@ -21,17 +21,12 @@ pub struct PainterElement {
 
 pub struct WidgetElement {
     widget: Box<dyn Widget>,
-    state: Option<Box<dyn Any>>,
-}
-
-pub struct Element {
-    widget: Box<dyn Widget>,
     widget_state: Option<Box<dyn Any>>,
     local_bounds: Rect,
     global_bounds: Rect,
 }
 
-impl Element {
+impl WidgetElement {
     pub fn new(widget: Box<dyn Widget>) -> Self {
         let widget_state = widget.state();
         Self {

@@ -4,7 +4,7 @@ use crate::{
         skia_cpu_canvas::SkiaCanvas,
         Canvas,
     },
-    element_tree::ElementTree,
+    element_tree::WidgetTree,
     event::{Event, MouseEvent},
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
@@ -14,14 +14,14 @@ use crate::{
 };
 
 pub struct UserInterface {
-    root_tree: ElementTree,
+    root_tree: WidgetTree,
     width: f32,
     height: f32,
     dpi: f32,
     canvas: Box<dyn Canvas>,
     drag_source: Option<DragSourceData>,
     drag_source_offset: Option<Point>,
-    _drag_source_tree: Option<ElementTree>,
+    _drag_source_tree: Option<WidgetTree>,
 }
 
 impl UserInterface {
@@ -29,7 +29,7 @@ impl UserInterface {
         let width = width;
         let height = height;
         let canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
-        let root_tree = ElementTree::new(root_widget);
+        let root_tree = WidgetTree::new(root_widget);
 
         Self {
             root_tree,

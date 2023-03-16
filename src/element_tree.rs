@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
     canvas::Canvas,
     constraints::BoxConstraints,
-    element::Element,
+    element::WidgetElement,
     event::MouseEvent,
     event_context::{EventCtx, SetState},
     geo::{Point, Rect, Size},
@@ -14,14 +14,14 @@ use crate::{
     widget::{BuildCtx, LayoutCtx, Widget},
 };
 
-pub struct ElementTree {
-    tree: Tree<Element>,
+pub struct WidgetTree {
+    tree: Tree<WidgetElement>,
 }
 
-impl ElementTree {
+impl WidgetTree {
     pub fn new(widget: Box<dyn Widget>) -> Self {
         Self {
-            tree: Tree::new(Element::new(widget)),
+            tree: Tree::new(WidgetElement::new(widget)),
         }
     }
 
@@ -122,7 +122,7 @@ impl ElementTree {
         }
     }
 
-    pub fn element(&self, id: usize) -> Option<&Element> {
+    pub fn element(&self, id: usize) -> Option<&WidgetElement> {
         self.tree.get(id).map(|node| &node.data)
     }
 
@@ -194,7 +194,7 @@ impl ElementTree {
     }
 
     fn add_element(&mut self, widget: Box<dyn Widget>) -> usize {
-        self.tree.add_node(Element::new(widget))
+        self.tree.add_node(WidgetElement::new(widget))
     }
 
     fn add_child(&mut self, parent: usize, child: usize) {
