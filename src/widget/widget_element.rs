@@ -5,8 +5,8 @@ use std::any::Any;
 pub struct WidgetElement {
     widget: Box<dyn Widget>,
     widget_state: Option<Box<dyn Any>>,
-    local_bounds: Rect,
-    global_bounds: Rect,
+    pub local_bounds: Rect,
+    pub global_bounds: Rect,
 }
 
 impl WidgetElement {
@@ -30,22 +30,6 @@ impl WidgetElement {
 
     pub fn widget_state_mut(&mut self) -> &mut Option<Box<dyn Any>> {
         &mut self.widget_state
-    }
-
-    pub fn set_local_bounds(&mut self, bounds: &Rect) {
-        self.local_bounds = *bounds
-    }
-
-    pub fn local_bounds(&self) -> &Rect {
-        &self.local_bounds
-    }
-
-    pub fn set_global_bounds(&mut self, bounds: &Rect) {
-        self.global_bounds = *bounds
-    }
-
-    pub fn global_bounds(&self) -> &Rect {
-        &self.global_bounds
     }
 
     pub fn set_state(&mut self, state: Box<dyn Any>) {

@@ -52,7 +52,7 @@ impl WidgetTree {
         let mut widget_states = HashMap::new();
         if let Some(hit) = hit {
             if let Some(node) = self.tree.get_mut(hit) {
-                let local_event = event.to_local(&node.data.global_bounds().position());
+                let local_event = event.to_local(&node.data.global_bounds.position());
                 let mut event_ctx =
                     EventCtx::new(hit, Some(&local_event), node.data.widget_state());
                 node.data
@@ -74,7 +74,7 @@ impl WidgetTree {
 
         for intercept in intercepted {
             if let Some(node) = self.tree.get_mut(intercept) {
-                let local_event = event.to_local(&node.data.global_bounds().position());
+                let local_event = event.to_local(&node.data.global_bounds.position());
                 let mut event_ctx =
                     EventCtx::new(intercept, Some(&local_event), node.data.widget_state());
                 node.data
@@ -127,8 +127,8 @@ impl WidgetTree {
 
     pub fn set_bounds(&mut self, bounds: &Rect) {
         let node = self.tree.get_mut(self.tree.root_id()).unwrap();
-        node.data.set_global_bounds(bounds);
-        node.data.set_local_bounds(bounds);
+        node.data.global_bounds = *bounds;
+        node.data.local_bounds = *bounds;
     }
 
     fn build_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
@@ -155,7 +155,7 @@ impl WidgetTree {
             node.data.widget().layout(
                 state,
                 &mut layout_ctx,
-                node.data.local_bounds().size(),
+                node.data.local_bounds.size(),
                 &node.children,
             );
             Some(node.children.clone())
@@ -168,20 +168,20 @@ impl WidgetTree {
         if let Some(node) = self.tree.get(id) {
             for (id, rect) in &child_local_bounds {
                 let mut global_bounds = *rect;
-                global_bounds.set_position(node.data.global_bounds().position() + rect.position());
+                global_bounds.set_position(node.data.global_bounds.position() + rect.position());
                 child_global_bounds.insert(*id, global_bounds);
             }
         }
 
         for (id, bounds) in &child_local_bounds {
             if let Some(node) = self.tree.get_mut(*id) {
-                node.data.set_local_bounds(bounds);
+                node.data.local_bounds = *bounds;
             }
         }
 
         for (id, bounds) in &child_global_bounds {
             if let Some(node) = self.tree.get_mut(*id) {
-                node.data.set_global_bounds(bounds);
+                node.data.global_bounds = *bounds;
             }
         }
 
@@ -237,10 +237,15 @@ impl WidgetTree {
         ui_state: &UIState,
     ) {
         let children = if let Some(node) = self.tree.get_mut(id) {
-            let mut global_bounds = *node.data.global_bounds();
-            global_bounds = global_bounds.with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
-            let mut local_bounds = *node.data.local_bounds();
-            local_bounds = local_bounds.with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
+            let global_bounds = node
+                .data
+                .global_bounds
+                .with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
+
+            let local_bounds = node
+                .data
+                .local_bounds
+                .with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
 
             if let Some(painter) = node.data.widget().painter() {
                 let paint_ctx =
