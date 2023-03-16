@@ -1,8 +1,8 @@
 use crate::{
     build_context::BuildCtx,
-    canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas2D},
+    canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas},
     constraints::BoxConstraints,
-    geo::{Rect, Size2D},
+    geo::{Rect, Size},
     layout_ctx::LayoutCtx,
     ui_state::UIState,
     value::Value,
@@ -39,11 +39,11 @@ impl Widget for Label {
         _children: &[usize],
         _constraints: &BoxConstraints,
         _layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
-        Some(Size2D::new(200.0, 150.0))
+    ) -> Option<Size> {
+        Some(Size::new(200.0, 150.0))
     }
 
-    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas2D) {
+    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas) {
         let font = Font::new("Consolas", 34.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
         let text = if let Some(binding) = &self.binding {

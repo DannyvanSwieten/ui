@@ -2,10 +2,10 @@ use std::any::Any;
 
 use crate::{
     build_context::BuildCtx,
-    canvas::{paint_ctx::PaintCtx, Canvas2D},
+    canvas::{paint_ctx::PaintCtx, Canvas},
     constraints::BoxConstraints,
     event_context::EventCtx,
-    geo::Size2D,
+    geo::Size,
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     ui_state::UIState,
@@ -36,7 +36,7 @@ pub trait Widget {
         children: &[usize],
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
+    ) -> Option<Size> {
         None
     }
 
@@ -44,11 +44,11 @@ pub trait Widget {
         &self,
         ui_state: &UIState,
         layout_ctx: &mut LayoutCtx,
-        size: Size2D,
+        size: Size,
         children: &[usize],
     ) {
     }
-    fn paint(&self, _paint_ctx: &PaintCtx, _ui_state: &UIState, _canvas: &mut dyn Canvas2D) {}
+    fn paint(&self, _paint_ctx: &PaintCtx, _ui_state: &UIState, _canvas: &mut dyn Canvas) {}
     fn mouse_event(
         &self,
         _ui_state: &UIState,

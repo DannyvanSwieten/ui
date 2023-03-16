@@ -10,7 +10,7 @@ pub fn next_element_id() -> usize {
 
 use crate::{
     constraints::BoxConstraints,
-    geo::{Point2D, Rect, Size2D},
+    geo::{Point, Rect, Size},
     layout_ctx::LayoutCtx,
     widget::Widget,
 };
@@ -87,12 +87,12 @@ impl Element {
         &self,
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
+    ) -> Option<Size> {
         self.widget
             .calculate_size(&self.children, constraints, layout_ctx)
     }
 
-    pub fn hit_test(&self, point: &Point2D) -> bool {
+    pub fn hit_test(&self, point: &Point) -> bool {
         self.global_bounds.hit_test(point)
     }
 }

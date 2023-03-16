@@ -1,4 +1,4 @@
-use crate::geo::Point2D;
+use crate::geo::Point;
 
 pub enum Event {
     Mouse(MouseEvent),
@@ -17,7 +17,7 @@ pub enum MouseEvent {
 }
 
 impl MouseEvent {
-    pub fn local_position(&self) -> &Point2D {
+    pub fn local_position(&self) -> &Point {
         match self {
             Self::MouseMove(event) => event.local_position(),
             Self::MouseEnter(event) => event.local_position(),
@@ -30,7 +30,7 @@ impl MouseEvent {
         }
     }
 
-    pub fn to_local(&self, position: &Point2D) -> MouseEvent {
+    pub fn to_local(&self, position: &Point) -> MouseEvent {
         match self {
             Self::MouseMove(event) => Self::MouseMove(event.to_local(position)),
             Self::MouseEnter(event) => Self::MouseEnter(event.to_local(position)),

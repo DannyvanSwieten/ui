@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
     constraints::BoxConstraints,
     element_tree::ElementTree,
-    geo::{Point2D, Rect, Size2D},
+    geo::{Point, Rect, Size},
 };
 
 pub struct LayoutCtx<'a> {
@@ -28,7 +28,7 @@ impl<'a> LayoutCtx<'a> {
         id: usize,
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
+    ) -> Option<Size> {
         self.element_tree
             .calculate_element_size(id, constraints, layout_ctx)
     }
@@ -37,12 +37,12 @@ impl<'a> LayoutCtx<'a> {
         self.bounds.insert(id, rect);
     }
 
-    pub fn set_child_position(&mut self, id: usize, position: Point2D) {
+    pub fn set_child_position(&mut self, id: usize, position: Point) {
         if let Some(bounds) = self.bounds.get_mut(&id) {
             bounds.set_position(position);
         } else {
             self.bounds
-                .insert(id, Rect::new(position, Size2D::new(0.0, 0.0)));
+                .insert(id, Rect::new(position, Size::new(0.0, 0.0)));
         }
     }
 }

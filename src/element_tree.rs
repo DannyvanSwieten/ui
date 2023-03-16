@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use crate::{
     build_context::BuildCtx,
-    canvas::{paint_ctx::PaintCtx, Canvas2D},
+    canvas::{paint_ctx::PaintCtx, Canvas},
     constraints::BoxConstraints,
     element::{next_element_id, Element},
     event::MouseEvent,
     event_context::{EventCtx, SetState},
-    geo::{Point2D, Rect, Size2D},
+    geo::{Point, Rect, Size},
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     ui_state::UIState,
@@ -98,7 +98,7 @@ impl ElementTree {
 
     pub fn hit_test(
         &self,
-        position: &Point2D,
+        position: &Point,
         intercepted: &mut Vec<usize>,
         hit: &mut Option<usize>,
     ) {
@@ -108,7 +108,7 @@ impl ElementTree {
     fn hit_test_element(
         &self,
         id: usize,
-        position: &Point2D,
+        position: &Point,
         intercepted: &mut Vec<usize>,
         hit: &mut Option<usize>,
     ) {
@@ -215,7 +215,7 @@ impl ElementTree {
         id: usize,
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
+    ) -> Option<Size> {
         if let Some(element) = self.element(id) {
             element.calculate_size(constraints, layout_ctx)
         } else {
@@ -235,27 +235,22 @@ impl ElementTree {
         self.layout_element(self.root_id, state);
     }
 
-    pub fn paint(
-        &mut self,
-        offset: Option<Point2D>,
-        canvas: &mut dyn Canvas2D,
-        ui_state: &UIState,
-    ) {
+    pub fn paint(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas, ui_state: &UIState) {
         self.paint_element(self.root_id, offset, canvas, ui_state)
     }
 
     fn paint_element(
         &mut self,
         id: usize,
-        offset: Option<Point2D>,
-        canvas: &mut dyn Canvas2D,
+        offset: Option<Point>,
+        canvas: &mut dyn Canvas,
         ui_state: &UIState,
     ) {
         let children = if let Some(element) = self.elements.get_mut(&id) {
             let mut global_bounds = *element.global_bounds();
-            global_bounds = global_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
+            global_bounds = global_bounds.with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
             let mut local_bounds = *element.local_bounds();
-            local_bounds = local_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
+            local_bounds = local_bounds.with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
 
             let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, element.widget_state());
             canvas.save();

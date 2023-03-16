@@ -1,4 +1,4 @@
-use crate::geo::Size2D;
+use crate::geo::Size;
 
 #[derive(Default)]
 pub struct BoxConstraints {
@@ -92,8 +92,8 @@ impl BoxConstraints {
         self.max_width.is_some() && self.max_height.is_some()
     }
 
-    pub fn max_size(&self) -> Size2D {
-        Size2D::new(
+    pub fn max_size(&self) -> Size {
+        Size::new(
             self.max_width.unwrap_or(0.0),
             self.max_height.unwrap_or(0.0),
         )

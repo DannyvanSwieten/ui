@@ -1,10 +1,10 @@
 use crate::{
     build_context::BuildCtx,
-    canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas2D},
+    canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas},
     constraints::BoxConstraints,
     event::MouseEvent,
     event_context::EventCtx,
-    geo::{Rect, Size2D},
+    geo::{Rect, Size},
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     ui_state::UIState,
@@ -58,13 +58,13 @@ impl Widget for TextButton {
         _children: &[usize],
         _constraints: &BoxConstraints,
         _layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
-        Some(Size2D::new(100.0, 50.0))
+    ) -> Option<Size> {
+        Some(Size::new(100.0, 50.0))
     }
 
-    fn layout(&self, _ui_state: &UIState, _: &mut LayoutCtx, _: Size2D, _: &[usize]) {}
+    fn layout(&self, _ui_state: &UIState, _: &mut LayoutCtx, _: Size, _: &[usize]) {}
 
-    fn paint(&self, paint_ctx: &PaintCtx, _: &UIState, canvas: &mut dyn Canvas2D) {
+    fn paint(&self, paint_ctx: &PaintCtx, _: &UIState, canvas: &mut dyn Canvas) {
         let state = paint_ctx.state::<ButtonState>();
         if let Some(state) = state {
             match state {
