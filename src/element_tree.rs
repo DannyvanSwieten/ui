@@ -6,7 +6,7 @@ use crate::{
     constraints::BoxConstraints,
     element::{next_element_id, Element},
     event::MouseEvent,
-    event_context::EventCtx,
+    event_context::{EventCtx, SetState},
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     point::Point2D,
@@ -42,15 +42,23 @@ impl ElementTree {
         }
     }
 
+    pub fn update_state(&mut self, updates: &HashMap<usize, SetState>) {
+        for (id, update) in updates {
+            let element = self.elements.get_mut(id).unwrap();
+            element.set_state(update(element.widget_state()));
+        }
+    }
+
     pub fn mouse_event(
         &mut self,
         event: &MouseEvent,
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
-    ) -> Option<usize> {
+    ) -> HashMap<usize, SetState> {
         let mut intercepted = Vec::new();
         let mut hit = None;
         self.hit_test(event.local_position(), &mut intercepted, &mut hit);
+        let mut widget_states = HashMap::new();
         if let Some(hit) = hit {
             if let Some(element) = self.elements.get_mut(&hit) {
                 let local_event = event.to_local(&element.global_bounds().position());
@@ -58,40 +66,36 @@ impl ElementTree {
                 element
                     .widget()
                     .mouse_event(ui_state, &mut event_ctx, message_ctx);
-                if let Some(drag_source) = event_ctx.drag_source() {}
+                if let Some(drag_source) = event_ctx.drag_source() {
+                    for item in drag_source.items() {
+                        // item.widget().build(build_ctx);
+                        todo!()
+                    }
+                }
 
                 let set_state = event_ctx.consume_state();
-                if let Some(mut set_state) = set_state {
-                    if let Some(state) = &mut element.widget_state_mut() {
-                        (set_state)(state.as_mut())
-                    }
-
-                    self.layout_element(hit, ui_state);
+                if let Some(set_state) = set_state {
+                    widget_states.insert(hit, set_state);
                 }
             }
         }
 
-        hit
+        for intercept in intercepted {
+            if let Some(element) = self.elements.get_mut(&intercept) {
+                let local_event = event.to_local(&element.global_bounds().position());
+                let mut event_ctx =
+                    EventCtx::new(intercept, Some(&local_event), &element.widget_state());
+                element
+                    .widget()
+                    .mouse_event(ui_state, &mut event_ctx, message_ctx);
+                let set_state = event_ctx.consume_state();
+                if let Some(set_state) = set_state {
+                    widget_states.insert(intercept, set_state);
+                }
+            }
+        }
 
-        // for intercept in intercepted {
-        //     if let Some(element) = self.elements.get_mut(&intercept) {
-        //         let local_event = event.to_local(&element.global_bounds().position());
-        //         let mut event_ctx =
-        //             EventCtx::new(intercept, Some(&local_event), &element.widget_state());
-        //         element.widget().mouse_event(&mut event_ctx, message_ctx);
-        //         if self.drag_source.is_none() {
-        //             self.drag_source = event_ctx.drag_source()
-        //         }
-        //         let set_state = event_ctx.consume_state();
-        //         if let Some(mut set_state) = set_state {
-        //             if let Some(state) = &mut element.widget_state_mut() {
-        //                 (set_state)(state.as_mut())
-        //             }
-
-        //             self.layout_element(intercept)
-        //         }
-        //     }
-        // }
+        widget_states
     }
 
     pub fn hit_test(
@@ -223,7 +227,7 @@ impl ElementTree {
 
     fn rebuild_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
         let element = self.elements.remove(&id);
-        if let Some(mut element) = element {
+        if let Some(element) = element {
             element.widget().build(build_ctx);
             self.elements.insert(id, element);
         }

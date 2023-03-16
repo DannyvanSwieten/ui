@@ -101,8 +101,12 @@ impl UserInterface {
         event: &MouseEvent,
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
-    ) -> Option<usize> {
-        let hit = self.root_tree.mouse_event(event, message_ctx, ui_state);
+    ) {
+        let widget_state_updates = self.root_tree.mouse_event(event, message_ctx, ui_state);
+        self.root_tree.update_state(&widget_state_updates);
+        for (id, _) in widget_state_updates {
+            self.root_tree.layout_element(id, ui_state)
+        }
 
         if let MouseEvent::MouseDrag(drag_event) = event {
             if self.drag_source.is_some() {
@@ -114,18 +118,13 @@ impl UserInterface {
             self.drag_source = None;
             self.drag_source_offset = None;
         }
-
-        hit
     }
 
-    pub fn event(
-        &mut self,
-        event: &Event,
-        message_ctx: &mut MessageCtx,
-        ui_state: &UIState,
-    ) -> Option<usize> {
+    pub fn event(&mut self, event: &Event, message_ctx: &mut MessageCtx, ui_state: &UIState) {
         match event {
-            Event::Mouse(mouse_event) => self.mouse_event(mouse_event, message_ctx, ui_state),
+            Event::Mouse(mouse_event) => {
+                self.mouse_event(mouse_event, message_ctx, ui_state);
+            }
             Event::Key(_) => todo!(),
         }
     }

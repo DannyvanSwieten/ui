@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::{
     build_context::BuildCtx,
     canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas2D},
@@ -65,7 +67,7 @@ impl Widget for TextButton {
 
     fn layout(&self, _ui_state: &UIState, _: &mut LayoutCtx, _: Size2D, _: &[usize]) {}
 
-    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas2D) {
+    fn paint(&self, paint_ctx: &PaintCtx, _ui_state: &UIState, canvas: &mut dyn Canvas2D) {
         let state = paint_ctx.state::<ButtonState>();
         if let Some(state) = state {
             match state {
@@ -106,26 +108,14 @@ impl Widget for TextButton {
         message_ctx: &mut MessageCtx,
     ) {
         match event_ctx.mouse_event() {
-            MouseEvent::MouseMove(_) => event_ctx.set_state(|state| {
-                if let Some(state) = state.downcast_mut::<ButtonState>() {
-                    *state = ButtonState::Hovered;
-                }
-            }),
-            MouseEvent::MouseDown(_) => event_ctx.set_state(|state| {
-                if let Some(state) = state.downcast_mut::<ButtonState>() {
-                    *state = ButtonState::Active;
-                }
-            }),
+            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| Box::new(ButtonState::Hovered)),
+            MouseEvent::MouseDown(_) => event_ctx.set_state(|_| Box::new(ButtonState::Active)),
             MouseEvent::MouseUp(_) => {
                 if let Some(handler) = &self.click_handler {
                     (handler)(message_ctx)
                 }
 
-                event_ctx.set_state(|state| {
-                    if let Some(state) = state.downcast_mut::<ButtonState>() {
-                        *state = ButtonState::Inactive;
-                    }
-                })
+                event_ctx.set_state(|_| Box::new(ButtonState::Inactive))
             }
             _ => (),
         }

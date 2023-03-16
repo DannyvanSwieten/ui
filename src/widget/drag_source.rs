@@ -4,22 +4,17 @@ use crate::{event_context::EventCtx, rect::Rect, ui_state::UIState};
 
 use super::{Child, Children, Widget};
 
-pub enum DragSourceWidget {
-    Id(usize),
-    Widget(Box<dyn Widget>),
-}
-
 pub struct DragSourceItem {
-    widget: DragSourceWidget,
+    widget: Box<dyn Widget>,
     data: Option<Box<dyn Any>>,
 }
 
 impl DragSourceItem {
-    pub fn widget(&self) -> &DragSourceWidget {
+    pub fn widget(&self) -> &Box<dyn Widget> {
         &self.widget
     }
 
-    pub fn new(widget: DragSourceWidget) -> DragSourceItem {
+    pub fn new(widget: Box<dyn Widget>) -> DragSourceItem {
         Self { widget, data: None }
     }
 }
@@ -108,11 +103,6 @@ impl Widget for DragSource {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
                 event_ctx.set_drag_source(handler())
-            } else {
-                event_ctx.set_drag_source(
-                    DragSourceData::new()
-                        .with_item(DragSourceItem::new(DragSourceWidget::Id(event_ctx.id()))),
-                )
             }
 
             // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.

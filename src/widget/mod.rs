@@ -47,10 +47,10 @@ pub trait Widget {
         _children: &[usize],
     ) {
     }
-    fn paint(&self, _paint_ctx: &PaintCtx, ui_state: &UIState, _canvas: &mut dyn Canvas2D) {}
+    fn paint(&self, _paint_ctx: &PaintCtx, _ui_state: &UIState, _canvas: &mut dyn Canvas2D) {}
     fn mouse_event(
         &self,
-        ui_state: &UIState,
+        _ui_state: &UIState,
         _event_ctx: &mut EventCtx,
         _message_ctx: &mut MessageCtx,
     ) {

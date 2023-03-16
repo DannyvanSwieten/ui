@@ -77,6 +77,10 @@ impl Element {
         self.children.clone()
     }
 
+    pub fn set_state(&mut self, state: Box<dyn Any>) {
+        self.widget_state = Some(state)
+    }
+
     pub fn calculate_size(
         &self,
         constraints: &BoxConstraints,
