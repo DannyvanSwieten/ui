@@ -48,7 +48,11 @@ pub trait Widget {
         children: &[usize],
     ) {
     }
-    fn paint(&self, _paint_ctx: &PaintCtx, _ui_state: &UIState, _canvas: &mut dyn Canvas2D) {}
+
+    fn painter(&self) -> Option<Box<dyn Painter>> {
+        None
+    }
+
     fn mouse_event(
         &self,
         _ui_state: &UIState,
