@@ -11,7 +11,8 @@ pub fn next_element_id() -> usize {
 use crate::{
     constraints::BoxConstraints,
     geo::{Point, Rect, Size},
-    widget::{LayoutCtx, Painter, Widget},
+    painter::Painter,
+    widget::{LayoutCtx, Widget},
 };
 
 pub struct PainterElement {

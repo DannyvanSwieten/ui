@@ -1,12 +1,13 @@
 use crate::{
-    canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas},
+    canvas::{color::Color32f, font::Font, paint::Paint, Canvas},
     constraints::BoxConstraints,
     event::MouseEvent,
     event_context::EventCtx,
     geo::{Rect, Size},
     message_context::MessageCtx,
+    painter::{PaintCtx, Painter},
     ui_state::UIState,
-    widget::{BuildCtx, Children, LayoutCtx, Painter, Widget},
+    widget::{BuildCtx, Children, LayoutCtx, Widget},
 };
 
 enum ButtonState {

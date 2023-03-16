@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
 use crate::{
-    canvas::{paint_ctx::PaintCtx, Canvas},
+    canvas::Canvas,
     constraints::BoxConstraints,
     element::{next_element_id, Element},
     event::MouseEvent,
     event_context::{EventCtx, SetState},
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
+    painter::PaintCtx,
     ui_state::UIState,
     widget::{BuildCtx, LayoutCtx, Widget},
 };

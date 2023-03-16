@@ -5,12 +5,8 @@ pub use build_ctx::BuildCtx;
 pub use layout_ctx::LayoutCtx;
 
 use crate::{
-    canvas::{paint_ctx::PaintCtx, Canvas},
-    constraints::BoxConstraints,
-    event_context::EventCtx,
-    geo::Size,
-    message_context::MessageCtx,
-    ui_state::UIState,
+    constraints::BoxConstraints, event_context::EventCtx, geo::Size, message_context::MessageCtx,
+    painter::Painter, ui_state::UIState,
 };
 use std::any::Any;
 
@@ -68,8 +64,4 @@ where
     fn from(value: T) -> Self {
         Box::new(value)
     }
-}
-
-pub trait Painter {
-    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas);
 }
