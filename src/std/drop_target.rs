@@ -1,8 +1,9 @@
 use crate::{
+    constraints::BoxConstraints,
     event_context::EventCtx,
     geo::{Rect, Size},
     ui_state::UIState,
-    widget::{Child, Children, Widget},
+    widget::{BuildCtx, Child, Children, LayoutCtx, Widget},
 };
 
 pub struct DropTarget {
@@ -21,15 +22,15 @@ impl DropTarget {
 }
 
 impl Widget for DropTarget {
-    fn build(&self, _build_ctx: &mut crate::build_context::BuildCtx) -> Children {
+    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![(self.child)()]
     }
 
     fn calculate_size(
         &self,
         children: &[usize],
-        constraints: &crate::constraints::BoxConstraints,
-        layout_ctx: &crate::layout_ctx::LayoutCtx,
+        constraints: &BoxConstraints,
+        layout_ctx: &LayoutCtx,
     ) -> Option<Size> {
         layout_ctx.preferred_size(children[0], constraints, layout_ctx)
     }
@@ -37,7 +38,7 @@ impl Widget for DropTarget {
     fn layout(
         &self,
         _ui_state: &UIState,
-        layout_ctx: &mut crate::layout_ctx::LayoutCtx,
+        layout_ctx: &mut LayoutCtx,
         size: Size,
         children: &[usize],
     ) {
