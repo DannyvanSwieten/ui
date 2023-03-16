@@ -5,13 +5,13 @@ use crate::{
     layout_ctx::LayoutCtx,
     rect::Rect,
     size::Size2D,
+    ui_state::UIState,
     value::Value,
 };
 
 use super::{Children, Widget};
 
 pub struct Label {
-    text: String,
     binding: Option<String>,
 }
 
@@ -19,13 +19,9 @@ impl Label {
     pub fn new(default: Value) -> Self {
         match default {
             Value::Binding(binding) => Self {
-                text: "".to_string(),
                 binding: Some(binding),
             },
-            Value::Const(c) => Self {
-                text: c.to_string(),
-                binding: None,
-            },
+            Value::Const(_) => Self { binding: None },
         }
     }
 }
@@ -39,8 +35,6 @@ impl Widget for Label {
         vec![]
     }
 
-    fn layout(&self, _layout_ctx: &mut LayoutCtx, _size: Size2D, _children: &[usize]) {}
-
     fn calculate_size(
         &self,
         _children: &[usize],
@@ -50,11 +44,11 @@ impl Widget for Label {
         Some(Size2D::new(200.0, 150.0))
     }
 
-    fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas2D) {
+    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas2D) {
         let font = Font::new("Consolas", 34.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
         let text = if let Some(binding) = &self.binding {
-            paint_ctx.ui_state().get(&binding)
+            ui_state.get(binding)
         } else {
             None
         };

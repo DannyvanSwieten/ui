@@ -8,6 +8,7 @@ use crate::{
     message_context::MessageCtx,
     rect::Rect,
     size::Size2D,
+    ui_state::UIState,
 };
 
 use super::{Children, Widget};
@@ -62,9 +63,9 @@ impl Widget for TextButton {
         Some(Size2D::new(100.0, 50.0))
     }
 
-    fn layout(&self, _: &mut LayoutCtx, _: Size2D, _: &[usize]) {}
+    fn layout(&self, _ui_state: &UIState, _: &mut LayoutCtx, _: Size2D, _: &[usize]) {}
 
-    fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas2D) {
+    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas2D) {
         let state = paint_ctx.state::<ButtonState>();
         if let Some(state) = state {
             match state {
@@ -98,7 +99,12 @@ impl Widget for TextButton {
         );
     }
 
-    fn mouse_event(&self, event_ctx: &mut EventCtx, message_ctx: &mut MessageCtx) {
+    fn mouse_event(
+        &self,
+        _ui_state: &UIState,
+        event_ctx: &mut EventCtx,
+        message_ctx: &mut MessageCtx,
+    ) {
         match event_ctx.mouse_event() {
             MouseEvent::MouseMove(_) => event_ctx.set_state(|state| {
                 if let Some(state) = state.downcast_mut::<ButtonState>() {

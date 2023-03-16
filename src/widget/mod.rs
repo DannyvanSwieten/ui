@@ -8,6 +8,7 @@ use crate::{
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     size::Size2D,
+    ui_state::UIState,
 };
 
 pub mod center;
@@ -38,9 +39,22 @@ pub trait Widget {
         None
     }
 
-    fn layout(&self, _layout_ctx: &mut LayoutCtx, _size: Size2D, _children: &[usize]) {}
-    fn paint(&self, _paint_ctx: &PaintCtx, _canvas: &mut dyn Canvas2D) {}
-    fn mouse_event(&self, _event_ctx: &mut EventCtx, _message_ctx: &mut MessageCtx) {}
+    fn layout(
+        &self,
+        _ui_state: &UIState,
+        _layout_ctx: &mut LayoutCtx,
+        _size: Size2D,
+        _children: &[usize],
+    ) {
+    }
+    fn paint(&self, _paint_ctx: &PaintCtx, ui_state: &UIState, _canvas: &mut dyn Canvas2D) {}
+    fn mouse_event(
+        &self,
+        ui_state: &UIState,
+        _event_ctx: &mut EventCtx,
+        _message_ctx: &mut MessageCtx,
+    ) {
+    }
     fn intercept_mouse_events(&self) -> bool {
         false
     }

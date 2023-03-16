@@ -1,4 +1,4 @@
-use crate::{event_context::EventCtx, rect::Rect};
+use crate::{event_context::EventCtx, rect::Rect, ui_state::UIState};
 
 use super::{Child, Children, Widget};
 
@@ -33,6 +33,7 @@ impl Widget for DropTarget {
 
     fn layout(
         &self,
+        _ui_state: &UIState,
         layout_ctx: &mut crate::layout_ctx::LayoutCtx,
         size: crate::size::Size2D,
         children: &[usize],
@@ -42,6 +43,7 @@ impl Widget for DropTarget {
 
     fn mouse_event(
         &self,
+        _ui_state: &UIState,
         event_ctx: &mut EventCtx,
         _message_ctx: &mut crate::message_context::MessageCtx,
     ) {

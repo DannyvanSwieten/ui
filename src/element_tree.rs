@@ -38,7 +38,7 @@ impl ElementTree {
         for id in updates {
             let mut build_ctx = BuildCtx::new(id, state);
             self.rebuild_element(&mut build_ctx, id);
-            self.layout_element(id)
+            self.layout_element(id, state)
         }
     }
 
@@ -55,17 +55,18 @@ impl ElementTree {
             if let Some(element) = self.elements.get_mut(&hit) {
                 let local_event = event.to_local(&element.global_bounds().position());
                 let mut event_ctx = EventCtx::new(hit, Some(&local_event), &element.widget_state());
-                element.widget().mouse_event(&mut event_ctx, message_ctx);
-                // if self.drag_source.is_none() {
-                //     self.drag_source = event_ctx.drag_source()
-                // }
+                element
+                    .widget()
+                    .mouse_event(ui_state, &mut event_ctx, message_ctx);
+                if let Some(drag_source) = event_ctx.drag_source() {}
+
                 let set_state = event_ctx.consume_state();
                 if let Some(mut set_state) = set_state {
                     if let Some(state) = &mut element.widget_state_mut() {
                         (set_state)(state.as_mut())
                     }
 
-                    self.layout_element(hit);
+                    self.layout_element(hit, ui_state);
                 }
             }
         }
@@ -152,10 +153,11 @@ impl ElementTree {
         self.build_element(&mut build_ctx, self.root_id);
     }
 
-    pub fn layout_element(&mut self, id: usize) {
+    pub fn layout_element(&mut self, id: usize, state: &UIState) {
         let mut layout_ctx = LayoutCtx::new(self);
         let children = if let Some(element) = self.elements.get(&id) {
             element.widget().layout(
+                state,
                 &mut layout_ctx,
                 element.local_bounds().size(),
                 element.children(),
@@ -189,7 +191,7 @@ impl ElementTree {
 
         if let Some(children) = children {
             for child in children {
-                self.layout_element(child)
+                self.layout_element(child, state)
             }
         }
     }
@@ -227,8 +229,8 @@ impl ElementTree {
         }
     }
 
-    pub fn layout(&mut self) {
-        self.layout_element(self.root_id);
+    pub fn layout(&mut self, state: &UIState) {
+        self.layout_element(self.root_id, state);
     }
 
     pub fn paint(
@@ -253,15 +255,10 @@ impl ElementTree {
             let mut local_bounds = *element.local_bounds();
             local_bounds = local_bounds.with_offset(offset.unwrap_or(Point2D::new(0.0, 0.0)));
 
-            let paint_ctx = PaintCtx::new(
-                &global_bounds,
-                &local_bounds,
-                &element.widget_state(),
-                ui_state,
-            );
+            let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, &element.widget_state());
             canvas.save();
             canvas.translate(&local_bounds.position());
-            element.widget().paint(&paint_ctx, canvas);
+            element.widget().paint(&paint_ctx, ui_state, canvas);
             Some(element.children_copy())
         } else {
             None

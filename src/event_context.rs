@@ -34,8 +34,6 @@ impl<'a> EventCtx<'a> {
         self.drag_source = Some(data)
     }
 
-    pub fn set_drag_source_id(&mut self, id: usize) {}
-
     pub fn mouse_event(&self) -> &'a MouseEvent {
         self.mouse_event.unwrap()
     }

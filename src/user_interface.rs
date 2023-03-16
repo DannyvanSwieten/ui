@@ -22,6 +22,7 @@ pub struct UserInterface {
     canvas: Box<dyn Canvas2D>,
     drag_source: Option<DragSourceData>,
     drag_source_offset: Option<Point2D>,
+    drag_source_tree: Option<ElementTree>,
 }
 
 impl UserInterface {
@@ -33,6 +34,7 @@ impl UserInterface {
 
         Self {
             root_tree,
+            drag_source_tree: None,
             width,
             height,
             dpi,
@@ -57,7 +59,7 @@ impl UserInterface {
     }
 
     pub fn layout(&mut self, state: &UIState) {
-        self.root_tree.layout()
+        self.root_tree.layout(state)
     }
 
     fn paint_drag_source(&mut self, offset: Option<Point2D>, ui_state: &UIState) {
@@ -100,8 +102,7 @@ impl UserInterface {
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
     ) -> Option<usize> {
-        let mut hit = None;
-        self.root_tree.mouse_event(event, message_ctx, ui_state);
+        let hit = self.root_tree.mouse_event(event, message_ctx, ui_state);
 
         if let MouseEvent::MouseDrag(drag_event) = event {
             if self.drag_source.is_some() {
