@@ -11,15 +11,8 @@ use crate::{
     ui_state::UIState,
 };
 
-pub mod center;
-pub mod drag_source;
-pub mod drop_target;
-pub mod flex;
-pub mod label;
-pub mod text_button;
-
-type Child = Box<dyn Fn() -> Box<dyn Widget>>;
-type Children = Vec<Box<dyn Widget>>;
+pub type Child = Box<dyn Fn() -> Box<dyn Widget>>;
+pub type Children = Vec<Box<dyn Widget>>;
 
 #[allow(unused_variables)]
 pub trait Widget {

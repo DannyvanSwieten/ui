@@ -6,9 +6,8 @@ use crate::{
     layout_ctx::LayoutCtx,
     ui_state::UIState,
     value::Value,
+    widget::{Children, Widget},
 };
-
-use super::{Children, Widget};
 
 pub struct Label {
     binding: Option<String>,

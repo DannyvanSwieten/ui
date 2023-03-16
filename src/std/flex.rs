@@ -4,9 +4,8 @@ use crate::{
     geo::{Point, Rect, Size},
     layout_ctx::LayoutCtx,
     ui_state::UIState,
+    widget::{Children, Widget},
 };
-
-use super::{Children, Widget};
 
 pub struct Row {
     children: Box<dyn Fn() -> Children>,

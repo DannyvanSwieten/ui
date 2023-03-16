@@ -4,9 +4,8 @@ use crate::{
     geo::{Point, Rect, Size},
     layout_ctx::LayoutCtx,
     ui_state::UIState,
+    widget::{Child, Children, Widget},
 };
-
-use super::{Child, Children, Widget};
 
 pub struct Center {
     child: Child,

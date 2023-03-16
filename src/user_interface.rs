@@ -8,8 +8,9 @@ use crate::{
     event::{Event, MouseEvent},
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
+    std::drag_source::DragSourceData,
     ui_state::UIState,
-    widget::{drag_source::DragSourceData, Widget},
+    widget::Widget,
 };
 
 pub struct UserInterface {

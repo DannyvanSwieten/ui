@@ -8,9 +8,8 @@ use crate::{
     layout_ctx::LayoutCtx,
     message_context::MessageCtx,
     ui_state::UIState,
+    widget::{Children, Widget},
 };
-
-use super::{Children, Widget};
 
 enum ButtonState {
     Active,

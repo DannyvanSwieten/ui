@@ -1,8 +1,8 @@
-use super::{Child, Children, Widget};
 use crate::{
     event_context::EventCtx,
     geo::{Rect, Size},
     ui_state::UIState,
+    widget::{Child, Children, Widget},
 };
 
 pub struct DropTarget {

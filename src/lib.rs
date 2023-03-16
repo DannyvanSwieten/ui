@@ -13,6 +13,7 @@ pub mod message;
 pub mod message_context;
 pub mod mouse_event;
 pub mod mutation;
+pub mod std;
 pub mod ui_state;
 pub mod user_interface;
 pub mod value;

@@ -1,12 +1,12 @@
 use ui::{
     app::{Application, ApplicationDelegate},
     message::Message,
-    ui_state::UIState,
-    widget::{
+    std::{
         center::Center,
         drag_source::{DragSource, DragSourceData, DragSourceItem},
         text_button::TextButton,
     },
+    ui_state::UIState,
     window_request::WindowRequest,
 };
 
