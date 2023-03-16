@@ -1,6 +1,5 @@
 use ui::{
-    application::Application,
-    application_delegate::ApplicationDelegate,
+    app::{Application, ApplicationDelegate},
     message::Message,
     ui_state::UIState,
     widget::{center::Center, drag_source::DragSource, text_button::TextButton},

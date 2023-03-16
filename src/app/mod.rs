@@ -1,5 +1,14 @@
-use std::{collections::HashMap, time::Instant};
+mod application_delegate;
 
+pub use application_delegate::ApplicationDelegate;
+
+use crate::{
+    canvas::canvas_renderer::CanvasRenderer, event::MouseEvent, gpu::GpuApi, message::Message,
+    message_context::MessageCtx, mouse_event, point::Point2D, ui_state::UIState,
+    user_interface::UserInterface, window_request::WindowRequest,
+};
+use pollster::block_on;
+use std::{collections::HashMap, time::Instant};
 use wgpu::{CompositeAlphaMode, PresentMode, SurfaceConfiguration, TextureFormat, TextureUsages};
 use winit::{
     dpi::LogicalSize,
@@ -7,15 +16,6 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder, WindowId},
 };
-
-use crate::{
-    application_delegate::ApplicationDelegate, canvas::canvas_renderer::CanvasRenderer,
-    event::MouseEvent, gpu::GpuApi, message::Message, message_context::MessageCtx, mouse_event,
-    point::Point2D, ui_state::UIState, user_interface::UserInterface,
-    window_request::WindowRequest,
-};
-
-use pollster::block_on;
 
 pub struct Application {
     state: UIState,
