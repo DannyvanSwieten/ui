@@ -1,6 +1,12 @@
 use std::rc::Rc;
 
-use wgpu::{Device, Queue, Surface, SurfaceConfiguration, SurfaceError, SurfaceTexture};
+use wgpu::{
+    CompositeAlphaMode, Device, PresentMode, Queue, Surface, SurfaceConfiguration, SurfaceError,
+    SurfaceTexture, TextureFormat, TextureUsages,
+};
+use winit::window::Window;
+
+use crate::gpu::GpuApi;
 
 pub struct CanvasRenderer {
     surface: Surface,
@@ -10,12 +16,28 @@ pub struct CanvasRenderer {
 }
 
 impl CanvasRenderer {
-    pub fn new(device: Rc<Device>, queue: Rc<Queue>, surface: Surface, dpi: f32) -> Self {
+    pub fn new(gpu: &GpuApi, window: &Window) -> Self {
+        let surface = unsafe {
+            gpu.instance
+                .create_surface(&window)
+                .expect("Surface Creation Failed")
+        };
+        let config = SurfaceConfiguration {
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
+            alpha_mode: CompositeAlphaMode::Auto,
+            format: TextureFormat::Bgra8Unorm,
+            view_formats: vec![TextureFormat::Bgra8Unorm],
+            width: window.inner_size().width as _,
+            height: window.inner_size().height as _,
+            present_mode: PresentMode::Fifo,
+        };
+        surface.configure(&gpu.device, &config);
+
         Self {
             surface,
-            device,
-            queue,
-            dpi,
+            device: gpu.device.clone(),
+            queue: gpu.queue.clone(),
+            dpi: window.scale_factor() as _,
         }
     }
 

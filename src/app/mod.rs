@@ -217,40 +217,14 @@ impl Application {
                     widget_tree.layout(&state);
                     let painter_tree = PainterTree::new(&widget_tree);
                     painter_trees.insert(window.id(), painter_tree);
-                    let mut ui = UserInterface::new(
+                    let ui = UserInterface::new(
                         widget_tree,
                         window.scale_factor() as f32,
                         request.width as f32,
                         request.height as f32,
                     );
-                    let instant = Instant::now();
-                    let instant = Instant::now() - instant;
-                    println!("UI Full build took: {} milliseconds", instant.as_millis());
                     user_interfaces.insert(window.id(), ui);
-                    let surface = unsafe {
-                        gpu.instance
-                            .create_surface(&window)
-                            .expect("Surface Creation Failed")
-                    };
-                    let config = SurfaceConfiguration {
-                        usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
-                        alpha_mode: CompositeAlphaMode::Auto,
-                        format: TextureFormat::Bgra8Unorm,
-                        view_formats: vec![TextureFormat::Bgra8Unorm],
-                        width: request.width,
-                        height: request.height,
-                        present_mode: PresentMode::Fifo,
-                    };
-                    surface.configure(&gpu.device, &config);
-                    canvas_renderers.insert(
-                        window.id(),
-                        CanvasRenderer::new(
-                            gpu.device.clone(),
-                            gpu.queue.clone(),
-                            surface,
-                            window.scale_factor() as f32,
-                        ),
-                    );
+                    canvas_renderers.insert(window.id(), CanvasRenderer::new(&gpu, &window));
                 }
 
                 windows.insert(window.id(), window);
