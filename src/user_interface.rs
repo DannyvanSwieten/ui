@@ -2,27 +2,25 @@ use crate::{
     canvas::{
         color::{Color, Color32f},
         skia_cpu_canvas::SkiaCanvas,
-        Canvas2D,
+        Canvas,
     },
-    element_tree::ElementTree,
     event::{Event, MouseEvent},
+    geo::{Point, Rect, Size},
     message_context::MessageCtx,
-    point::Point2D,
-    rect::Rect,
-    size::Size2D,
+    std::drag_source::DragSourceData,
     ui_state::UIState,
-    widget::{drag_source::DragSourceData, Widget},
+    widget::{Widget, WidgetTree},
 };
 
 pub struct UserInterface {
-    root_tree: ElementTree,
+    root_tree: WidgetTree,
     width: f32,
     height: f32,
     dpi: f32,
-    canvas: Box<dyn Canvas2D>,
+    canvas: Box<dyn Canvas>,
     drag_source: Option<DragSourceData>,
-    drag_source_offset: Option<Point2D>,
-    _drag_source_tree: Option<ElementTree>,
+    drag_source_offset: Option<Point>,
+    _drag_source_tree: Option<WidgetTree>,
 }
 
 impl UserInterface {
@@ -30,7 +28,7 @@ impl UserInterface {
         let width = width;
         let height = height;
         let canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
-        let root_tree = ElementTree::new(root_widget);
+        let root_tree = WidgetTree::new(root_widget);
 
         Self {
             root_tree,
@@ -48,7 +46,7 @@ impl UserInterface {
         self.width = width;
         self.height = height;
         self.root_tree
-            .set_bounds(&Rect::new_from_size(Size2D::new(width, height)));
+            .set_bounds(&Rect::new_from_size(Size::new(width, height)));
         self.canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
         self.layout(state)
     }
@@ -62,7 +60,7 @@ impl UserInterface {
         self.root_tree.layout(state)
     }
 
-    fn paint_drag_source(&mut self, _offset: Option<Point2D>, _ui_state: &UIState) {
+    fn paint_drag_source(&mut self, _offset: Option<Point>, _ui_state: &UIState) {
         //todo!()
         // if let Some(data) = self.drag_source.take() {
         //     for item in data.items() {
@@ -80,7 +78,7 @@ impl UserInterface {
 
     pub fn paint(&mut self, ui_state: &UIState) {
         self.canvas.save();
-        self.canvas.scale(&Size2D::new(self.dpi, self.dpi));
+        self.canvas.scale(&Size::new(self.dpi, self.dpi));
         let c = Color::from(Color32f::new_grey(0.0));
         self.canvas.clear(&c);
         self.root_tree.paint(None, self.canvas.as_mut(), ui_state);
@@ -88,11 +86,11 @@ impl UserInterface {
         self.paint_drag_source(self.drag_source_offset, ui_state);
     }
 
-    pub fn set_drag_source_position(&mut self, pos: Point2D) {
+    pub fn set_drag_source_position(&mut self, pos: Point) {
         self.drag_source_offset = Some(pos)
     }
 
-    pub fn update_drag_source_position(&mut self, offset: Option<Point2D>) {
+    pub fn update_drag_source_position(&mut self, offset: Option<Point>) {
         self.drag_source_offset = offset;
     }
 

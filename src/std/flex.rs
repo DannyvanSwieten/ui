@@ -1,9 +1,9 @@
 use crate::{
-    build_context::BuildCtx, constraints::BoxConstraints, layout_ctx::LayoutCtx, point::Point2D,
-    rect::Rect, size::Size2D, ui_state::UIState,
+    constraints::BoxConstraints,
+    geo::{Point, Rect, Size},
+    ui_state::UIState,
+    widget::{BuildCtx, Children, LayoutCtx, Widget},
 };
-
-use super::{Children, Widget};
 
 pub struct Row {
     children: Box<dyn Fn() -> Children>,
@@ -30,7 +30,7 @@ impl Widget for Row {
         _children: &[usize],
         constraints: &BoxConstraints,
         _layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
+    ) -> Option<Size> {
         Some(constraints.max_size())
     }
 
@@ -38,7 +38,7 @@ impl Widget for Row {
         &self,
         _ui_state: &UIState,
         layout_ctx: &mut LayoutCtx,
-        size: Size2D,
+        size: Size,
         children: &[usize],
     ) {
         let child_sizes = children
@@ -49,7 +49,7 @@ impl Widget for Row {
                     layout_ctx.preferred_size(*id, &BoxConstraints::new(), layout_ctx),
                 )
             })
-            .collect::<Vec<(usize, Option<Size2D>)>>();
+            .collect::<Vec<(usize, Option<Size>)>>();
 
         let mut constrained_width = 0.0;
         let mut unconstrained_children = 0;
@@ -70,15 +70,15 @@ impl Widget for Row {
             if let Some(child_size) = child_size {
                 layout_ctx.set_child_position(
                     *id,
-                    Point2D::new(x, size.height / 2.0 - child_size.height / 2.0),
+                    Point::new(x, size.height / 2.0 - child_size.height / 2.0),
                 );
                 x += child_size.width;
             } else {
                 layout_ctx.set_child_bounds(
                     *id,
                     Rect::new(
-                        Point2D::new(x, 0.0),
-                        Size2D::new(unconstrained_child_width, size.height),
+                        Point::new(x, 0.0),
+                        Size::new(unconstrained_child_width, size.height),
                     ),
                 );
             }

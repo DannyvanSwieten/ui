@@ -1,8 +1,6 @@
+use super::{color::Color, font::Font, paint::Paint, Canvas};
+use crate::geo::{self, Rect, Size};
 use skia_safe::{ISize, Point, Surface, TextBlob};
-
-use crate::{point::Point2D, rect::Rect, size::Size2D};
-
-use super::{color::Color, font::Font, paint::Paint, Canvas2D};
 
 pub struct SkiaCanvas {
     surface: Surface,
@@ -49,14 +47,14 @@ impl SkiaCanvas {
     }
 }
 
-impl From<Point2D> for skia_safe::Point {
-    fn from(val: Point2D) -> Self {
+impl From<geo::Point> for skia_safe::Point {
+    fn from(val: geo::Point) -> Self {
         skia_safe::Point::new(val.x, val.y)
     }
 }
 
-impl From<Size2D> for skia_safe::Size {
-    fn from(val: Size2D) -> Self {
+impl From<Size> for skia_safe::Size {
+    fn from(val: Size) -> Self {
         skia_safe::Size::new(val.width, val.height)
     }
 }
@@ -67,8 +65,8 @@ impl From<Rect> for skia_safe::Rect {
     }
 }
 
-impl From<&Point2D> for skia_safe::Point {
-    fn from(value: &Point2D) -> Self {
+impl From<&geo::Point> for skia_safe::Point {
+    fn from(value: &geo::Point) -> Self {
         skia_safe::Point {
             x: value.x,
             y: value.y,
@@ -110,7 +108,7 @@ impl From<&Font> for skia_safe::Font {
     }
 }
 
-impl Canvas2D for SkiaCanvas {
+impl Canvas for SkiaCanvas {
     fn clear(&mut self, color: &Color) {
         self.surface.canvas().clear(color);
     }
@@ -123,7 +121,7 @@ impl Canvas2D for SkiaCanvas {
         self.surface.canvas().restore();
     }
 
-    fn translate(&mut self, point: &Point2D) {
+    fn translate(&mut self, point: &geo::Point) {
         self.surface.canvas().translate((point.x, point.y));
     }
     fn draw_rect(&mut self, rect: &Rect, paint: &Paint) {
@@ -138,7 +136,7 @@ impl Canvas2D for SkiaCanvas {
             .draw_round_rect(rect, rx, ry, &paint.into());
     }
 
-    fn draw_circle(&mut self, center: &Point2D, radius: f32, paint: &Paint) {
+    fn draw_circle(&mut self, center: &geo::Point, radius: f32, paint: &Paint) {
         self.surface
             .canvas()
             .draw_circle(*center, radius, &paint.into());
@@ -161,7 +159,7 @@ impl Canvas2D for SkiaCanvas {
         SkiaCanvas::pixels(self)
     }
 
-    fn scale(&mut self, size: &Size2D) {
+    fn scale(&mut self, size: &Size) {
         self.surface.canvas().scale((size.width, size.height));
     }
 

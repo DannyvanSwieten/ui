@@ -1,25 +1,19 @@
-use std::any::Any;
+mod build_ctx;
+mod layout_ctx;
+mod widget_tree;
+
+pub use build_ctx::BuildCtx;
+pub use layout_ctx::LayoutCtx;
+pub use widget_tree::{WidgetElement, WidgetTree};
 
 use crate::{
-    build_context::BuildCtx,
-    canvas::{paint_ctx::PaintCtx, Canvas2D},
-    constraints::BoxConstraints,
-    event_context::EventCtx,
-    layout_ctx::LayoutCtx,
-    message_context::MessageCtx,
-    size::Size2D,
-    ui_state::UIState,
+    constraints::BoxConstraints, event_context::EventCtx, geo::Size, message_context::MessageCtx,
+    painter::Painter, ui_state::UIState,
 };
+use std::any::Any;
 
-pub mod center;
-pub mod drag_source;
-pub mod drop_target;
-pub mod flex;
-pub mod label;
-pub mod text_button;
-
-type Child = Box<dyn Fn() -> Box<dyn Widget>>;
-type Children = Vec<Box<dyn Widget>>;
+pub type Child = Box<dyn Fn() -> Box<dyn Widget>>;
+pub type Children = Vec<Box<dyn Widget>>;
 
 #[allow(unused_variables)]
 pub trait Widget {
@@ -36,7 +30,7 @@ pub trait Widget {
         children: &[usize],
         constraints: &BoxConstraints,
         layout_ctx: &LayoutCtx,
-    ) -> Option<Size2D> {
+    ) -> Option<Size> {
         None
     }
 
@@ -44,7 +38,7 @@ pub trait Widget {
         &self,
         ui_state: &UIState,
         layout_ctx: &mut LayoutCtx,
-        size: Size2D,
+        size: Size,
         children: &[usize],
     ) {
     }
@@ -72,8 +66,4 @@ where
     fn from(value: T) -> Self {
         Box::new(value)
     }
-}
-
-pub trait Painter {
-    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas2D);
 }

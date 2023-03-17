@@ -1,9 +1,9 @@
 use crate::{
-    build_context::BuildCtx, constraints::BoxConstraints, layout_ctx::LayoutCtx, point::Point2D,
-    rect::Rect, size::Size2D, ui_state::UIState,
+    constraints::BoxConstraints,
+    geo::{Point, Rect, Size},
+    ui_state::UIState,
+    widget::{BuildCtx, Child, Children, LayoutCtx, Widget},
 };
-
-use super::{Child, Children, Widget};
 
 pub struct Center {
     child: Child,
@@ -30,12 +30,12 @@ impl Widget for Center {
         children: &[usize],
         constraints: &BoxConstraints,
         _: &LayoutCtx,
-    ) -> Option<Size2D> {
+    ) -> Option<Size> {
         // Something, Somewhere, went terribly wrong
         assert_eq!(1, children.len());
 
         // Return all the space that is given to this widget.
-        Some(Size2D::new(
+        Some(Size::new(
             constraints.max_width().unwrap(),
             constraints.max_height().unwrap(),
         ))
@@ -45,7 +45,7 @@ impl Widget for Center {
         &self,
         _ui_state: &UIState,
         layout_ctx: &mut LayoutCtx,
-        size: Size2D,
+        size: Size,
         children: &[usize],
     ) {
         // Something, Somewhere, went terribly wrong
@@ -62,7 +62,7 @@ impl Widget for Center {
             size
         };
 
-        let position = Point2D {
+        let position = Point {
             x: center_x - child_size.width / 2.0,
             y: center_y - child_size.height / 2.0,
         };

@@ -1,4 +1,4 @@
-use crate::point::Point2D;
+use crate::geo::Point;
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum MouseEventType {
@@ -12,24 +12,24 @@ pub enum MouseEventType {
 #[derive(Clone, Copy)]
 pub struct MouseEvent {
     modifiers: u32,
-    global_position: Point2D,
-    local_position: Point2D,
-    delta_position: Point2D,
-    drag_start: Option<Point2D>,
+    global_position: Point,
+    local_position: Point,
+    delta_position: Point,
+    drag_start: Option<Point>,
 }
 
 impl MouseEvent {
-    pub fn new(modifiers: u32, global_position: &Point2D, local_position: &Point2D) -> Self {
+    pub fn new(modifiers: u32, global_position: &Point, local_position: &Point) -> Self {
         Self {
             modifiers,
             global_position: *global_position,
             local_position: *local_position,
-            delta_position: Point2D::new(0., 0.),
+            delta_position: Point::new(0., 0.),
             drag_start: None,
         }
     }
 
-    pub fn to_local(&self, position: &Point2D) -> Self {
+    pub fn to_local(&self, position: &Point) -> Self {
         let mut new_event = *self;
         new_event.local_position = self.local_position - *position;
         new_event
@@ -37,9 +37,9 @@ impl MouseEvent {
 
     pub fn new_with_delta(
         modifiers: u32,
-        global_position: &Point2D,
-        local_position: &Point2D,
-        delta_position: &Point2D,
+        global_position: &Point,
+        local_position: &Point,
+        delta_position: &Point,
     ) -> Self {
         Self {
             modifiers,
@@ -50,23 +50,23 @@ impl MouseEvent {
         }
     }
 
-    pub fn with_delta(mut self, delta: Point2D) -> Self {
+    pub fn with_delta(mut self, delta: Point) -> Self {
         self.delta_position = delta;
         self
     }
 
-    pub fn with_drag_start(mut self, start: Option<Point2D>) -> Self {
+    pub fn with_drag_start(mut self, start: Option<Point>) -> Self {
         self.drag_start = start;
         self
     }
 
-    pub fn offset_to_drag_start(&self) -> Option<Point2D> {
+    pub fn offset_to_drag_start(&self) -> Option<Point> {
         self.drag_start
             .as_ref()
             .map(|drag_start| self.global_position - *drag_start)
     }
 
-    pub fn drag_start(&self) -> &Option<Point2D> {
+    pub fn drag_start(&self) -> &Option<Point> {
         &self.drag_start
     }
 
@@ -82,15 +82,15 @@ impl MouseEvent {
         (self.modifiers & 4) != 0
     }
 
-    pub fn global_position(&self) -> &Point2D {
+    pub fn global_position(&self) -> &Point {
         &self.global_position
     }
 
-    pub fn local_position(&self) -> &Point2D {
+    pub fn local_position(&self) -> &Point {
         &self.local_position
     }
 
-    pub fn delta_position(&self) -> &Point2D {
+    pub fn delta_position(&self) -> &Point {
         &self.delta_position
     }
 }

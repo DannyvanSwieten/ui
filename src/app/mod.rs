@@ -1,5 +1,14 @@
-use std::{collections::HashMap, time::Instant};
+mod application_delegate;
 
+pub use application_delegate::ApplicationDelegate;
+
+use crate::{
+    canvas::canvas_renderer::CanvasRenderer, event::MouseEvent, geo::Point, gpu::GpuApi,
+    message::Message, message_context::MessageCtx, mouse_event, ui_state::UIState,
+    user_interface::UserInterface, window_request::WindowRequest,
+};
+use pollster::block_on;
+use std::{collections::HashMap, time::Instant};
 use wgpu::{CompositeAlphaMode, PresentMode, SurfaceConfiguration, TextureFormat, TextureUsages};
 use winit::{
     dpi::LogicalSize,
@@ -7,15 +16,6 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder, WindowId},
 };
-
-use crate::{
-    application_delegate::ApplicationDelegate, canvas::canvas_renderer::CanvasRenderer,
-    event::MouseEvent, gpu::GpuApi, message::Message, message_context::MessageCtx, mouse_event,
-    point::Point2D, ui_state::UIState, user_interface::UserInterface,
-    window_request::WindowRequest,
-};
-
-use pollster::block_on;
 
 pub struct Application {
     state: UIState,
@@ -43,7 +43,7 @@ impl Application {
         let mut user_interfaces: HashMap<WindowId, UserInterface> = HashMap::new();
         let mut canvas_renderers: HashMap<WindowId, CanvasRenderer> = HashMap::new();
         let gpu = block_on(GpuApi::new());
-        let mut last_mouse_position = Point2D::new(0.0, 0.0);
+        let mut last_mouse_position = Point::new(0.0, 0.0);
         let mut mouse_down_states = HashMap::new();
         let mut drag_start = None;
         event_loop.run(move |event, event_loop, control_flow| {
@@ -156,7 +156,7 @@ impl Application {
                 } => {
                     let dpi = windows.get(&window_id).unwrap().scale_factor();
                     let position = position.to_logical::<f32>(dpi);
-                    let position = Point2D::new(position.x as _, position.y as _);
+                    let position = Point::new(position.x as _, position.y as _);
                     if let Some(ui) = user_interfaces.get_mut(&window_id) {
                         let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
                         if let Some(mouse_down) = mouse_down_states.get(&window_id) {
@@ -193,7 +193,7 @@ impl Application {
                             );
                         }
                     }
-                    last_mouse_position = Point2D::new(position.x as _, position.y as _);
+                    last_mouse_position = Point::new(position.x as _, position.y as _);
                 }
                 _ => *control_flow = ControlFlow::Poll,
             }

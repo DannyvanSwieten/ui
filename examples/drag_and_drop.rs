@@ -1,9 +1,8 @@
 use ui::{
-    application::Application,
-    application_delegate::ApplicationDelegate,
+    app::{Application, ApplicationDelegate},
     message::Message,
+    std::{center::Center, drag_source::DragSource, text_button::TextButton},
     ui_state::UIState,
-    widget::{center::Center, drag_source::DragSource, text_button::TextButton},
     window_request::WindowRequest,
 };
 

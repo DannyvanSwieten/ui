@@ -1,19 +1,21 @@
+use std::ops::{Add, Sub};
+
 #[derive(Clone, Copy)]
-pub struct Point2D {
+pub struct Point {
     pub x: f32,
     pub y: f32,
 }
 
-impl Point2D {
+impl Point {
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 }
 
-impl std::ops::Sub<Point2D> for Point2D {
+impl Sub<Point> for Point {
     type Output = Self;
 
-    fn sub(self, rhs: Point2D) -> Self::Output {
+    fn sub(self, rhs: Point) -> Self::Output {
         Self {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
@@ -21,10 +23,10 @@ impl std::ops::Sub<Point2D> for Point2D {
     }
 }
 
-impl std::ops::Add<Point2D> for Point2D {
+impl Add<Point> for Point {
     type Output = Self;
 
-    fn add(self, rhs: Point2D) -> Self::Output {
+    fn add(self, rhs: Point) -> Self::Output {
         Self {
             x: self.x + rhs.x,
             y: self.y + rhs.y,

@@ -1,10 +1,9 @@
 use ui::{
-    application::Application,
-    application_delegate::ApplicationDelegate,
+    app::{Application, ApplicationDelegate},
     message::Message,
+    std::{flex::Row, label::Label, text_button::TextButton},
     ui_state::UIState,
     value::Value,
-    widget::{flex::Row, label::Label, text_button::TextButton},
     window_request::WindowRequest,
 };
 
