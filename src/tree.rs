@@ -9,6 +9,15 @@ pub struct Tree<T> {
     root: usize,
 }
 
+impl<T> Default for Tree<T> {
+    fn default() -> Self {
+        Self {
+            nodes: Default::default(),
+            root: Default::default(),
+        }
+    }
+}
+
 impl<T> Tree<T> {
     pub fn new(data: T) -> Self {
         let mut tree = Self {
@@ -21,6 +30,10 @@ impl<T> Tree<T> {
         tree
     }
 
+    pub fn nodes(&self) -> &HashMap<usize, Node<T>> {
+        &self.nodes
+    }
+
     pub fn root_id(&self) -> usize {
         self.root
     }
@@ -29,6 +42,10 @@ impl<T> Tree<T> {
         let id = next_element_id();
         self.nodes.insert(id, Node::new(data));
         id
+    }
+
+    pub fn add_node_with_id(&mut self, id: usize, data: T) {
+        self.nodes.insert(id, Node::new(data));
     }
 
     pub fn get(&self, id: usize) -> Option<&Node<T>> {

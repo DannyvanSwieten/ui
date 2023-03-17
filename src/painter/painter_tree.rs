@@ -4,6 +4,7 @@ use crate::{
     painter::{PaintCtx, Painter},
     tree::Tree,
     ui_state::UIState,
+    widget::{WidgetElement, WidgetTree},
 };
 use std::any::Any;
 
@@ -12,18 +13,34 @@ pub struct PainterTree {
 }
 
 impl PainterTree {
-    pub fn new(widget: Box<dyn Painter>) -> Self {
-        Self {
-            tree: Tree::new(PainterElement::new(widget)),
+    pub fn new(widget_tree: &WidgetTree) -> Self {
+        let mut this = Self {
+            tree: Tree::default(),
+        };
+
+        for (id, node) in widget_tree.nodes() {
+            if let Some(painter) = node.data.widget().painter() {
+                this.tree
+                    .add_node_with_id(*id, PainterElement::new(painter));
+                for child in &node.children {
+                    this.tree.add_child(*id, *child);
+                }
+            }
         }
+
+        this
     }
 
     pub fn element(&self, id: usize) -> Option<&PainterElement> {
         self.tree.get(id).map(|node| &node.data)
     }
 
-    pub fn add_element(&mut self, widget: Box<dyn Painter>) -> usize {
-        self.tree.add_node(PainterElement::new(widget))
+    pub fn add_element(&mut self, id: usize, widget_element: &WidgetElement) {
+        if let Some(painter) = widget_element.widget().painter() {
+            let element = PainterElement::new(painter)
+                .with_bounds(&widget_element.global_bounds, &widget_element.local_bounds);
+            self.tree.add_node_with_id(id, element)
+        }
     }
 
     pub fn add_child(&mut self, parent: usize, child: usize) {
@@ -87,6 +104,12 @@ impl PainterElement {
             local_bounds: Rect::default(),
             global_bounds: Rect::default(),
         }
+    }
+
+    pub fn with_bounds(mut self, global_bounds: &Rect, local_bounds: &Rect) -> Self {
+        self.global_bounds = *global_bounds;
+        self.local_bounds = *local_bounds;
+        self
     }
 
     pub fn painter_state(&self) -> &Option<Box<dyn Any>> {

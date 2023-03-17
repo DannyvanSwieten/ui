@@ -4,8 +4,9 @@ pub use application_delegate::ApplicationDelegate;
 
 use crate::{
     canvas::canvas_renderer::CanvasRenderer, event::MouseEvent, geo::Point, gpu::GpuApi,
-    message::Message, message_context::MessageCtx, mouse_event, ui_state::UIState,
-    user_interface::UserInterface, window_request::WindowRequest,
+    message::Message, message_context::MessageCtx, mouse_event, painter::PainterTree,
+    ui_state::UIState, user_interface::UserInterface, widget::WidgetTree,
+    window_request::WindowRequest,
 };
 use pollster::block_on;
 use std::{collections::HashMap, time::Instant};
@@ -42,6 +43,7 @@ impl Application {
         let mut windows: HashMap<WindowId, Window> = HashMap::new();
         let mut user_interfaces: HashMap<WindowId, UserInterface> = HashMap::new();
         let mut canvas_renderers: HashMap<WindowId, CanvasRenderer> = HashMap::new();
+        let mut painter_trees: HashMap<WindowId, PainterTree> = HashMap::new();
         let gpu = block_on(GpuApi::new());
         let mut last_mouse_position = Point::new(0.0, 0.0);
         let mut mouse_down_states = HashMap::new();
@@ -210,14 +212,18 @@ impl Application {
                     .expect("Window creation failed");
                 if let Some(builder) = request.builder() {
                     let root = (*builder)(&mut self.state);
+                    let mut widget_tree = WidgetTree::new(root);
+                    widget_tree.build(&mut state);
+                    widget_tree.layout(&state);
+                    let painter_tree = PainterTree::new(&widget_tree);
+                    painter_trees.insert(window.id(), painter_tree);
                     let mut ui = UserInterface::new(
-                        root,
+                        widget_tree,
                         window.scale_factor() as f32,
                         request.width as f32,
                         request.height as f32,
                     );
                     let instant = Instant::now();
-                    ui.build(&mut state);
                     let instant = Instant::now() - instant;
                     println!("UI Full build took: {} milliseconds", instant.as_millis());
                     user_interfaces.insert(window.id(), ui);

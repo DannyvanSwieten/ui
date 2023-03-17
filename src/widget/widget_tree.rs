@@ -6,7 +6,7 @@ use crate::{
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
     painter::PaintCtx,
-    tree::Tree,
+    tree::{Node, Tree},
     ui_state::UIState,
     widget::{BuildCtx, LayoutCtx, Widget},
 };
@@ -21,6 +21,10 @@ impl WidgetTree {
         Self {
             tree: Tree::new(WidgetElement::new(widget)),
         }
+    }
+
+    pub fn nodes(&self) -> &HashMap<usize, Node<WidgetElement>> {
+        self.tree.nodes()
     }
 
     pub fn handle_mutations(&mut self, state: &mut UIState) {

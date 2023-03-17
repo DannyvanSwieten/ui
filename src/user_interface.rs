@@ -24,11 +24,10 @@ pub struct UserInterface {
 }
 
 impl UserInterface {
-    pub fn new(root_widget: Box<dyn Widget>, dpi: f32, width: f32, height: f32) -> Self {
+    pub fn new(root_tree: WidgetTree, dpi: f32, width: f32, height: f32) -> Self {
         let width = width;
         let height = height;
         let canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
-        let root_tree = WidgetTree::new(root_widget);
 
         Self {
             root_tree,
