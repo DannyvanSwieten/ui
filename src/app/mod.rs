@@ -34,6 +34,7 @@ pub struct PainterManager {
     painters: HashMap<WindowId, TreePainter>,
     canvas: HashMap<WindowId, Box<dyn Canvas>>,
     receiver: Receiver<(WindowId, TreePainter)>,
+    join_handle: Option<JoinHandle<()>>,
 }
 
 impl PainterManager {
@@ -44,12 +45,15 @@ impl PainterManager {
                 painters: HashMap::new(),
                 canvas: HashMap::new(),
                 receiver,
+                join_handle: None,
             },
             sender,
         )
     }
-    pub fn start(mut self) -> JoinHandle<()> {
-        thread::spawn(move || loop {
+    pub fn start(mut self) {
+        assert!(self.join_handle.is_none());
+
+        let handle = thread::spawn(move || loop {
             while let Ok((id, painter)) = self.receiver.try_recv() {
                 let size = *painter.size();
                 let dpi = painter.dpi();
@@ -63,7 +67,9 @@ impl PainterManager {
             for (id, painter) in &mut self.painters {
                 painter.paint(None, self.canvas.get_mut(id).unwrap().as_mut())
             }
-        })
+        });
+
+        self.join_handle = Some(handle);
     }
 }
 
@@ -98,7 +104,7 @@ impl Application {
         let mut mouse_down_states = HashMap::new();
         let mut drag_start = None;
         let (painter_manager, painter_sender) = PainterManager::new();
-        let join_handle = painter_manager.start();
+        painter_manager.start();
         event_loop.run(move |event, event_loop, control_flow| {
             let mut message_ctx = MessageCtx::default();
             match event {
