@@ -250,12 +250,12 @@ impl WidgetTree {
                 .local_bounds
                 .with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
 
-            if let Some(painter) = node.data.widget().painter() {
+            if let Some(painter) = node.data.widget().painter(ui_state) {
                 let paint_ctx =
                     PaintCtx::new(&global_bounds, &local_bounds, node.data.widget_state());
                 canvas.save();
                 canvas.translate(&local_bounds.position());
-                painter.paint(&paint_ctx, ui_state, canvas);
+                painter.paint(&paint_ctx, canvas);
             }
             Some(node.children.clone())
         } else {

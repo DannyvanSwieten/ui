@@ -9,23 +9,18 @@ use crate::{
 };
 
 pub struct Label {
-    binding: Option<String>,
+    binding: Value,
 }
 
 impl Label {
-    pub fn new(default: Value) -> Self {
-        match default {
-            Value::Binding(binding) => Self {
-                binding: Some(binding),
-            },
-            Value::Const(_) => Self { binding: None },
-        }
+    pub fn new(binding: Value) -> Self {
+        Self { binding }
     }
 }
 
 impl Widget for Label {
     fn build(&self, build_ctx: &mut BuildCtx) -> Children {
-        if let Some(binding) = &self.binding {
+        if let Value::Binding(binding) = &self.binding {
             build_ctx.bind(binding);
         }
 
@@ -41,31 +36,29 @@ impl Widget for Label {
         Some(Size::new(200.0, 150.0))
     }
 
-    fn painter(&self) -> Option<Box<dyn Painter>> {
-        Some(Box::new(LabelPainter {
-            binding: self.binding.clone(),
-        }))
+    fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {
+        let text = match &self.binding {
+            Value::Binding(binding) => ui_state.get(binding).unwrap(),
+            Value::Const(var) => var,
+        }
+        .to_string();
+
+        Some(Box::new(LabelPainter { text }))
     }
 }
 
 pub struct LabelPainter {
-    binding: Option<String>,
+    text: String,
 }
 
 impl Painter for LabelPainter {
-    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas) {
+    fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas) {
         let font = Font::new("Consolas", 34.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
-        let text = if let Some(binding) = &self.binding {
-            ui_state.get(binding)
-        } else {
-            None
-        };
 
-        let text = text.unwrap();
         canvas.draw_string(
             &Rect::new_from_size(paint_ctx.local_bounds().size()),
-            &text.to_string(),
+            &self.text,
             &font,
             &paint,
         )

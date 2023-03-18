@@ -4,7 +4,7 @@ use crate::{
     painter::{PaintCtx, Painter},
     tree::Tree,
     ui_state::UIState,
-    widget::{WidgetElement, WidgetTree},
+    widget::WidgetTree,
 };
 use std::any::Any;
 
@@ -13,13 +13,13 @@ pub struct PainterTree {
 }
 
 impl PainterTree {
-    pub fn new(widget_tree: &WidgetTree) -> Self {
+    pub fn new(widget_tree: &WidgetTree, ui_state: &UIState) -> Self {
         let mut this = Self {
             tree: Tree::default(),
         };
 
         for (id, node) in widget_tree.nodes() {
-            if let Some(painter) = node.data.widget().painter() {
+            if let Some(painter) = node.data.widget().painter(ui_state) {
                 this.tree
                     .add_node_with_id(*id, PainterElement::new(painter));
                 for child in &node.children {
@@ -35,29 +35,19 @@ impl PainterTree {
         self.tree.get(id).map(|node| &node.data)
     }
 
-    pub fn add_element(&mut self, id: usize, widget_element: &WidgetElement) {
-        if let Some(painter) = widget_element.widget().painter() {
-            let element = PainterElement::new(painter)
-                .with_bounds(&widget_element.global_bounds, &widget_element.local_bounds);
-            self.tree.add_node_with_id(id, element)
-        }
+    pub fn add_element(&mut self, id: usize, element: PainterElement) {
+        self.tree.add_node_with_id(id, element)
     }
 
     pub fn add_child(&mut self, parent: usize, child: usize) {
         self.tree.add_child(parent, child)
     }
 
-    pub fn paint(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas, ui_state: &UIState) {
-        self.paint_element(self.tree.root_id(), offset, canvas, ui_state)
+    pub fn paint(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas) {
+        self.paint_element(self.tree.root_id(), offset, canvas)
     }
 
-    fn paint_element(
-        &mut self,
-        id: usize,
-        offset: Option<Point>,
-        canvas: &mut dyn Canvas,
-        ui_state: &UIState,
-    ) {
+    fn paint_element(&mut self, id: usize, offset: Option<Point>, canvas: &mut dyn Canvas) {
         let children = if let Some(node) = self.tree.get_mut(id) {
             let global_bounds = node
                 .data
@@ -72,7 +62,7 @@ impl PainterTree {
             let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, node.data.painter_state());
             canvas.save();
             canvas.translate(&local_bounds.position());
-            node.data.painter.paint(&paint_ctx, ui_state, canvas);
+            node.data.painter.paint(&paint_ctx, canvas);
 
             Some(node.children.clone())
         } else {
@@ -81,7 +71,7 @@ impl PainterTree {
 
         if let Some(children) = children {
             for child in children {
-                self.paint_element(child, offset, canvas, ui_state);
+                self.paint_element(child, offset, canvas);
             }
         }
 

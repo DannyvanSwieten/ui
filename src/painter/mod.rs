@@ -6,8 +6,8 @@ pub use paint_ctx::PaintCtx;
 pub use painter_tree::{PainterElement, PainterTree};
 pub use tree_painter::TreePainter;
 
-use crate::{canvas::Canvas, ui_state::UIState};
+use crate::canvas::Canvas;
 
 pub trait Painter {
-    fn paint(&self, paint_ctx: &PaintCtx, ui_state: &UIState, canvas: &mut dyn Canvas);
+    fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas);
 }

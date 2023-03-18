@@ -80,7 +80,7 @@ impl Widget for TextButton {
         Some(Box::new(ButtonState::Inactive))
     }
 
-    fn painter(&self) -> Option<Box<dyn Painter>> {
+    fn painter(&self, _: &UIState) -> Option<Box<dyn Painter>> {
         Some(Box::new(TextButtonPainter::new(self.text.clone())))
     }
 }
@@ -104,7 +104,7 @@ impl TextButtonPainter {
 }
 
 impl Painter for TextButtonPainter {
-    fn paint(&self, paint_ctx: &PaintCtx, _: &UIState, canvas: &mut dyn Canvas) {
+    fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas) {
         let state = paint_ctx.state::<ButtonState>();
         if let Some(state) = state {
             match state {

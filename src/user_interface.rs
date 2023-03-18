@@ -9,7 +9,7 @@ use crate::{
     message_context::MessageCtx,
     std::drag_source::DragSourceData,
     ui_state::UIState,
-    widget::{Widget, WidgetTree},
+    widget::WidgetTree,
 };
 
 pub struct UserInterface {

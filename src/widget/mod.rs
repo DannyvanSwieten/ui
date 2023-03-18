@@ -43,7 +43,7 @@ pub trait Widget {
     ) {
     }
 
-    fn painter(&self) -> Option<Box<dyn Painter>> {
+    fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {
         None
     }
 

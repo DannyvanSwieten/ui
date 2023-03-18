@@ -9,7 +9,7 @@ use crate::{
     window_request::WindowRequest,
 };
 use pollster::block_on;
-use std::{collections::HashMap, time::Instant};
+use std::collections::HashMap;
 use wgpu::{CompositeAlphaMode, PresentMode, SurfaceConfiguration, TextureFormat, TextureUsages};
 use winit::{
     dpi::LogicalSize,
@@ -215,7 +215,7 @@ impl Application {
                     let mut widget_tree = WidgetTree::new(root);
                     widget_tree.build(&mut state);
                     widget_tree.layout(&state);
-                    let painter_tree = PainterTree::new(&widget_tree);
+                    let painter_tree = PainterTree::new(&widget_tree, &self.state);
                     painter_trees.insert(window.id(), painter_tree);
                     let ui = UserInterface::new(
                         widget_tree,

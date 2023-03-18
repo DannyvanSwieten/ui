@@ -1,5 +1,5 @@
 use super::PainterTree;
-use crate::{canvas::Canvas, geo::Point, ui_state::UIState};
+use crate::{canvas::Canvas, geo::Point};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 pub struct TreePainter {
@@ -14,12 +14,12 @@ impl TreePainter {
         (tree_painter, tx)
     }
 
-    pub fn paint(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas, ui_state: &UIState) {
+    pub fn paint(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas) {
         while let Ok(message) = self.rx.recv() {
             self.handle_message(message)
         }
 
-        self.tree.paint(offset, canvas, ui_state)
+        self.tree.paint(offset, canvas)
     }
 
     fn handle_message(&mut self, message: TreePainterMessage) {
