@@ -1,8 +1,21 @@
-#[derive(Clone)]
+use crate::ui_state::UIState;
 
+#[derive(Clone)]
 pub enum Value {
     Binding(String),
     Const(Var),
+}
+
+impl Value {
+    pub fn var<'this, 'ui>(&'this self, ui_state: &'ui UIState) -> &Var
+    where
+        'ui: 'this,
+    {
+        match self {
+            Value::Binding(binding) => &ui_state[binding],
+            Value::Const(var) => var,
+        }
+    }
 }
 
 macro_rules! gen_var {
