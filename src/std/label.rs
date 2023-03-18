@@ -37,11 +37,7 @@ impl Widget for Label {
     }
 
     fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {
-        let text = match &self.binding {
-            Value::Binding(binding) => ui_state.get(binding).unwrap(),
-            Value::Const(var) => var,
-        }
-        .to_string();
+        let text = self.binding.var(ui_state).to_string();
 
         Some(Box::new(LabelPainter { text }))
     }
