@@ -50,25 +50,20 @@ impl PainterManager {
     }
     pub fn start(mut self) -> JoinHandle<()> {
         thread::spawn(move || loop {
-            let result = self.receiver.try_recv();
-            match result {
-                Ok((id, painter)) => {
-                    let size = *painter.size();
-                    let dpi = painter.dpi();
-                    self.painters.insert(id, painter);
-                    self.canvas.insert(
-                        id,
-                        Box::new(SkiaCanvas::new(dpi, size.width as _, size.height as _)),
-                    );
-                }
-                Err(_) => (),
+            while let Ok((id, painter)) = self.receiver.try_recv() {
+                let size = *painter.size();
+                let dpi = painter.dpi();
+                self.painters.insert(id, painter);
+                self.canvas.insert(
+                    id,
+                    Box::new(SkiaCanvas::new(dpi, size.width as _, size.height as _)),
+                );
             }
 
-            // for (id, painter) in &mut self.painters {
-            //     println!("Render");
-            //     painter.paint(None, self.canvas.get_mut(&id).unwrap().as_mut())
-            // }
-            println!("Render");
+            for (id, painter) in &mut self.painters {
+                println!("Render");
+                painter.paint(None, self.canvas.get_mut(&id).unwrap().as_mut())
+            }
         })
     }
 }

@@ -25,7 +25,7 @@ impl TreePainter {
     }
 
     pub fn paint(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas) {
-        while let Ok(message) = self.rx.recv() {
+        while let Ok(message) = self.rx.try_recv() {
             self.handle_message(message)
         }
 
