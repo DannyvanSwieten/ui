@@ -1,6 +1,6 @@
 use crate::{
     canvas::Canvas,
-    geo::{Point, Rect, Size},
+    geo::{Point, Rect},
     painter::{PaintCtx, Painter},
     tree::Tree,
     ui_state::UIState,
@@ -104,7 +104,7 @@ impl PainterElement {
         self
     }
 
-    pub fn painter_state(&self) -> &Option<Box<dyn Any + Send>> {
-        &self.painter_state
+    pub fn painter_state(&self) -> Option<&(dyn Any + Send)> {
+        self.painter_state.as_deref()
     }
 }

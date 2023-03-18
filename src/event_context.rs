@@ -1,21 +1,21 @@
 use std::any::Any;
 
 use crate::{event::MouseEvent, std::drag_source::DragSourceData};
-pub type SetState = Box<dyn Fn(&dyn Any) -> Box<dyn Any + Send>>;
+pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Box<dyn Any + Send>>;
 
 pub struct EventCtx<'a> {
     id: usize,
     drag_source: Option<DragSourceData>,
     mouse_event: Option<&'a MouseEvent>,
     set_state: Option<SetState>,
-    state: &'a Option<Box<dyn Any + Send>>,
+    state: Option<&'a (dyn Any + Send)>,
 }
 
 impl<'a> EventCtx<'a> {
     pub fn new(
         id: usize,
         mouse_event: Option<&'a MouseEvent>,
-        state: &'a Option<Box<dyn Any + Send>>,
+        state: Option<&'a (dyn Any + Send)>,
     ) -> Self {
         Self {
             id,
@@ -60,7 +60,7 @@ impl<'a> EventCtx<'a> {
         T: 'static,
     {
         if let Some(state) = self.state {
-            state.as_ref().downcast_ref::<T>()
+            state.downcast_ref::<T>()
         } else {
             None
         }

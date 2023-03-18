@@ -61,8 +61,7 @@ impl PainterManager {
             }
 
             for (id, painter) in &mut self.painters {
-                println!("Render");
-                painter.paint(None, self.canvas.get_mut(&id).unwrap().as_mut())
+                painter.paint(None, self.canvas.get_mut(id).unwrap().as_mut())
             }
         })
     }

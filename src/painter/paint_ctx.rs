@@ -4,14 +4,14 @@ use std::any::Any;
 pub struct PaintCtx<'a> {
     global_bounds: &'a Rect,
     local_bounds: &'a Rect,
-    state: &'a Option<Box<dyn Any + Send>>,
+    state: Option<&'a (dyn Any + Send)>,
 }
 
 impl<'a> PaintCtx<'a> {
     pub fn new(
         global_bounds: &'a Rect,
         local_bounds: &'a Rect,
-        state: &'a Option<Box<dyn Any + Send>>,
+        state: Option<&'a (dyn Any + Send)>,
     ) -> Self {
         Self {
             global_bounds,
@@ -33,7 +33,7 @@ impl<'a> PaintCtx<'a> {
         T: 'static,
     {
         if let Some(state) = self.state {
-            state.as_ref().downcast_ref::<T>()
+            state.downcast_ref::<T>()
         } else {
             None
         }

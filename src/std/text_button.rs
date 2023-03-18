@@ -10,6 +10,7 @@ use crate::{
     value::Value,
     widget::{BuildCtx, Children, LayoutCtx, Widget},
 };
+use std::any::Any;
 
 enum ButtonState {
     Active,
@@ -77,7 +78,7 @@ impl Widget for TextButton {
         }
     }
 
-    fn state(&self) -> Option<Box<dyn std::any::Any + Send>> {
+    fn state(&self) -> Option<Box<dyn Any + Send>> {
         Some(Box::new(ButtonState::Inactive))
     }
 

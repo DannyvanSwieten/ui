@@ -57,7 +57,8 @@ impl WidgetTree {
     pub fn update_state(&mut self, updates: &HashMap<usize, SetState>) {
         for (id, update) in updates {
             let node = self.tree.get_mut(*id).unwrap();
-            node.data.set_state(update(node.data.widget_state()));
+            node.data
+                .set_state(update(node.data.widget_state().unwrap()));
         }
     }
 
@@ -312,8 +313,8 @@ impl WidgetElement {
         self.widget.as_ref()
     }
 
-    pub fn widget_state(&self) -> &Option<Box<dyn Any + Send>> {
-        &self.widget_state
+    pub fn widget_state(&self) -> Option<&(dyn Any + Send)> {
+        self.widget_state.as_deref()
     }
 
     pub fn widget_state_mut(&mut self) -> &mut Option<Box<dyn Any + Send>> {
