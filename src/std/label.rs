@@ -9,18 +9,18 @@ use crate::{
 };
 
 pub struct Label {
-    binding: Value,
+    text: Value,
 }
 
 impl Label {
-    pub fn new(binding: Value) -> Self {
-        Self { binding }
+    pub fn new(text: impl Into<Value>) -> Self {
+        Self { text: text.into() }
     }
 }
 
 impl Widget for Label {
     fn build(&self, build_ctx: &mut BuildCtx) -> Children {
-        if let Value::Binding(binding) = &self.binding {
+        if let Value::Binding(binding) = &self.text {
             build_ctx.bind(binding);
         }
 
@@ -37,11 +37,7 @@ impl Widget for Label {
     }
 
     fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {
-        let text = match &self.binding {
-            Value::Binding(binding) => ui_state.get(binding).unwrap(),
-            Value::Const(var) => var,
-        }
-        .to_string();
+        let text = self.text.var(ui_state).to_string();
 
         Some(Box::new(LabelPainter { text }))
     }

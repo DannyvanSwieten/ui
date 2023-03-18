@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    ops::{Index, IndexMut},
+};
 
 use crate::value::Var;
 
@@ -62,5 +65,19 @@ impl UIState {
 impl Default for UIState {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Index<&str> for UIState {
+    type Output = Var;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        self.values.get(index).unwrap()
+    }
+}
+
+impl IndexMut<&str> for UIState {
+    fn index_mut(&mut self, index: &str) -> &mut Self::Output {
+        self.values.get_mut(index).unwrap()
     }
 }

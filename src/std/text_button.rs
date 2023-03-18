@@ -7,6 +7,7 @@ use crate::{
     message_context::MessageCtx,
     painter::{PaintCtx, Painter},
     ui_state::UIState,
+    value::Value,
     widget::{BuildCtx, Children, LayoutCtx, Widget},
 };
 
@@ -19,12 +20,12 @@ enum ButtonState {
 pub type ClickHandler = Option<Box<dyn Fn(&mut MessageCtx)>>;
 
 pub struct TextButton {
-    text: String,
+    text: Value,
     click_handler: ClickHandler,
 }
 
 impl TextButton {
-    pub fn new(text: &str) -> Self {
+    pub fn new(text: impl Into<Value>) -> Self {
         Self {
             text: text.into(),
             click_handler: None,
@@ -63,14 +64,14 @@ impl Widget for TextButton {
         message_ctx: &mut MessageCtx,
     ) {
         match event_ctx.mouse_event() {
-            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| Box::new(ButtonState::Hovered)),
-            MouseEvent::MouseDown(_) => event_ctx.set_state(|_| Box::new(ButtonState::Active)),
+            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| ButtonState::Hovered),
+            MouseEvent::MouseDown(_) => event_ctx.set_state(|_| ButtonState::Active),
             MouseEvent::MouseUp(_) => {
                 if let Some(handler) = &self.click_handler {
                     (handler)(message_ctx)
                 }
 
-                event_ctx.set_state(|_| Box::new(ButtonState::Inactive))
+                event_ctx.set_state(|_| ButtonState::Inactive)
             }
             _ => (),
         }
@@ -80,8 +81,9 @@ impl Widget for TextButton {
         Some(Box::new(ButtonState::Inactive))
     }
 
-    fn painter(&self, _: &UIState) -> Option<Box<dyn Painter>> {
-        Some(Box::new(TextButtonPainter::new(self.text.clone())))
+    fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {
+        let text = self.text.var(ui_state).to_string();
+        Some(Box::new(TextButtonPainter::new(text)))
     }
 }
 
