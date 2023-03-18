@@ -42,13 +42,11 @@ impl<'a> EventCtx<'a> {
         self.drag_source.take()
     }
 
-    pub fn set_state<T>(&mut self, modify: impl Fn(&T) -> T + 'static)
+    pub fn set_state<F>(&mut self, s: F)
     where
-        T: Any + 'static,
+        F: Fn(&dyn Any) -> Box<dyn Any> + 'static,
     {
-        self.set_state = Some(Box::new(move |any| {
-            Box::new(modify(any.downcast_ref::<T>().unwrap()))
-        }));
+        self.set_state = Some(Box::new(s))
     }
 
     pub fn consume_state(self) -> Option<SetState> {
