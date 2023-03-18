@@ -124,6 +124,10 @@ impl Canvas for SkiaCanvas {
     fn translate(&mut self, point: &geo::Point) {
         self.surface.canvas().translate((point.x, point.y));
     }
+    fn scale(&mut self, size: &Size) {
+        self.surface.canvas().scale((size.width, size.height));
+    }
+
     fn draw_rect(&mut self, rect: &Rect, paint: &Paint) {
         let rect: skia_safe::Rect = rect.into();
         self.surface.canvas().draw_rect(rect, &paint.into());
@@ -159,10 +163,6 @@ impl Canvas for SkiaCanvas {
         SkiaCanvas::pixels(self)
     }
 
-    fn scale(&mut self, size: &Size) {
-        self.surface.canvas().scale((size.width, size.height));
-    }
-
     // fn draw_text_blob(&mut self, pos: &Point, blob: &skia_safe::TextBlob, paint: &Paint) {
     //     self.surface.canvas().draw_text_blob(blob, *pos, paint);
     // }
@@ -171,3 +171,5 @@ impl Canvas for SkiaCanvas {
     //     paragraph.paint(self.surface.canvas(), *pos);
     // }
 }
+
+unsafe impl Send for SkiaCanvas {}

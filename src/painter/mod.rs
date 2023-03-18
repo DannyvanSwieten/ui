@@ -8,6 +8,6 @@ pub use tree_painter::TreePainter;
 
 use crate::canvas::Canvas;
 
-pub trait Painter {
+pub trait Painter: Send {
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas);
 }

@@ -76,7 +76,7 @@ impl Widget for TextButton {
         }
     }
 
-    fn state(&self) -> Option<Box<dyn std::any::Any>> {
+    fn state(&self) -> Option<Box<dyn std::any::Any + Send>> {
         Some(Box::new(ButtonState::Inactive))
     }
 

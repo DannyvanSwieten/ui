@@ -3,13 +3,25 @@ mod application_delegate;
 pub use application_delegate::ApplicationDelegate;
 
 use crate::{
-    canvas::canvas_renderer::CanvasRenderer, event::MouseEvent, geo::Point, gpu::GpuApi,
-    message::Message, message_context::MessageCtx, mouse_event, painter::PainterTree,
-    ui_state::UIState, user_interface::UserInterface, widget::WidgetTree,
+    canvas::{canvas_renderer::CanvasRenderer, skia_cpu_canvas::SkiaCanvas, Canvas},
+    event::MouseEvent,
+    geo::{Point, Size},
+    gpu::GpuApi,
+    message::Message,
+    message_context::MessageCtx,
+    mouse_event,
+    painter::{PainterTree, TreePainter},
+    ui_state::UIState,
+    user_interface::UserInterface,
+    widget::WidgetTree,
     window_request::WindowRequest,
 };
 use pollster::block_on;
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::mpsc::{channel, Receiver, Sender},
+    thread::{self, JoinHandle},
+};
 use wgpu::{CompositeAlphaMode, PresentMode, SurfaceConfiguration, TextureFormat, TextureUsages};
 use winit::{
     dpi::LogicalSize,
@@ -17,6 +29,43 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder, WindowId},
 };
+
+pub struct PainterManager {
+    painters: HashMap<WindowId, TreePainter>,
+    canvas: HashMap<WindowId, Box<dyn Canvas>>,
+    receiver: Receiver<(WindowId, TreePainter)>,
+}
+
+impl PainterManager {
+    pub fn new() -> (Self, Sender<(WindowId, TreePainter)>) {
+        let (sender, receiver) = channel();
+        (
+            Self {
+                painters: HashMap::new(),
+                canvas: HashMap::new(),
+                receiver,
+            },
+            sender,
+        )
+    }
+    pub fn start(mut self) -> JoinHandle<()> {
+        thread::spawn(move || loop {
+            for (id, painter) in &self.receiver {
+                let size = *painter.size();
+                let dpi = painter.dpi();
+                self.painters.insert(id, painter);
+                self.canvas.insert(
+                    id,
+                    Box::new(SkiaCanvas::new(dpi, size.width as _, size.height as _)),
+                );
+            }
+
+            for (id, painter) in &mut self.painters {
+                painter.paint(None, self.canvas.get_mut(&id).unwrap().as_mut())
+            }
+        })
+    }
+}
 
 pub struct Application {
     state: UIState,
@@ -43,11 +92,13 @@ impl Application {
         let mut windows: HashMap<WindowId, Window> = HashMap::new();
         let mut user_interfaces: HashMap<WindowId, UserInterface> = HashMap::new();
         let mut canvas_renderers: HashMap<WindowId, CanvasRenderer> = HashMap::new();
-        let mut painter_trees: HashMap<WindowId, PainterTree> = HashMap::new();
+        let mut painter_trees = HashMap::new();
         let gpu = block_on(GpuApi::new());
         let mut last_mouse_position = Point::new(0.0, 0.0);
         let mut mouse_down_states = HashMap::new();
         let mut drag_start = None;
+        let (painter_manager, painter_sender) = PainterManager::new();
+        let join_handle = painter_manager.start();
         event_loop.run(move |event, event_loop, control_flow| {
             let mut message_ctx = MessageCtx::default();
             match event {
@@ -216,7 +267,15 @@ impl Application {
                     widget_tree.build(&mut state);
                     widget_tree.layout(&state);
                     let painter_tree = PainterTree::new(&widget_tree, &self.state);
-                    painter_trees.insert(window.id(), painter_tree);
+                    let (tree_painter, message_sender) = TreePainter::new(
+                        painter_tree,
+                        Size::new(request.width as f32, request.height as f32),
+                        window.scale_factor() as f32,
+                    );
+                    painter_trees.insert(window.id(), message_sender);
+                    painter_sender
+                        .send((window.id(), tree_painter))
+                        .expect("Send failed");
                     let ui = UserInterface::new(
                         widget_tree,
                         window.scale_factor() as f32,

@@ -21,7 +21,7 @@ pub trait Widget {
         vec![]
     }
 
-    fn state(&self) -> Option<Box<dyn Any>> {
+    fn state(&self) -> Option<Box<dyn Any + Send>> {
         None
     }
 

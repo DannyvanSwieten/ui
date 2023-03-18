@@ -23,8 +23,26 @@ impl WidgetTree {
         }
     }
 
+    pub fn root_id(&self) -> usize {
+        self.tree.root_id()
+    }
+
+    pub fn set_root_id(&mut self, id: usize) {
+        self.tree.set_root_id(id)
+    }
+
     pub fn nodes(&self) -> &HashMap<usize, Node<WidgetElement>> {
         self.tree.nodes()
+    }
+
+    pub fn bounds(&self) -> &Rect {
+        &self
+            .tree
+            .nodes()
+            .get(&self.tree.root_id())
+            .unwrap()
+            .data
+            .global_bounds
     }
 
     pub fn handle_mutations(&mut self, state: &mut UIState) {
@@ -274,7 +292,7 @@ impl WidgetTree {
 
 pub struct WidgetElement {
     widget: Box<dyn Widget>,
-    widget_state: Option<Box<dyn Any>>,
+    widget_state: Option<Box<dyn Any + Send>>,
     pub local_bounds: Rect,
     pub global_bounds: Rect,
 }
@@ -294,14 +312,14 @@ impl WidgetElement {
         self.widget.as_ref()
     }
 
-    pub fn widget_state(&self) -> &Option<Box<dyn Any>> {
+    pub fn widget_state(&self) -> &Option<Box<dyn Any + Send>> {
         &self.widget_state
     }
 
-    pub fn widget_state_mut(&mut self) -> &mut Option<Box<dyn Any>> {
+    pub fn widget_state_mut(&mut self) -> &mut Option<Box<dyn Any + Send>> {
         &mut self.widget_state
     }
-    pub fn set_state(&mut self, state: Box<dyn Any>) {
+    pub fn set_state(&mut self, state: Box<dyn Any + Send>) {
         self.widget_state = Some(state)
     }
 

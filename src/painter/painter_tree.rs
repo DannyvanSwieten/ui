@@ -1,6 +1,6 @@
 use crate::{
     canvas::Canvas,
-    geo::{Point, Rect},
+    geo::{Point, Rect, Size},
     painter::{PaintCtx, Painter},
     tree::Tree,
     ui_state::UIState,
@@ -17,6 +17,8 @@ impl PainterTree {
         let mut this = Self {
             tree: Tree::default(),
         };
+
+        this.tree.set_root_id(widget_tree.root_id());
 
         for (id, node) in widget_tree.nodes() {
             if let Some(painter) = node.data.widget().painter(ui_state) {
@@ -81,7 +83,7 @@ impl PainterTree {
 
 pub struct PainterElement {
     painter: Box<dyn Painter>,
-    painter_state: Option<Box<dyn Any>>,
+    painter_state: Option<Box<dyn Any + Send>>,
     pub local_bounds: Rect,
     pub global_bounds: Rect,
 }
@@ -102,7 +104,7 @@ impl PainterElement {
         self
     }
 
-    pub fn painter_state(&self) -> &Option<Box<dyn Any>> {
+    pub fn painter_state(&self) -> &Option<Box<dyn Any + Send>> {
         &self.painter_state
     }
 }

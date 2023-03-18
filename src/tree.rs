@@ -34,6 +34,10 @@ impl<T> Tree<T> {
         &self.nodes
     }
 
+    pub fn set_root_id(&mut self, id: usize) {
+        self.root = id
+    }
+
     pub fn root_id(&self) -> usize {
         self.root
     }

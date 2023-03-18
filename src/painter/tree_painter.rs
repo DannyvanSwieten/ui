@@ -1,16 +1,26 @@
 use super::PainterTree;
-use crate::{canvas::Canvas, geo::Point};
+use crate::{
+    canvas::Canvas,
+    geo::{Point, Size},
+};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 pub struct TreePainter {
     tree: PainterTree,
     rx: Receiver<TreePainterMessage>,
+    size: Size,
+    dpi: f32,
 }
 
 impl TreePainter {
-    pub fn new(tree: PainterTree) -> (Self, Sender<TreePainterMessage>) {
+    pub fn new(tree: PainterTree, size: Size, dpi: f32) -> (Self, Sender<TreePainterMessage>) {
         let (tx, rx) = channel();
-        let tree_painter = Self { tree, rx };
+        let tree_painter = Self {
+            size,
+            tree,
+            rx,
+            dpi,
+        };
         (tree_painter, tx)
     }
 
@@ -26,6 +36,14 @@ impl TreePainter {
         match message {
             TreePainterMessage::ReplaceTree(tree) => self.tree = tree,
         }
+    }
+
+    pub fn size(&self) -> &Size {
+        &self.size
+    }
+
+    pub fn dpi(&self) -> f32 {
+        self.dpi
     }
 }
 
