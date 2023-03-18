@@ -18,6 +18,15 @@ impl Value {
     }
 }
 
+impl<T> From<T> for Value
+where
+    T: Into<Var>,
+{
+    fn from(v: T) -> Self {
+        Value::Const(v.into())
+    }
+}
+
 macro_rules! gen_var {
     ($($name:ident($type:ty)),*) => {
         #[derive(Clone)]
