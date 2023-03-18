@@ -25,9 +25,9 @@ pub struct TextButton {
 }
 
 impl TextButton {
-    pub fn new(text: Value) -> Self {
+    pub fn new(text: impl Into<Value>) -> Self {
         Self {
-            text,
+            text: text.into(),
             click_handler: None,
         }
     }

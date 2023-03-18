@@ -13,8 +13,8 @@ pub struct Label {
 }
 
 impl Label {
-    pub fn new(text: Value) -> Self {
-        Self { text }
+    pub fn new(text: impl Into<Value>) -> Self {
+        Self { text: text.into() }
     }
 }
 
