@@ -317,9 +317,6 @@ impl WidgetElement {
         self.widget_state.as_deref()
     }
 
-    pub fn widget_state_mut(&mut self) -> &mut Option<Box<dyn Any + Send>> {
-        &mut self.widget_state
-    }
     pub fn set_state(&mut self, state: Box<dyn Any + Send>) {
         self.widget_state = Some(state)
     }
