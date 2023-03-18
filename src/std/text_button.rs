@@ -64,14 +64,14 @@ impl Widget for TextButton {
         message_ctx: &mut MessageCtx,
     ) {
         match event_ctx.mouse_event() {
-            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| Box::new(ButtonState::Hovered)),
-            MouseEvent::MouseDown(_) => event_ctx.set_state(|_| Box::new(ButtonState::Active)),
+            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| ButtonState::Hovered),
+            MouseEvent::MouseDown(_) => event_ctx.set_state(|_| ButtonState::Active),
             MouseEvent::MouseUp(_) => {
                 if let Some(handler) = &self.click_handler {
                     (handler)(message_ctx)
                 }
 
-                event_ctx.set_state(|_| Box::new(ButtonState::Inactive))
+                event_ctx.set_state(|_| ButtonState::Inactive)
             }
             _ => (),
         }
