@@ -33,16 +33,29 @@ use winit::{
 pub struct PainterManager {
     painters: HashMap<WindowId, TreePainter>,
     canvas: HashMap<WindowId, Box<dyn Canvas>>,
-    receiver: Receiver<(WindowId, TreePainter)>,
+    canvas_renderers: HashMap<WindowId, CanvasRenderer>,
+    receiver: Receiver<PainterManagerMessage>,
+}
+
+pub enum PainterType {
+    Pixels,
+    Pdf,
+    Svg,
+}
+
+pub enum PainterManagerMessage {
+    AddWindowPainter((WindowId, TreePainter, CanvasRenderer)),
+    WindowSurfaceUpdate(WindowId, f32, Size),
 }
 
 impl PainterManager {
-    pub fn new() -> (Self, Sender<(WindowId, TreePainter)>) {
+    pub fn new() -> (Self, Sender<PainterManagerMessage>) {
         let (sender, receiver) = channel();
         (
             Self {
                 painters: HashMap::new(),
                 canvas: HashMap::new(),
+                canvas_renderers: HashMap::new(),
                 receiver,
             },
             sender,
@@ -50,14 +63,20 @@ impl PainterManager {
     }
     pub fn start(mut self) -> JoinHandle<()> {
         thread::spawn(move || loop {
-            while let Ok((id, painter)) = self.receiver.try_recv() {
-                let size = *painter.size();
-                let dpi = painter.dpi();
-                self.painters.insert(id, painter);
-                self.canvas.insert(
-                    id,
-                    Box::new(SkiaCanvas::new(dpi, size.width as _, size.height as _)),
-                );
+            while let Ok(message) = self.receiver.try_recv() {
+                match message {
+                    PainterManagerMessage::AddWindowPainter((id, painter, renderer)) => {
+                        let size = *painter.size();
+                        let dpi = painter.dpi();
+                        self.painters.insert(id, painter);
+                        self.canvas.insert(
+                            id,
+                            Box::new(SkiaCanvas::new(dpi, size.width as _, size.height as _)),
+                        );
+                        self.canvas_renderers.insert(id, renderer);
+                    }
+                    PainterManagerMessage::WindowSurfaceUpdate(window_id, dpi, size) => todo!(),
+                }
             }
 
             for (id, painter) in &mut self.painters {
@@ -98,7 +117,7 @@ impl Application {
         let mut mouse_down_states = HashMap::new();
         let mut drag_start = None;
         let (painter_manager, painter_sender) = PainterManager::new();
-        let join_handle = painter_manager.start();
+        let _join_handle = painter_manager.start();
         event_loop.run(move |event, event_loop, control_flow| {
             let mut message_ctx = MessageCtx::default();
             match event {
@@ -274,7 +293,11 @@ impl Application {
                     );
                     painter_trees.insert(window.id(), message_sender);
                     painter_sender
-                        .send((window.id(), tree_painter))
+                        .send(PainterManagerMessage::AddWindowPainter((
+                            window.id(),
+                            tree_painter,
+                            CanvasRenderer::new(&gpu, &window),
+                        )))
                         .expect("Send failed");
                     let ui = UserInterface::new(
                         widget_tree,

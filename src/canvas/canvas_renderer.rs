@@ -110,3 +110,5 @@ impl CanvasRenderer {
         self.surface.configure(&self.device, &config)
     }
 }
+
+unsafe impl Send for CanvasRenderer {}
