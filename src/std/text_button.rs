@@ -8,11 +8,10 @@ use crate::{
     painter::{PaintCtx, Painter},
     ui_state::UIState,
     value::Value,
-    widget::{BuildCtx, Children, LayoutCtx, Widget},
+    widget::{LayoutCtx, Widget},
 };
-use std::any::Any;
 
-enum ButtonState {
+pub enum ButtonState {
     Active,
     Inactive,
     Hovered,
@@ -43,9 +42,7 @@ impl TextButton {
 }
 
 impl Widget for TextButton {
-    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
-        vec![]
-    }
+    type State = ButtonState;
 
     fn calculate_size(
         &self,
@@ -55,8 +52,6 @@ impl Widget for TextButton {
     ) -> Option<Size> {
         Some(Size::new(100.0, 50.0))
     }
-
-    fn layout(&self, _ui_state: &UIState, _: &mut LayoutCtx, _: Size, _: &[usize]) {}
 
     fn mouse_event(
         &self,
@@ -78,8 +73,8 @@ impl Widget for TextButton {
         }
     }
 
-    fn state(&self) -> Option<Box<dyn Any + Send>> {
-        Some(Box::new(ButtonState::Inactive))
+    fn state(&self) -> Option<ButtonState> {
+        Some(ButtonState::Inactive)
     }
 
     fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {

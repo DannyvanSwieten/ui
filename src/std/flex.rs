@@ -21,6 +21,8 @@ impl Row {
 }
 
 impl Widget for Row {
+    type State = ();
+
     fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         (self.children)()
     }

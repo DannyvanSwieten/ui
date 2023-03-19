@@ -19,6 +19,8 @@ impl Label {
 }
 
 impl Widget for Label {
+    type State = ();
+
     fn build(&self, build_ctx: &mut BuildCtx) -> Children {
         if let Value::Binding(binding) = &self.text {
             build_ctx.bind(binding);

@@ -3,7 +3,7 @@ use crate::{
     event_context::EventCtx,
     geo::{Rect, Size},
     ui_state::UIState,
-    widget::{BuildCtx, Child, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, Child, Children, GenericWidget, LayoutCtx, Widget},
 };
 
 pub struct DropTarget {
@@ -13,7 +13,7 @@ pub struct DropTarget {
 impl DropTarget {
     pub fn new<C>(child: C) -> Self
     where
-        C: Fn() -> Box<dyn Widget> + 'static,
+        C: Fn() -> Box<dyn GenericWidget> + 'static,
     {
         Self {
             child: Box::new(child),
@@ -22,6 +22,8 @@ impl DropTarget {
 }
 
 impl Widget for DropTarget {
+    type State = ();
+
     fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![(self.child)()]
     }

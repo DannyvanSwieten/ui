@@ -2,7 +2,7 @@ use crate::{
     constraints::BoxConstraints,
     geo::{Point, Rect, Size},
     ui_state::UIState,
-    widget::{BuildCtx, Child, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, Child, Children, GenericWidget, LayoutCtx, Widget},
 };
 
 pub struct Center {
@@ -12,7 +12,7 @@ pub struct Center {
 impl Center {
     pub fn new<C>(child: C) -> Self
     where
-        C: Fn() -> Box<dyn Widget> + 'static,
+        C: Fn() -> Box<dyn GenericWidget> + 'static,
     {
         Self {
             child: Box::new(child),
@@ -21,6 +21,8 @@ impl Center {
 }
 
 impl Widget for Center {
+    type State = ();
+
     fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![(*self.child)()]
     }

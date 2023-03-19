@@ -8,7 +8,7 @@ use crate::{
     painter::PaintCtx,
     tree::{Node, Tree},
     ui_state::UIState,
-    widget::{BuildCtx, LayoutCtx, Widget},
+    widget::{BuildCtx, GenericWidget, LayoutCtx},
 };
 use std::{any::Any, collections::HashMap};
 
@@ -17,7 +17,7 @@ pub struct WidgetTree {
 }
 
 impl WidgetTree {
-    pub fn new(widget: Box<dyn Widget>) -> Self {
+    pub fn new(widget: Box<dyn GenericWidget>) -> Self {
         Self {
             tree: Tree::new(WidgetElement::new(widget)),
         }
@@ -214,7 +214,7 @@ impl WidgetTree {
         }
     }
 
-    fn add_element(&mut self, widget: Box<dyn Widget>) -> usize {
+    fn add_element(&mut self, widget: Box<dyn GenericWidget>) -> usize {
         self.tree.add_node(WidgetElement::new(widget))
     }
 
@@ -292,14 +292,14 @@ impl WidgetTree {
 }
 
 pub struct WidgetElement {
-    widget: Box<dyn Widget>,
+    widget: Box<dyn GenericWidget>,
     widget_state: Option<Box<dyn Any + Send>>,
     pub local_bounds: Rect,
     pub global_bounds: Rect,
 }
 
 impl WidgetElement {
-    pub fn new(widget: Box<dyn Widget>) -> Self {
+    pub fn new(widget: Box<dyn GenericWidget>) -> Self {
         let widget_state = widget.state();
         Self {
             widget,
@@ -309,7 +309,7 @@ impl WidgetElement {
         }
     }
 
-    pub fn widget(&self) -> &dyn Widget {
+    pub fn widget(&self) -> &dyn GenericWidget {
         self.widget.as_ref()
     }
 

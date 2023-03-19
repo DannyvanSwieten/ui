@@ -1,6 +1,6 @@
-use crate::{ui_state::UIState, widget::Widget};
+use crate::{ui_state::UIState, widget::GenericWidget};
 
-type UIBuilder = dyn Fn(&UIState) -> Box<dyn Widget>;
+type UIBuilder = dyn Fn(&UIState) -> Box<dyn GenericWidget>;
 
 pub struct WindowRequest {
     pub width: u32,
@@ -26,7 +26,7 @@ impl WindowRequest {
 
     pub fn with_ui<F: 'static>(mut self, builder: F) -> Self
     where
-        F: Fn(&UIState) -> Box<dyn Widget>,
+        F: Fn(&UIState) -> Box<dyn GenericWidget>,
     {
         self.builder = Some(Box::new(builder));
         self

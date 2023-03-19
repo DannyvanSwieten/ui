@@ -3,21 +3,21 @@ use crate::{
     event_context::EventCtx,
     geo::{Rect, Size},
     ui_state::UIState,
-    widget::{BuildCtx, Child, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, Child, Children, GenericWidget, LayoutCtx, Widget},
 };
 use std::any::Any;
 
 pub struct DragSourceItem {
-    widget: Box<dyn Widget>,
+    widget: Box<dyn GenericWidget>,
     _data: Option<Box<dyn Any>>,
 }
 
 impl DragSourceItem {
-    pub fn widget(&self) -> &dyn Widget {
+    pub fn widget(&self) -> &dyn GenericWidget {
         self.widget.as_ref()
     }
 
-    pub fn new(widget: Box<dyn Widget>) -> DragSourceItem {
+    pub fn new(widget: Box<dyn GenericWidget>) -> DragSourceItem {
         Self {
             widget,
             _data: None,
@@ -58,7 +58,7 @@ pub struct DragSource {
 impl DragSource {
     pub fn new<C>(child: C) -> Self
     where
-        C: Fn() -> Box<dyn Widget> + 'static,
+        C: Fn() -> Box<dyn GenericWidget> + 'static,
     {
         Self {
             child: Box::new(child),
@@ -76,6 +76,8 @@ impl DragSource {
 }
 
 impl Widget for DragSource {
+    type State = ();
+
     fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![(self.child)()]
     }
