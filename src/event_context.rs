@@ -1,7 +1,7 @@
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 use crate::{event::MouseEvent, std::drag_source::DragSourceData};
-pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Box<dyn Any + Send>>;
+pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;
 
 pub struct EventCtx<'a> {
     id: usize,
@@ -42,12 +42,12 @@ impl<'a> EventCtx<'a> {
         self.drag_source.take()
     }
 
-    pub fn set_state<T>(&mut self, modify: impl Fn(&T) -> T + 'static)
+    pub fn set_state<T>(&mut self, modify: impl Fn(&T) -> T + Send + 'static)
     where
         T: Any + Send + 'static,
     {
         self.set_state = Some(Box::new(move |any| {
-            Box::new(modify(any.downcast_ref::<T>().unwrap()))
+            Arc::new(modify(any.downcast_ref::<T>().unwrap()))
         }));
     }
 

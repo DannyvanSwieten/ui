@@ -10,7 +10,7 @@ use crate::{
     ui_state::UIState,
     widget::{BuildCtx, LayoutCtx, Widget},
 };
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, collections::HashMap, sync::Arc};
 
 pub struct WidgetTree {
     tree: Tree<WidgetElement>,
@@ -50,15 +50,14 @@ impl WidgetTree {
         for id in updates {
             let mut build_ctx = BuildCtx::new(id, state);
             self.rebuild_element(&mut build_ctx, id);
-            self.layout_element(id, state)
+            // self.layout_element(id, state)
         }
     }
 
-    pub fn update_state(&mut self, updates: &HashMap<usize, SetState>) {
-        for (id, update) in updates {
+    pub fn update_state(&mut self, new_states: &HashMap<usize, Arc<dyn Any + Send>>) {
+        for (id, new_state) in new_states {
             let node = self.tree.get_mut(*id).unwrap();
-            node.data
-                .set_state(update(node.data.widget_state().unwrap()));
+            node.data.set_state(new_state.clone());
         }
     }
 
@@ -75,8 +74,8 @@ impl WidgetTree {
         if let Some(hit) = hit {
             if let Some(node) = self.tree.get_mut(hit) {
                 let local_event = event.to_local(&node.data.global_bounds.position());
-                let mut event_ctx =
-                    EventCtx::new(hit, Some(&local_event), node.data.widget_state());
+                let state = node.data.widget_state();
+                let mut event_ctx = EventCtx::new(hit, Some(&local_event), state.as_deref());
                 node.data
                     .widget()
                     .mouse_event(ui_state, &mut event_ctx, message_ctx);
@@ -97,8 +96,8 @@ impl WidgetTree {
         for intercept in intercepted {
             if let Some(node) = self.tree.get_mut(intercept) {
                 let local_event = event.to_local(&node.data.global_bounds.position());
-                let mut event_ctx =
-                    EventCtx::new(intercept, Some(&local_event), node.data.widget_state());
+                let state = node.data.widget_state();
+                let mut event_ctx = EventCtx::new(intercept, Some(&local_event), state.as_deref());
                 node.data
                     .widget()
                     .mouse_event(ui_state, &mut event_ctx, message_ctx);
@@ -171,7 +170,12 @@ impl WidgetTree {
         self.build_element(&mut build_ctx, self.tree.root_id());
     }
 
-    pub fn layout_element(&mut self, id: usize, state: &UIState) {
+    pub fn layout_element(
+        &mut self,
+        id: usize,
+        state: &UIState,
+        results: &mut HashMap<usize, (Rect, Rect)>,
+    ) {
         let mut layout_ctx = LayoutCtx::new(self);
         let children = if let Some(node) = self.tree.get(id) {
             node.data.widget().layout(
@@ -192,6 +196,7 @@ impl WidgetTree {
                 let mut global_bounds = *rect;
                 global_bounds.set_position(node.data.global_bounds.position() + rect.position());
                 child_global_bounds.insert(*id, global_bounds);
+                results.insert(*id, (global_bounds, *rect));
             }
         }
 
@@ -209,7 +214,7 @@ impl WidgetTree {
 
         if let Some(children) = children {
             for child in children {
-                self.layout_element(child, state)
+                self.layout_element(child, state, results)
             }
         }
     }
@@ -244,7 +249,8 @@ impl WidgetTree {
     }
 
     pub fn layout(&mut self, state: &UIState) {
-        self.layout_element(self.tree.root_id(), state);
+        let mut results = HashMap::new();
+        self.layout_element(self.tree.root_id(), state, &mut results);
     }
 
     pub fn paint(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas, ui_state: &UIState) {
@@ -270,8 +276,8 @@ impl WidgetTree {
                 .with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
 
             if let Some(painter) = node.data.widget().painter(ui_state) {
-                let paint_ctx =
-                    PaintCtx::new(&global_bounds, &local_bounds, node.data.widget_state());
+                let state = node.data.widget_state();
+                let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, state.as_deref());
                 canvas.save();
                 canvas.translate(&local_bounds.position());
                 painter.paint(&paint_ctx, canvas);
@@ -293,7 +299,7 @@ impl WidgetTree {
 
 pub struct WidgetElement {
     widget: Box<dyn Widget>,
-    widget_state: Option<Box<dyn Any + Send>>,
+    widget_state: Option<Arc<dyn Any + Send>>,
     pub local_bounds: Rect,
     pub global_bounds: Rect,
 }
@@ -301,6 +307,7 @@ pub struct WidgetElement {
 impl WidgetElement {
     pub fn new(widget: Box<dyn Widget>) -> Self {
         let widget_state = widget.state();
+
         Self {
             widget,
             local_bounds: Rect::default(),
@@ -313,11 +320,11 @@ impl WidgetElement {
         self.widget.as_ref()
     }
 
-    pub fn widget_state(&self) -> Option<&(dyn Any + Send)> {
-        self.widget_state.as_deref()
+    pub fn widget_state(&self) -> Option<Arc<dyn Any + Send>> {
+        self.widget_state.clone()
     }
 
-    pub fn set_state(&mut self, state: Box<dyn Any + Send>) {
+    pub fn set_state(&mut self, state: Arc<dyn Any + Send>) {
         self.widget_state = Some(state)
     }
 

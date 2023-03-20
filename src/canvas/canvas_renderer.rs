@@ -6,13 +6,15 @@ use wgpu::{
 };
 use winit::window::Window;
 
-use crate::gpu::GpuApi;
+use crate::{geo::Size, gpu::GpuApi};
+
+use super::Canvas;
 
 pub struct CanvasRenderer {
     surface: Surface,
     device: Rc<Device>,
     queue: Rc<Queue>,
-    dpi: f32,
+    size: Size,
 }
 
 impl CanvasRenderer {
@@ -37,18 +39,11 @@ impl CanvasRenderer {
             surface,
             device: gpu.device.clone(),
             queue: gpu.queue.clone(),
-            dpi: window.scale_factor() as _,
+            size: Size::new(config.width as _, config.height as _),
         }
     }
 
-    pub fn copy_to_texture(
-        &self,
-        pixels: &[u8],
-        width: u32,
-        height: u32,
-    ) -> Result<SurfaceTexture, SurfaceError> {
-        let width = width as f32 * self.dpi;
-        let height = height as f32 * self.dpi;
+    pub fn copy_to_texture(&self, canvas: &mut dyn Canvas) -> Result<SurfaceTexture, SurfaceError> {
         let output = self.surface.get_current_texture()?;
 
         let view = output
@@ -61,31 +56,33 @@ impl CanvasRenderer {
                 label: Some("Render Encoder"),
             });
 
-        let stride = width as u32 * 4;
+        let stride = self.size.width as u32 * 4;
         let texture_size = wgpu::Extent3d {
-            width: width as _,
-            height: height as _,
+            width: output.texture.width() as _,
+            height: output.texture.height() as _,
             depth_or_array_layers: 1,
         };
 
-        self.queue.write_texture(
-            // Tells wgpu where to copy the pixel data
-            wgpu::ImageCopyTexture {
-                texture: &output.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            // The actual pixel data
-            pixels,
-            // The layout of the texture
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: std::num::NonZeroU32::new(stride as _),
-                rows_per_image: std::num::NonZeroU32::new(height as _),
-            },
-            texture_size,
-        );
+        if let Some(pixels) = canvas.pixels() {
+            self.queue.write_texture(
+                // Tells wgpu where to copy the pixel data
+                wgpu::ImageCopyTexture {
+                    texture: &output.texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                // The actual pixel data
+                pixels,
+                // The layout of the texture
+                wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: std::num::NonZeroU32::new(stride as _),
+                    rows_per_image: std::num::NonZeroU32::new(self.size.height as _),
+                },
+                texture_size,
+            );
+        }
 
         {
             let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

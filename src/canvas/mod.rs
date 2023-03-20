@@ -5,6 +5,7 @@ pub mod canvas_renderer;
 pub mod color;
 pub mod font;
 pub mod paint;
+pub mod painter_manager;
 pub mod skia_cpu_canvas;
 
 pub trait Canvas: Send {

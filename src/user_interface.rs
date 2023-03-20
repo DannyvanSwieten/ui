@@ -1,10 +1,8 @@
+use std::{any::Any, collections::HashMap, sync::Arc};
+
 use crate::{
-    canvas::{
-        color::{Color, Color32f},
-        skia_cpu_canvas::SkiaCanvas,
-        Canvas,
-    },
     event::{Event, MouseEvent},
+    event_context::SetState,
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
     std::drag_source::DragSourceData,
@@ -16,73 +14,52 @@ pub struct UserInterface {
     root_tree: WidgetTree,
     width: f32,
     height: f32,
-    dpi: f32,
-    canvas: Box<dyn Canvas>,
     drag_source: Option<DragSourceData>,
     drag_source_offset: Option<Point>,
     _drag_source_tree: Option<WidgetTree>,
 }
 
 impl UserInterface {
-    pub fn new(root_tree: WidgetTree, dpi: f32, width: f32, height: f32) -> Self {
+    pub fn new(root_tree: WidgetTree, width: f32, height: f32) -> Self {
         let width = width;
         let height = height;
-        let canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
 
         Self {
             root_tree,
             _drag_source_tree: None,
             width,
             height,
-            dpi,
-            canvas,
             drag_source: None,
             drag_source_offset: None,
         }
     }
 
-    pub fn resize(&mut self, dpi: f32, width: f32, height: f32, state: &UIState) {
+    pub fn resize(
+        &mut self,
+        width: f32,
+        height: f32,
+        state: &UIState,
+    ) -> HashMap<usize, (Rect, Rect)> {
         self.width = width;
         self.height = height;
         self.root_tree
             .set_bounds(&Rect::new_from_size(Size::new(width, height)));
-        self.canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
         self.layout(state)
     }
 
-    pub fn build(&mut self, state: &mut UIState) {
+    pub fn build(&mut self, state: &mut UIState) -> HashMap<usize, (Rect, Rect)> {
         self.root_tree.build(state);
         self.layout(state)
     }
 
-    pub fn layout(&mut self, state: &UIState) {
-        self.root_tree.layout(state)
-    }
+    pub fn layout(&mut self, state: &UIState) -> HashMap<usize, (Rect, Rect)> {
+        self.root_tree.layout(state);
+        let mut bounds = HashMap::new();
+        for (id, node) in self.root_tree.nodes() {
+            bounds.insert(*id, (node.data().global_bounds, node.data().local_bounds));
+        }
 
-    fn paint_drag_source(&mut self, _offset: Option<Point>, _ui_state: &UIState) {
-        //todo!()
-        // if let Some(data) = self.drag_source.take() {
-        //     for item in data.items() {
-        //         match item.widget() {
-        //             DragSourceWidget::Id(id) => self.paint_element(*id, offset, ui_state),
-        //             DragSourceWidget::Widget(_) => {
-        //                 println!("Custom widget not implemented yet")
-        //             }
-        //         }
-        //     }
-
-        //     self.drag_source = Some(data)
-        // }
-    }
-
-    pub fn paint(&mut self, ui_state: &UIState) {
-        self.canvas.save();
-        self.canvas.scale(&Size::new(self.dpi, self.dpi));
-        let c = Color::from(Color32f::new_grey(0.0));
-        self.canvas.clear(&c);
-        self.root_tree.paint(None, self.canvas.as_mut(), ui_state);
-        self.canvas.restore();
-        self.paint_drag_source(self.drag_source_offset, ui_state);
+        bounds
     }
 
     pub fn set_drag_source_position(&mut self, pos: Point) {
@@ -93,41 +70,72 @@ impl UserInterface {
         self.drag_source_offset = offset;
     }
 
+    pub fn handle_state_updates(
+        &mut self,
+        state_updates: HashMap<usize, SetState>,
+    ) -> HashMap<usize, Arc<dyn Any + Send>> {
+        let mut results = HashMap::new();
+        for (id, modify) in state_updates {
+            let node = self.root_tree.nodes().get(&id).unwrap();
+            if let Some(old_state) = node.data.widget_state() {
+                results.insert(id, modify(old_state.as_ref()));
+            }
+        }
+
+        results
+    }
+
+    pub fn process_state_results(
+        &mut self,
+        ui_state: &UIState,
+        results: &HashMap<usize, Arc<dyn Any + Send>>,
+    ) -> HashMap<usize, (Rect, Rect)> {
+        self.root_tree.update_state(results);
+        let mut layout_results = HashMap::new();
+        results.iter().for_each(|(id, _)| {
+            self.root_tree
+                .layout_element(*id, ui_state, &mut layout_results)
+        });
+
+        layout_results
+    }
+
     fn mouse_event(
         &mut self,
         event: &MouseEvent,
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
-    ) {
-        let widget_state_updates = self.root_tree.mouse_event(event, message_ctx, ui_state);
-        self.root_tree.update_state(&widget_state_updates);
-        for (id, _) in widget_state_updates {
-            self.root_tree.layout_element(id, ui_state)
-        }
+    ) -> HashMap<usize, SetState> {
+        self.root_tree.mouse_event(event, message_ctx, ui_state)
+        // let new_states = self.root_tree.update_state(&widget_state_updates);
+        // let mut layout_results = HashMap::new();
+        // for (id, _) in widget_state_updates {
+        //     self.root_tree
+        //         .layout_element(id, ui_state, &mut layout_results)
+        // }
 
-        if let MouseEvent::MouseDrag(drag_event) = event {
-            if self.drag_source.is_some() {
-                self.update_drag_source_position(drag_event.offset_to_drag_start())
-            }
-        }
+        // // if let MouseEvent::MouseDrag(drag_event) = event {
+        // //     if self.drag_source.is_some() {
+        // //         self.update_drag_source_position(drag_event.offset_to_drag_start())
+        // //     }
+        // // }
 
-        if let MouseEvent::MouseUp(_) = event {
-            self.drag_source = None;
-            self.drag_source_offset = None;
-        }
+        // if let MouseEvent::MouseUp(_) = event {
+        //     self.drag_source = None;
+        //     self.drag_source_offset = None;
+        // }
     }
 
-    pub fn event(&mut self, event: &Event, message_ctx: &mut MessageCtx, ui_state: &UIState) {
+    pub fn event(
+        &mut self,
+        event: &Event,
+        message_ctx: &mut MessageCtx,
+        ui_state: &UIState,
+    ) -> HashMap<usize, SetState> {
         match event {
-            Event::Mouse(mouse_event) => {
-                self.mouse_event(mouse_event, message_ctx, ui_state);
-            }
+            Event::Mouse(mouse_event) => self.mouse_event(mouse_event, message_ctx, ui_state),
             Event::Key(_) => todo!(),
         }
-    }
-
-    pub fn pixels(&mut self) -> Option<&[u8]> {
-        self.canvas.pixels()
     }
 
     pub fn width(&self) -> u32 {

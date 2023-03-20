@@ -34,6 +34,10 @@ impl<T> Tree<T> {
         &self.nodes
     }
 
+    pub fn nodes_mut(&mut self) -> &mut HashMap<usize, Node<T>> {
+        &mut self.nodes
+    }
+
     pub fn set_root_id(&mut self, id: usize) {
         self.root = id
     }
@@ -92,6 +96,10 @@ impl<T> Node<T> {
             children: Vec::new(),
             data,
         }
+    }
+
+    pub fn data(&self) -> &T {
+        &self.data
     }
 }
 

@@ -10,7 +10,7 @@ use crate::{
     value::Value,
     widget::{BuildCtx, Children, LayoutCtx, Widget},
 };
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 enum ButtonState {
     Active,
@@ -78,8 +78,8 @@ impl Widget for TextButton {
         }
     }
 
-    fn state(&self) -> Option<Box<dyn Any + Send>> {
-        Some(Box::new(ButtonState::Inactive))
+    fn state(&self) -> Option<Arc<dyn Any + Send>> {
+        Some(Arc::new(ButtonState::Inactive))
     }
 
     fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {

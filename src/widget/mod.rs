@@ -10,7 +10,7 @@ use crate::{
     constraints::BoxConstraints, event_context::EventCtx, geo::Size, message_context::MessageCtx,
     painter::Painter, ui_state::UIState,
 };
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 pub type Child = Box<dyn Fn() -> Box<dyn Widget>>;
 pub type Children = Vec<Box<dyn Widget>>;
@@ -21,7 +21,7 @@ pub trait Widget {
         vec![]
     }
 
-    fn state(&self) -> Option<Box<dyn Any + Send>> {
+    fn state(&self) -> Option<Arc<dyn Any + Send>> {
         None
     }
 

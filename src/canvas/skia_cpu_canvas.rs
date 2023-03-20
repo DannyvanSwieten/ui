@@ -9,16 +9,14 @@ pub struct SkiaCanvas {
 }
 
 impl SkiaCanvas {
-    pub fn new(dpi: f32, w: i32, h: i32) -> Self {
-        let w = w as f32 * dpi;
-        let h = h as f32 * dpi;
-        let surface = Surface::new_raster_n32_premul(skia_safe::ISize::new(w as i32, h as i32));
+    pub fn new(w: i32, h: i32) -> Self {
+        let surface = Surface::new_raster_n32_premul(skia_safe::ISize::new(w, h));
         let mut pixels = Vec::new();
         pixels.resize(4 * w as usize * h as usize, 0);
         if let Some(surface) = surface {
             Self {
                 surface,
-                size: skia_safe::ISize::new(w as i32, h as i32),
+                size: skia_safe::ISize::new(w, h),
                 pixels,
             }
         } else {
