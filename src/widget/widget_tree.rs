@@ -155,6 +155,9 @@ impl WidgetTree {
     fn build_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
         if let Some(node) = self.tree.get_mut(id) {
             build_ctx.id = id;
+            if let Some(state) = node.data.widget().state(build_ctx.ui_state()) {
+                node.data.set_state(state)
+            }
             for child in node.data.widget().build(build_ctx) {
                 let child_id = self.add_element(child);
                 self.build_element(build_ctx, child_id);
@@ -306,13 +309,13 @@ pub struct WidgetElement {
 
 impl WidgetElement {
     pub fn new(widget: Box<dyn Widget>) -> Self {
-        let widget_state = widget.state();
+        // let widget_state = widget.state();
 
         Self {
             widget,
             local_bounds: Rect::default(),
             global_bounds: Rect::default(),
-            widget_state,
+            widget_state: None,
         }
     }
 

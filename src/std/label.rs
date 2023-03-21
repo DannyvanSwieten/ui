@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     canvas::{color::Color32f, font::Font, paint::Paint, Canvas},
     constraints::BoxConstraints,
@@ -40,6 +42,16 @@ impl Widget for Label {
         let text = self.text.var(ui_state).to_string();
 
         Some(Box::new(LabelPainter { text }))
+    }
+
+    fn state(&self, ui_state: &UIState) -> Option<std::sync::Arc<dyn std::any::Any + Send>> {
+        if let Value::Binding(binding) = &self.text {
+            if let Some(var) = ui_state.get(binding) {
+                return Some(Arc::new(var.to_string()));
+            }
+        }
+
+        None
     }
 }
 

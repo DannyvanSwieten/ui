@@ -21,7 +21,7 @@ pub trait Widget {
         vec![]
     }
 
-    fn state(&self) -> Option<Arc<dyn Any + Send>> {
+    fn state(&self, ui_state: &UIState) -> Option<Arc<dyn Any + Send>> {
         None
     }
 
