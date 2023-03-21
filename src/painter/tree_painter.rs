@@ -3,10 +3,7 @@ use crate::{
     canvas::Canvas,
     geo::{Point, Size},
 };
-use std::{
-    collections::HashMap,
-    sync::mpsc::{channel, Receiver, Sender},
-};
+use std::sync::mpsc::{channel, Receiver, Sender};
 
 pub struct TreePainter {
     tree: PainterTree,

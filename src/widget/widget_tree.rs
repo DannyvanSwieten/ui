@@ -179,7 +179,7 @@ impl WidgetTree {
         state: &UIState,
         results: &mut HashMap<usize, (Rect, Rect)>,
     ) {
-        let mut layout_ctx = LayoutCtx::new(self);
+        let mut layout_ctx = LayoutCtx::new(id, self, state);
         let children = if let Some(node) = self.tree.get(id) {
             node.data.widget().layout(
                 state,
@@ -297,6 +297,14 @@ impl WidgetTree {
         }
 
         canvas.restore()
+    }
+
+    pub fn state(&self, id: usize) -> Option<&(dyn Any + Send)> {
+        if let Some(element) = self.element(id) {
+            element.widget_state().as_deref()
+        } else {
+            None
+        }
     }
 }
 

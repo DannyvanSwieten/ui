@@ -15,6 +15,12 @@ use std::{any::Any, sync::Arc};
 pub type Child = Box<dyn Fn() -> Box<dyn Widget>>;
 pub type Children = Vec<Box<dyn Widget>>;
 
+pub enum ChangeResponse {
+    Build,
+    Layout,
+    Paint,
+}
+
 #[allow(unused_variables)]
 pub trait Widget {
     fn build(&self, build_ctx: &mut BuildCtx) -> Children {
@@ -22,6 +28,10 @@ pub trait Widget {
     }
 
     fn state(&self, ui_state: &UIState) -> Option<Arc<dyn Any + Send>> {
+        None
+    }
+
+    fn binding_changed(&self, _name: &str) -> Option<ChangeResponse> {
         None
     }
 

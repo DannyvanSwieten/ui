@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use crate::{
     canvas::{color::Color32f, font::Font, paint::Paint, Canvas},
@@ -7,7 +7,7 @@ use crate::{
     painter::{PaintCtx, Painter},
     ui_state::UIState,
     value::Value,
-    widget::{BuildCtx, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, ChangeResponse, Children, LayoutCtx, Widget},
 };
 
 pub struct Label {
@@ -29,29 +29,60 @@ impl Widget for Label {
         vec![]
     }
 
+    fn binding_changed(&self, _: &str) -> Option<ChangeResponse> {
+        Some(ChangeResponse::Layout)
+    }
+
     fn calculate_size(
         &self,
         _children: &[usize],
         _constraints: &BoxConstraints,
-        _layout_ctx: &LayoutCtx,
+        layout_ctx: &LayoutCtx,
     ) -> Option<Size> {
-        Some(Size::new(200.0, 150.0))
+        let size = if let Some(state) = layout_ctx.state() {
+            if let Some(blob) = state.downcast_ref::<skia_safe::TextBlob>() {
+                let bounds = blob.bounds();
+                Some(Size::new(bounds.width(), bounds.height()))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        size
+    }
+
+    fn state(&self, ui_state: &UIState) -> Option<Arc<dyn Any + Send>> {
+        let text = match &self.text {
+            Value::Binding(name) => {
+                if let Some(text) = ui_state.get(name) {
+                    Some(text.to_string())
+                } else {
+                    None
+                }
+            }
+            Value::Const(text) => Some(text.to_string()),
+        };
+
+        let blob = if let Some(text) = text {
+            let font = Font::new("Arial", 32.0);
+            let font = skia_safe::Font::new(
+                skia_safe::Typeface::new(font.typeface(), skia_safe::FontStyle::normal()).unwrap(),
+                font.size(),
+            );
+            skia_safe::TextBlob::new(&text.to_string(), &font)
+        } else {
+            None
+        };
+
+        Some(Arc::new(blob))
     }
 
     fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {
         let text = self.text.var(ui_state).to_string();
 
         Some(Box::new(LabelPainter { text }))
-    }
-
-    fn state(&self, ui_state: &UIState) -> Option<std::sync::Arc<dyn std::any::Any + Send>> {
-        if let Value::Binding(binding) = &self.text {
-            if let Some(var) = ui_state.get(binding) {
-                return Some(Arc::new(var.to_string()));
-            }
-        }
-
-        None
     }
 }
 

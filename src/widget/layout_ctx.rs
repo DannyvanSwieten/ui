@@ -1,21 +1,31 @@
 use crate::{
     constraints::BoxConstraints,
     geo::{Point, Rect, Size},
+    ui_state::UIState,
+    value::Var,
     widget::WidgetTree,
 };
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 pub struct LayoutCtx<'a> {
+    id: usize,
     element_tree: &'a WidgetTree,
+    ui_state: &'a UIState,
     bounds: HashMap<usize, Rect>,
 }
 
 impl<'a> LayoutCtx<'a> {
-    pub fn new(element_tree: &'a WidgetTree) -> Self {
+    pub fn new(id: usize, element_tree: &'a WidgetTree, ui_state: &'a UIState) -> Self {
         Self {
+            id,
             element_tree,
             bounds: HashMap::new(),
+            ui_state,
         }
+    }
+
+    pub fn binding(&self, name: &str) -> Option<&Var> {
+        self.ui_state.get(name)
     }
 
     pub fn bounds(self) -> HashMap<usize, Rect> {
@@ -43,5 +53,9 @@ impl<'a> LayoutCtx<'a> {
             self.bounds
                 .insert(id, Rect::new(position, Size::new(0.0, 0.0)));
         }
+    }
+
+    pub fn state(&self) -> Option<&(dyn Any + Send)> {
+        self.element_tree.state(self.id)
     }
 }

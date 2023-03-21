@@ -68,7 +68,6 @@ impl PainterManager {
                 match message {
                     PainterManagerMessage::AddWindowPainter((id, painter, renderer)) => {
                         let size = *painter.size();
-                        let dpi = painter.dpi();
                         self.painters.insert(id, painter);
                         self.canvas.insert(
                             id,
