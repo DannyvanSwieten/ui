@@ -105,8 +105,14 @@ impl UserInterface {
         event: &MouseEvent,
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
-    ) -> HashMap<usize, SetState> {
-        self.root_tree.mouse_event(event, message_ctx, ui_state)
+    ) -> (
+        HashMap<usize, Arc<dyn Any + Send>>,
+        HashMap<usize, (Rect, Rect)>,
+    ) {
+        let state_updates = self.root_tree.mouse_event(event, message_ctx, ui_state);
+        let new_states = self.handle_state_updates(state_updates);
+        let new_bounds = self.process_state_results(ui_state, &new_states);
+        (new_states, new_bounds)
         // let new_states = self.root_tree.update_state(&widget_state_updates);
         // let mut layout_results = HashMap::new();
         // for (id, _) in widget_state_updates {
@@ -131,7 +137,10 @@ impl UserInterface {
         event: &Event,
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
-    ) -> HashMap<usize, SetState> {
+    ) -> (
+        HashMap<usize, Arc<dyn Any + Send>>,
+        HashMap<usize, (Rect, Rect)>,
+    ) {
         match event {
             Event::Mouse(mouse_event) => self.mouse_event(mouse_event, message_ctx, ui_state),
             Event::Key(_) => todo!(),

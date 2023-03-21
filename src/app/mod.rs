@@ -8,7 +8,7 @@ use crate::{
         painter_manager::{PainterManager, PainterManagerMessage, StateUpdate},
     },
     event::MouseEvent,
-    geo::{Point, Size},
+    geo::{Point, Rect, Size},
     gpu::GpuApi,
     message::Message,
     message_context::MessageCtx,
@@ -20,7 +20,7 @@ use crate::{
     window_request::WindowRequest,
 };
 use pollster::block_on;
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap, sync::Arc};
 use winit::{
     dpi::LogicalSize,
     event::{ElementState, Event, WindowEvent},
@@ -28,255 +28,282 @@ use winit::{
     window::{Window, WindowBuilder, WindowId},
 };
 
+// pub struct UserInterfaceManager {
+//     user_interfaces: HashMap<WindowId, UserInterface>,
+// }
+
+pub struct Resize {
+    pub window_id: WindowId,
+    pub size: Size,
+    pub dpi: f32,
+}
+
+pub struct StateUpdates {
+    pub window_id: WindowId,
+    pub states: HashMap<usize, Arc<dyn Any + Send>>,
+}
+
+pub struct LayoutUpdates {
+    pub window_id: WindowId,
+    pub bounds: HashMap<usize, (Rect, Rect)>,
+}
+
+pub struct EventResolution {
+    resize: Option<Resize>,
+    messages: Vec<Message>,
+    state_updates: Option<StateUpdates>,
+    layout_updates: Option<LayoutUpdates>,
+}
+
+impl EventResolution {
+    pub fn new() -> Self {
+        Self {
+            resize: None,
+            messages: Vec::new(),
+            state_updates: None,
+            layout_updates: None,
+        }
+    }
+
+    pub fn set_resize(&mut self, resize: Resize) {
+        self.resize = Some(resize)
+    }
+
+    pub fn set_state_updates(
+        &mut self,
+        window_id: WindowId,
+        states: HashMap<usize, Arc<dyn Any + Send>>,
+    ) {
+        self.state_updates = Some(StateUpdates { window_id, states })
+    }
+
+    pub fn set_layout_updates(
+        &mut self,
+        window_id: WindowId,
+        bounds: HashMap<usize, (Rect, Rect)>,
+    ) {
+        self.layout_updates = Some(LayoutUpdates { window_id, bounds })
+    }
+}
+
+#[derive(Default)]
+pub struct ApplicationMouseState {
+    last_mouse_position: Point,
+    mouse_down_state: HashMap<WindowId, bool>,
+    drag_start: Option<Point>,
+}
+
 pub struct Application {
-    state: UIState,
+    ui_state: UIState,
     window_requests: Vec<WindowRequest>,
     pending_messages: Vec<Message>,
+    user_interfaces: HashMap<WindowId, UserInterface>,
+    windows: HashMap<WindowId, Window>,
+    pub mouse_state: ApplicationMouseState,
 }
 
 impl Application {
     pub fn start(delegate: impl ApplicationDelegate + 'static) {
-        let state = delegate.create_ui_state();
+        let ui_state = delegate.create_ui_state();
         let app = Self {
-            state,
+            ui_state,
             window_requests: Vec::new(),
             pending_messages: Vec::new(),
+            user_interfaces: HashMap::new(),
+            windows: HashMap::new(),
+            mouse_state: ApplicationMouseState::default(),
         };
         app.run(delegate);
     }
 
-    fn run(mut self, mut delegate: impl ApplicationDelegate + 'static) {
-        delegate.app_will_start(&mut self);
-        let mut state = delegate.create_ui_state();
-        delegate.app_started(&mut self);
-        let event_loop = EventLoop::new();
-        let mut windows: HashMap<WindowId, Window> = HashMap::new();
-        let mut user_interfaces: HashMap<WindowId, UserInterface> = HashMap::new();
-        let mut painter_trees = HashMap::new();
-        let gpu = block_on(GpuApi::new());
-        let mut last_mouse_position = Point::new(0.0, 0.0);
-        let mut mouse_down_states = HashMap::new();
-        let mut drag_start = None;
-        let (painter_manager, painter_sender) = PainterManager::new();
-        let _join_handle = painter_manager.start();
-        event_loop.run(move |event, event_loop, control_flow| {
-            let mut message_ctx = MessageCtx::default();
-            match event {
-                Event::LoopDestroyed => delegate.app_will_quit(),
+    pub fn handle_event(
+        &mut self,
+        delegate: &mut (dyn ApplicationDelegate + 'static),
+        control_flow: &mut ControlFlow,
+        event: &Event<()>,
+    ) -> EventResolution {
+        let mut message_ctx = MessageCtx::default();
+        let mut resolution = EventResolution::new();
+        match event {
+            Event::LoopDestroyed => delegate.app_will_quit(),
 
-                Event::WindowEvent {
-                    event: WindowEvent::CloseRequested,
-                    window_id,
-                } => {
-                    windows.remove(&window_id);
-                    if windows.is_empty() && delegate.quit_when_last_window_closes() {
-                        *control_flow = ControlFlow::Exit
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                window_id,
+            } => {
+                self.windows.remove(&window_id);
+                if self.windows.is_empty() && delegate.quit_when_last_window_closes() {
+                    *control_flow = ControlFlow::Exit
+                }
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Resized(size),
+                window_id,
+            } => {
+                if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+                    let dpi = self.windows.get(&window_id).unwrap().scale_factor();
+                    let logical_size = size.to_logical::<f32>(dpi);
+                    let bounds = ui.resize(
+                        logical_size.width as _,
+                        logical_size.height as _,
+                        &self.ui_state,
+                    );
+                    resolution.set_layout_updates(*window_id, bounds);
+                    resolution.set_resize(Resize {
+                        window_id: *window_id,
+                        size: Size::new(size.width as _, size.height as _),
+                        dpi: dpi as _,
+                    })
+                }
+            }
+            Event::MainEventsCleared => {}
+            Event::WindowEvent {
+                event: WindowEvent::MouseInput { state: s, .. },
+                window_id,
+            } => match s {
+                ElementState::Pressed => {
+                    if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+                        let mouse_event = mouse_event::MouseEvent::new(
+                            0,
+                            &self.mouse_state.last_mouse_position,
+                            &self.mouse_state.last_mouse_position,
+                        );
+                        let (state_updates, layout_updates) = ui.event(
+                            &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
+                            &mut message_ctx,
+                            &self.ui_state,
+                        );
+
+                        resolution.set_state_updates(*window_id, state_updates);
+                        resolution.set_layout_updates(*window_id, layout_updates);
+
+                        self.mouse_state.mouse_down_state.insert(*window_id, true);
                     }
                 }
-                Event::WindowEvent {
-                    event: WindowEvent::Resized(size),
-                    window_id,
-                } => {
-                    let dpi = windows.get(&window_id).unwrap().scale_factor();
-                    let new_bounds = if let Some(ui) = user_interfaces.get_mut(&window_id) {
-                        let size = size.to_logical::<f32>(dpi);
-                        Some(ui.resize(size.width as _, size.height as _, &state))
-                    } else {
-                        None
-                    };
+                ElementState::Released => {
+                    if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+                        let mouse_event = mouse_event::MouseEvent::new(
+                            0,
+                            &self.mouse_state.last_mouse_position,
+                            &self.mouse_state.last_mouse_position,
+                        );
 
-                    painter_sender
-                        .send(PainterManagerMessage::WindowSurfaceUpdate(
-                            window_id,
-                            dpi as _,
-                            Size::new(size.width as _, size.height as _),
-                        ))
-                        .expect("Painter message send failed");
-
-                    if let Some(new_bounds) = new_bounds {
-                        painter_sender
-                            .send(PainterManagerMessage::UpdateBounds(window_id, new_bounds))
-                            .expect("Bounds update message send failed")
-                    }
-                }
-                Event::MainEventsCleared => {
-                    // for (id, ui) in &mut user_interfaces {
-                    //     ui.paint(&state);
-                    //     let width = ui.width();
-                    //     let height = ui.height();
-                    //     if let Some(renderer) = canvas_renderers.get_mut(id) {
-                    //         if let Some(pixels) = ui.pixels() {
-                    //             if let Ok(output) = renderer.copy_to_texture(pixels, width, height)
-                    //             {
-                    //                 output.present()
-                    //             }
-                    //         }
-                    //     }
-                    // }
-                }
-                Event::WindowEvent {
-                    event: WindowEvent::MouseInput { state: s, .. },
-                    window_id,
-                } => match s {
-                    ElementState::Pressed => {
-                        if let Some(ui) = user_interfaces.get_mut(&window_id) {
-                            let mouse_event = mouse_event::MouseEvent::new(
-                                0,
-                                &last_mouse_position,
-                                &last_mouse_position,
-                            );
-                            let state_updates = ui.event(
-                                &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
+                        if self.mouse_state.drag_start.is_some() {
+                            let (state_updates, layout_updates) = ui.event(
+                                &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(mouse_event)),
                                 &mut message_ctx,
-                                &state,
+                                &self.ui_state,
                             );
 
-                            let new_states = ui.handle_state_updates(state_updates);
-                            let new_bounds = ui.process_state_results(&state, &new_states);
+                            resolution.set_state_updates(*window_id, state_updates);
+                            resolution.set_layout_updates(*window_id, layout_updates);
 
-                            painter_sender
-                                .send(PainterManagerMessage::StateUpdates(StateUpdate {
-                                    window_id,
-                                    states: new_states,
-                                    bounds: new_bounds,
-                                }))
-                                .expect("Bounds update message send failed");
-                            mouse_down_states.insert(window_id, true);
+                            self.mouse_state.drag_start = None;
                         }
-                    }
-                    ElementState::Released => {
-                        if let Some(ui) = user_interfaces.get_mut(&window_id) {
-                            let mouse_event = mouse_event::MouseEvent::new(
-                                0,
-                                &last_mouse_position,
-                                &last_mouse_position,
-                            );
 
-                            if drag_start.is_some() {
-                                let state_updates = ui.event(
-                                    &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(
+                        let (state_updates, layout_updates) = ui.event(
+                            &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
+                            &mut message_ctx,
+                            &self.ui_state,
+                        );
+
+                        resolution.set_state_updates(*window_id, state_updates);
+                        resolution.set_layout_updates(*window_id, layout_updates);
+                        self.mouse_state.mouse_down_state.insert(*window_id, false);
+                    }
+                }
+            },
+            Event::WindowEvent {
+                event:
+                    WindowEvent::CursorMoved {
+                        device_id: _,
+                        position,
+                        ..
+                    },
+                window_id,
+            } => {
+                let dpi = self.windows.get(&window_id).unwrap().scale_factor();
+                let position = position.to_logical::<f32>(dpi);
+                let position = Point::new(position.x as _, position.y as _);
+                if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+                    let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
+                    if let Some(mouse_down) = self.mouse_state.mouse_down_state.get(&window_id) {
+                        if *mouse_down {
+                            if self.mouse_state.drag_start.is_none() {
+                                self.mouse_state.drag_start = Some(position);
+                                let (state_updates, layout_updates) = ui.event(
+                                    &crate::event::Event::Mouse(MouseEvent::MouseDragStart(
                                         mouse_event,
                                     )),
                                     &mut message_ctx,
-                                    &state,
+                                    &self.ui_state,
                                 );
 
-                                drag_start = None;
+                                resolution.set_state_updates(*window_id, state_updates);
+                                resolution.set_layout_updates(*window_id, layout_updates);
+                            } else {
+                                mouse_event = mouse_event
+                                    .with_delta(
+                                        *mouse_event.global_position()
+                                            - self.mouse_state.last_mouse_position,
+                                    )
+                                    .with_drag_start(self.mouse_state.drag_start);
+                                let (state_updates, layout_updates) = ui.event(
+                                    &crate::event::Event::Mouse(MouseEvent::MouseDrag(mouse_event)),
+                                    &mut message_ctx,
+                                    &self.ui_state,
+                                );
 
-                                let new_states = ui.handle_state_updates(state_updates);
-                                let new_bounds = ui.process_state_results(&state, &new_states);
-
-                                painter_sender
-                                    .send(PainterManagerMessage::StateUpdates(StateUpdate {
-                                        window_id,
-                                        states: new_states,
-                                        bounds: new_bounds,
-                                    }))
-                                    .expect("Bounds update message send failed");
+                                resolution.set_state_updates(*window_id, state_updates);
+                                resolution.set_layout_updates(*window_id, layout_updates);
                             }
-
-                            let state_updates = ui.event(
-                                &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
-                                &mut message_ctx,
-                                &state,
-                            );
-                            let new_states = ui.handle_state_updates(state_updates);
-                            let new_bounds = ui.process_state_results(&state, &new_states);
-
-                            painter_sender
-                                .send(PainterManagerMessage::StateUpdates(StateUpdate {
-                                    window_id,
-                                    states: new_states,
-                                    bounds: new_bounds,
-                                }))
-                                .expect("Bounds update message send failed");
-                            mouse_down_states.insert(window_id, false);
                         }
+                    } else {
+                        let (state_updates, layout_updates) = ui.event(
+                            &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
+                            &mut message_ctx,
+                            &self.ui_state,
+                        );
+
+                        resolution.set_state_updates(*window_id, state_updates);
+                        resolution.set_layout_updates(*window_id, layout_updates);
                     }
-                },
-                Event::WindowEvent {
-                    event:
-                        WindowEvent::CursorMoved {
-                            device_id: _,
-                            position,
-                            ..
-                        },
-                    window_id,
-                } => {
-                    let dpi = windows.get(&window_id).unwrap().scale_factor();
-                    let position = position.to_logical::<f32>(dpi);
-                    let position = Point::new(position.x as _, position.y as _);
-                    if let Some(ui) = user_interfaces.get_mut(&window_id) {
-                        let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
-                        if let Some(mouse_down) = mouse_down_states.get(&window_id) {
-                            if *mouse_down {
-                                if drag_start.is_none() {
-                                    drag_start = Some(position);
-                                    let state_updates = ui.event(
-                                        &crate::event::Event::Mouse(MouseEvent::MouseDragStart(
-                                            mouse_event,
-                                        )),
-                                        &mut message_ctx,
-                                        &state,
-                                    );
-
-                                    let new_states = ui.handle_state_updates(state_updates);
-                                    let new_bounds = ui.process_state_results(&state, &new_states);
-
-                                    painter_sender
-                                        .send(PainterManagerMessage::StateUpdates(StateUpdate {
-                                            window_id,
-                                            states: new_states,
-                                            bounds: new_bounds,
-                                        }))
-                                        .expect("Bounds update message send failed");
-                                } else {
-                                    mouse_event = mouse_event
-                                        .with_delta(
-                                            *mouse_event.global_position() - last_mouse_position,
-                                        )
-                                        .with_drag_start(drag_start);
-                                    let state_updates = ui.event(
-                                        &crate::event::Event::Mouse(MouseEvent::MouseDrag(
-                                            mouse_event,
-                                        )),
-                                        &mut message_ctx,
-                                        &state,
-                                    );
-
-                                    let new_states = ui.handle_state_updates(state_updates);
-                                    let new_bounds = ui.process_state_results(&state, &new_states);
-
-                                    painter_sender
-                                        .send(PainterManagerMessage::StateUpdates(StateUpdate {
-                                            window_id,
-                                            states: new_states,
-                                            bounds: new_bounds,
-                                        }))
-                                        .expect("Bounds update message send failed");
-                                }
-                            }
-                        } else {
-                            let state_updates = ui.event(
-                                &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
-                                &mut message_ctx,
-                                &state,
-                            );
-                            let new_states = ui.handle_state_updates(state_updates);
-                            let new_bounds = ui.process_state_results(&state, &new_states);
-
-                            painter_sender
-                                .send(PainterManagerMessage::StateUpdates(StateUpdate {
-                                    window_id,
-                                    states: new_states,
-                                    bounds: new_bounds,
-                                }))
-                                .expect("Bounds update message send failed");
-                        }
-                    }
-                    last_mouse_position = Point::new(position.x as _, position.y as _);
                 }
-                _ => *control_flow = ControlFlow::Poll,
+                self.mouse_state.last_mouse_position = Point::new(position.x as _, position.y as _);
+            }
+            _ => *control_flow = ControlFlow::Poll,
+        }
+
+        resolution
+    }
+
+    fn run(mut self, delegate: impl ApplicationDelegate + 'static) {
+        let mut delegate = delegate;
+        delegate.app_will_start(&mut self);
+        self.ui_state = delegate.create_ui_state();
+        delegate.app_started(&mut self);
+        let event_loop = EventLoop::new();
+        let mut painter_trees = HashMap::new();
+        let gpu = block_on(GpuApi::new());
+        let (painter_manager, painter_sender) = PainterManager::new();
+        let _join_handle = painter_manager.start();
+        event_loop.run(move |event, event_loop, control_flow| {
+            let event_resolution = self.handle_event(&mut delegate, control_flow, &event);
+
+            if let Some(resize) = &event_resolution.resize {
+                painter_sender
+                    .send(PainterManagerMessage::WindowSurfaceUpdate(
+                        resize.window_id,
+                        resize.dpi,
+                        Size::new(resize.size.width, resize.size.height),
+                    ))
+                    .expect("Painter message send failed");
+
+                if let Some(layout_updates) = event_resolution.layout_updates {
+                    painter_sender
+                        .send(PainterManagerMessage::UpdateBounds(layout_updates))
+                        .expect("Bounds update message send failed")
+                }
             }
 
             while let Some(request) = self.window_requests.pop() {
@@ -290,11 +317,11 @@ impl Application {
                     .build(event_loop)
                     .expect("Window creation failed");
                 if let Some(builder) = request.builder() {
-                    let root = (*builder)(&mut self.state);
+                    let root = (*builder)(&mut self.ui_state);
                     let mut widget_tree = WidgetTree::new(root);
-                    widget_tree.build(&mut state);
-                    widget_tree.layout(&state);
-                    let painter_tree = PainterTree::new(&widget_tree, &self.state);
+                    widget_tree.build(&mut self.ui_state);
+                    widget_tree.layout(&self.ui_state);
+                    let painter_tree = PainterTree::new(&widget_tree, &self.ui_state);
                     let (tree_painter, message_sender) = TreePainter::new(
                         painter_tree,
                         Size::new(
@@ -316,23 +343,33 @@ impl Application {
                         request.width as f32,
                         request.height as f32,
                     );
-                    user_interfaces.insert(window.id(), ui);
+                    self.user_interfaces.insert(window.id(), ui);
                 }
 
-                windows.insert(window.id(), window);
+                self.windows.insert(window.id(), window);
             }
 
-            for message in message_ctx.messages() {
+            for message in event_resolution.messages {
                 self.dispatch(message)
             }
 
             while let Some(message) = self.pending_messages.pop() {
-                delegate.handle_message(message, &mut state);
+                delegate.handle_message(message, &mut self.ui_state);
             }
 
-            user_interfaces.iter_mut().for_each(|(_, ui)| {
-                ui.handle_mutations(&mut state);
+            self.user_interfaces.iter_mut().for_each(|(_, ui)| {
+                ui.handle_mutations(&mut self.ui_state);
             });
+            if let Some(state_updates) = event_resolution.state_updates {
+                painter_sender
+                    .send(PainterManagerMessage::StateUpdates(StateUpdate {
+                        window_id: state_updates.window_id,
+                        states: state_updates.states,
+                        bounds: HashMap::new(),
+                    }))
+                    .expect("Send failed");
+            }
+            // painter_sender.send(PainterManagerMessage::StateUpdates(StateUpdate { window_id: event_resolution.window_id, states: event_resolution.state_updates, bounds: event_resolution.layout_updates });
         });
     }
 

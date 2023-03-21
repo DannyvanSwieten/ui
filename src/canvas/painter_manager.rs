@@ -12,6 +12,7 @@ use wgpu::{CompositeAlphaMode, PresentMode, SurfaceConfiguration, TextureFormat,
 use winit::window::WindowId;
 
 use crate::{
+    app::LayoutUpdates,
     geo::{Rect, Size},
     painter::TreePainter,
 };
@@ -44,7 +45,7 @@ unsafe impl Send for StateUpdate {}
 pub enum PainterManagerMessage {
     AddWindowPainter((WindowId, TreePainter, CanvasRenderer)),
     WindowSurfaceUpdate(WindowId, f32, Size),
-    UpdateBounds(WindowId, HashMap<usize, (Rect, Rect)>),
+    UpdateBounds(LayoutUpdates),
     StateUpdates(StateUpdate),
 }
 
@@ -93,9 +94,9 @@ impl PainterManager {
                             Box::new(SkiaCanvas::new(size.width as _, size.height as _)),
                         );
                     }
-                    PainterManagerMessage::UpdateBounds(window_id, bounds_map) => {
-                        let painter = self.painters.get_mut(&window_id).unwrap();
-                        painter.tree_mut().update_bounds(bounds_map)
+                    PainterManagerMessage::UpdateBounds(update) => {
+                        let painter = self.painters.get_mut(&update.window_id).unwrap();
+                        painter.tree_mut().update_bounds(update.bounds)
                     }
                     PainterManagerMessage::StateUpdates(update) => {
                         let painter = self.painters.get_mut(&update.window_id).unwrap();

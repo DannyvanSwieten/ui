@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 winit = "*"
-skia-safe = "*"
+skia-safe = "0.56.0"
 wgpu = "*"
 pollster = "*"
