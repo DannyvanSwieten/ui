@@ -86,6 +86,12 @@ impl EventResolution {
     }
 }
 
+impl Default for EventResolution {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Default)]
 pub struct ApplicationMouseState {
     last_mouse_position: Point,
@@ -131,7 +137,7 @@ impl Application {
                 event: WindowEvent::CloseRequested,
                 window_id,
             } => {
-                self.windows.remove(&window_id);
+                self.windows.remove(window_id);
                 if self.windows.is_empty() && delegate.quit_when_last_window_closes() {
                     *control_flow = ControlFlow::Exit
                 }
@@ -140,8 +146,8 @@ impl Application {
                 event: WindowEvent::Resized(size),
                 window_id,
             } => {
-                if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
-                    let dpi = self.windows.get(&window_id).unwrap().scale_factor();
+                if let Some(ui) = self.user_interfaces.get_mut(window_id) {
+                    let dpi = self.windows.get(window_id).unwrap().scale_factor();
                     let logical_size = size.to_logical::<f32>(dpi);
                     let bounds = ui.resize(
                         logical_size.width as _,
@@ -162,7 +168,7 @@ impl Application {
                 window_id,
             } => match s {
                 ElementState::Pressed => {
-                    if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+                    if let Some(ui) = self.user_interfaces.get_mut(window_id) {
                         let mouse_event = mouse_event::MouseEvent::new(
                             0,
                             &self.mouse_state.last_mouse_position,
@@ -181,7 +187,7 @@ impl Application {
                     }
                 }
                 ElementState::Released => {
-                    if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+                    if let Some(ui) = self.user_interfaces.get_mut(window_id) {
                         let mouse_event = mouse_event::MouseEvent::new(
                             0,
                             &self.mouse_state.last_mouse_position,
@@ -222,12 +228,12 @@ impl Application {
                     },
                 window_id,
             } => {
-                let dpi = self.windows.get(&window_id).unwrap().scale_factor();
+                let dpi = self.windows.get(window_id).unwrap().scale_factor();
                 let position = position.to_logical::<f32>(dpi);
                 let position = Point::new(position.x as _, position.y as _);
-                if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+                if let Some(ui) = self.user_interfaces.get_mut(window_id) {
                     let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
-                    if let Some(mouse_down) = self.mouse_state.mouse_down_state.get(&window_id) {
+                    if let Some(mouse_down) = self.mouse_state.mouse_down_state.get(window_id) {
                         if *mouse_down {
                             if self.mouse_state.drag_start.is_none() {
                                 self.mouse_state.drag_start = Some(position);

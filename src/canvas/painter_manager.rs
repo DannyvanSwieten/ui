@@ -75,7 +75,7 @@ impl PainterManager {
                         );
                         self.canvas_renderers.insert(id, renderer);
                     }
-                    PainterManagerMessage::WindowSurfaceUpdate(window_id, dpi, size) => {
+                    PainterManagerMessage::WindowSurfaceUpdate(window_id, _dpi, size) => {
                         let config = SurfaceConfiguration {
                             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
                             alpha_mode: CompositeAlphaMode::Auto,

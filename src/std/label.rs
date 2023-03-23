@@ -55,13 +55,7 @@ impl Widget for Label {
 
     fn state(&self, ui_state: &UIState) -> Option<Arc<dyn Any + Send>> {
         let text = match &self.text {
-            Value::Binding(name) => {
-                if let Some(text) = ui_state.get(name) {
-                    Some(text.to_string())
-                } else {
-                    None
-                }
-            }
+            Value::Binding(name) => ui_state.get(name).map(|text| text.to_string()),
             Value::Const(text) => Some(text.to_string()),
         };
 
@@ -71,7 +65,7 @@ impl Widget for Label {
                 skia_safe::Typeface::new(font.typeface(), skia_safe::FontStyle::normal()).unwrap(),
                 font.size(),
             );
-            skia_safe::TextBlob::new(&text.to_string(), &font)
+            skia_safe::TextBlob::new(text, &font)
         } else {
             None
         };

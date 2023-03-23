@@ -1,11 +1,9 @@
 use crate::{
-    canvas::Canvas,
     constraints::BoxConstraints,
     event::MouseEvent,
     event_context::{EventCtx, SetState},
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
-    painter::PaintCtx,
     tree::{Node, Tree},
     ui_state::UIState,
     widget::{BuildCtx, LayoutCtx, Widget},
@@ -258,7 +256,7 @@ impl WidgetTree {
 
     pub fn state(&self, id: usize) -> Option<Arc<dyn Any + Send>> {
         if let Some(element) = self.element(id) {
-            element.widget_state().clone()
+            element.widget_state()
         } else {
             None
         }

@@ -14,7 +14,7 @@ pub struct UserInterface {
     root_tree: WidgetTree,
     width: f32,
     height: f32,
-    drag_source: Option<DragSourceData>,
+    _drag_source: Option<DragSourceData>,
     drag_source_offset: Option<Point>,
     _drag_source_tree: Option<WidgetTree>,
 }
@@ -29,7 +29,7 @@ impl UserInterface {
             _drag_source_tree: None,
             width,
             height,
-            drag_source: None,
+            _drag_source: None,
             drag_source_offset: None,
         }
     }
