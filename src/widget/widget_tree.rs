@@ -256,52 +256,9 @@ impl WidgetTree {
         self.layout_element(self.tree.root_id(), state, &mut results);
     }
 
-    pub fn paint(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas, ui_state: &UIState) {
-        self.paint_element(self.tree.root_id(), offset, canvas, ui_state)
-    }
-
-    fn paint_element(
-        &mut self,
-        id: usize,
-        offset: Option<Point>,
-        canvas: &mut dyn Canvas,
-        ui_state: &UIState,
-    ) {
-        let children = if let Some(node) = self.tree.get_mut(id) {
-            let global_bounds = node
-                .data
-                .global_bounds
-                .with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
-
-            let local_bounds = node
-                .data
-                .local_bounds
-                .with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
-
-            if let Some(painter) = node.data.widget().painter(ui_state) {
-                let state = node.data.widget_state();
-                let paint_ctx = PaintCtx::new(&global_bounds, &local_bounds, state.as_deref());
-                canvas.save();
-                canvas.translate(&local_bounds.position());
-                painter.paint(&paint_ctx, canvas);
-            }
-            Some(node.children.clone())
-        } else {
-            None
-        };
-
-        if let Some(children) = children {
-            for child in children {
-                self.paint_element(child, offset, canvas, ui_state);
-            }
-        }
-
-        canvas.restore()
-    }
-
-    pub fn state(&self, id: usize) -> Option<&(dyn Any + Send)> {
+    pub fn state(&self, id: usize) -> Option<Arc<dyn Any + Send>> {
         if let Some(element) = self.element(id) {
-            element.widget_state().as_deref()
+            element.widget_state().clone()
         } else {
             None
         }
