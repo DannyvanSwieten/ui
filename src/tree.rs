@@ -56,6 +56,23 @@ impl<T> Tree<T> {
         self.nodes.insert(id, Node::new(data));
     }
 
+    pub fn remove_node(&mut self, id: usize) -> Option<Node<T>> {
+        let node = self.nodes.remove(&id);
+        if let Some(node) = &node {
+            self.remove_children(node);
+        }
+
+        node
+    }
+
+    fn remove_children(&mut self, parent: &Node<T>) {
+        for child_id in &parent.children {
+            if let Some(child) = self.nodes.remove(child_id) {
+                self.remove_children(&child)
+            }
+        }
+    }
+
     pub fn get(&self, id: usize) -> Option<&Node<T>> {
         self.nodes.get(&id)
     }

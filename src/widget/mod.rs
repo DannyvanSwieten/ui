@@ -4,6 +4,7 @@ mod widget_tree;
 
 pub use build_ctx::BuildCtx;
 pub use layout_ctx::LayoutCtx;
+pub use layout_ctx::SizeCtx;
 pub use widget_tree::{WidgetElement, WidgetTree};
 
 use crate::{
@@ -39,7 +40,7 @@ pub trait Widget {
         &self,
         children: &[usize],
         constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
+        size_ctx: &SizeCtx,
     ) -> Option<Size> {
         None
     }

@@ -215,6 +215,7 @@ impl Application {
 
                         resolution.set_state_updates(*window_id, state_updates);
                         resolution.set_layout_updates(*window_id, layout_updates);
+                        resolution.messages.extend(message_ctx.messages());
                         self.mouse_state.mouse_down_state.insert(*window_id, false);
                     }
                 }
@@ -366,6 +367,9 @@ impl Application {
             self.user_interfaces.iter_mut().for_each(|(_, ui)| {
                 ui.handle_mutations(&mut self.ui_state);
             });
+
+            self.ui_state.clear_updates();
+
             if let Some(state_updates) = event_resolution.state_updates {
                 painter_sender
                     .send(PainterManagerMessage::StateUpdates(StateUpdate {

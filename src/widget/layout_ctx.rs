@@ -7,6 +7,25 @@ use crate::{
 };
 use std::{any::Any, collections::HashMap, sync::Arc};
 
+pub struct SizeCtx<'a> {
+    id: usize,
+    element_tree: &'a WidgetTree,
+}
+
+impl<'a> SizeCtx<'a> {
+    pub fn new(id: usize, element_tree: &'a WidgetTree) -> Self {
+        Self { id, element_tree }
+    }
+
+    pub fn state(&self) -> Option<Arc<dyn Any + Send>> {
+        self.element_tree.state(self.id)
+    }
+
+    pub fn preferred_size(&self, id: usize, constraints: &BoxConstraints) -> Option<Size> {
+        self.element_tree.calculate_element_size(id, constraints)
+    }
+}
+
 pub struct LayoutCtx<'a> {
     id: usize,
     element_tree: &'a WidgetTree,
@@ -32,14 +51,8 @@ impl<'a> LayoutCtx<'a> {
         self.bounds
     }
 
-    pub fn preferred_size(
-        &self,
-        id: usize,
-        constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
-    ) -> Option<Size> {
-        self.element_tree
-            .calculate_element_size(id, constraints, layout_ctx)
+    pub fn preferred_size(&self, id: usize, constraints: &BoxConstraints) -> Option<Size> {
+        self.element_tree.calculate_element_size(id, constraints)
     }
 
     pub fn set_child_bounds(&mut self, id: usize, rect: Rect) {

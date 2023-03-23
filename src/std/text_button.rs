@@ -8,7 +8,7 @@ use crate::{
     painter::{PaintCtx, Painter},
     ui_state::UIState,
     value::Value,
-    widget::{BuildCtx, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, Children, LayoutCtx, SizeCtx, Widget},
 };
 use std::{any::Any, sync::Arc};
 
@@ -51,7 +51,7 @@ impl Widget for TextButton {
         &self,
         _children: &[usize],
         _constraints: &BoxConstraints,
-        _layout_ctx: &LayoutCtx,
+        _layout_ctx: &SizeCtx,
     ) -> Option<Size> {
         Some(Size::new(100.0, 50.0))
     }

@@ -8,7 +8,7 @@ use crate::value::Var;
 pub struct UIState {
     values: HashMap<String, Var>,
     dependees: HashMap<String, Vec<usize>>,
-    updates: Vec<usize>,
+    updates: HashMap<String, usize>,
 }
 
 impl UIState {
@@ -16,7 +16,7 @@ impl UIState {
         Self {
             values: HashMap::new(),
             dependees: HashMap::new(),
-            updates: Vec::new(),
+            updates: HashMap::new(),
         }
     }
 
@@ -24,10 +24,11 @@ impl UIState {
         self.updates.clear()
     }
 
-    pub fn updates(&self) -> &[usize] {
+    pub fn updates(&self) -> &HashMap<String, usize> {
         &self.updates
     }
 
+    /// register a piece of state
     pub fn register(&mut self, name: &str, default_value: impl Into<Var>) {
         self.values.insert(name.to_string(), default_value.into());
     }
@@ -35,7 +36,9 @@ impl UIState {
     pub fn set(&mut self, name: &str, value: impl Into<Var>) {
         self.values.insert(name.to_string(), value.into());
         if let Some(dependees) = self.dependees.get(name) {
-            self.updates.extend_from_slice(dependees);
+            for dependee in dependees {
+                self.updates.insert(name.to_string(), *dependee);
+            }
         }
     }
 

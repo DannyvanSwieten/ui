@@ -10,6 +10,8 @@ use crate::{
 };
 use std::{any::Any, collections::HashMap, sync::Arc};
 
+use super::{layout_ctx::SizeCtx, ChangeResponse};
+
 pub struct WidgetTree {
     tree: Tree<WidgetElement>,
 }
@@ -43,13 +45,28 @@ impl WidgetTree {
             .global_bounds
     }
 
-    pub fn handle_mutations(&mut self, state: &mut UIState) {
-        let updates = state.updates().to_vec();
-        for id in updates {
-            let mut build_ctx = BuildCtx::new(id, state);
-            self.rebuild_element(&mut build_ctx, id);
+    fn notify_state_update(&self, id: usize, name: &str) -> Option<ChangeResponse> {
+        if let Some(node) = self.tree.nodes().get(&id) {
+            node.data().widget().binding_changed(name)
+        } else {
+            None
+        }
+    }
+
+    pub fn handle_mutations(
+        &mut self,
+        ui_state: &mut UIState,
+    ) -> HashMap<usize, Option<ChangeResponse>> {
+        let updates = ui_state.updates();
+        let mut actions = HashMap::new();
+        for (name, id) in updates {
+            actions.insert(*id, self.notify_state_update(*id, name));
+            // let mut build_ctx = BuildCtx::new(id, ui_state);
+            // self.rebuild_element(&mut build_ctx, id);
             // self.layout_element(id, state)
         }
+
+        actions
     }
 
     pub fn update_state(&mut self, new_states: &HashMap<usize, Arc<dyn Any + Send>>) {
@@ -224,28 +241,35 @@ impl WidgetTree {
         self.tree.add_node(WidgetElement::new(widget))
     }
 
+    fn add_element_with_id(&mut self, widget: Box<dyn Widget>, id: usize) {
+        self.tree.add_node_with_id(id, WidgetElement::new(widget))
+    }
+
     fn add_child(&mut self, parent: usize, child: usize) {
         self.tree.add_child(parent, child)
     }
 
-    pub fn calculate_element_size(
-        &self,
-        id: usize,
-        constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
-    ) -> Option<Size> {
+    fn remove_element(&mut self, id: usize) -> Option<Node<WidgetElement>> {
+        self.tree.remove_node(id)
+    }
+
+    pub fn calculate_element_size(&self, id: usize, constraints: &BoxConstraints) -> Option<Size> {
         if let Some(node) = self.tree.get(id) {
+            let size_ctx = SizeCtx::new(id, self);
             node.data
                 .widget()
-                .calculate_size(&node.children, constraints, layout_ctx)
+                .calculate_size(&node.children, constraints, &size_ctx)
         } else {
             panic!()
         }
     }
 
-    fn rebuild_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
-        if let Some(node) = self.tree.get(id) {
-            node.data.widget().build(build_ctx);
+    pub fn rebuild_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
+        let node = self.remove_element(id);
+        if let Some(node) = node {
+            let widget = node.data.widget;
+            self.add_element_with_id(widget, id);
+            self.build_element(build_ctx, id);
         }
     }
 

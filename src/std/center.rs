@@ -2,7 +2,7 @@ use crate::{
     constraints::BoxConstraints,
     geo::{Point, Rect, Size},
     ui_state::UIState,
-    widget::{BuildCtx, Child, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, Child, Children, LayoutCtx, SizeCtx, Widget},
 };
 
 pub struct Center {
@@ -29,7 +29,7 @@ impl Widget for Center {
         &self,
         children: &[usize],
         constraints: &BoxConstraints,
-        _: &LayoutCtx,
+        _: &SizeCtx,
     ) -> Option<Size> {
         // Something, Somewhere, went terribly wrong
         assert_eq!(1, children.len());
@@ -55,7 +55,6 @@ impl Widget for Center {
         let child_size = if let Some(child_size) = layout_ctx.preferred_size(
             children[0],
             &BoxConstraints::new_with_max(size.width, size.height),
-            layout_ctx,
         ) {
             child_size
         } else {
