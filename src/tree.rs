@@ -86,6 +86,24 @@ impl<T> Tree<T> {
             node.children.push(child)
         }
     }
+
+    pub fn remove_child_from_parent(&mut self, parent: usize, child: usize) {
+        if let Some(node) = self.nodes.get_mut(&parent) {
+            if let Some(index) = node.children.iter().position(|&element| element == child) {
+                node.children.remove(index);
+            }
+        }
+    }
+
+    pub fn find_parent(&self, child: usize) -> Option<usize> {
+        for (id, node) in &self.nodes {
+            if node.children.contains(&child) {
+                return Some(*id);
+            }
+        }
+
+        None
+    }
 }
 
 impl<T> Index<usize> for Tree<T> {

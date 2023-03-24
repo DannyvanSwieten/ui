@@ -7,7 +7,7 @@ use crate::{
     message_context::MessageCtx,
     std::drag_source::DragSourceData,
     ui_state::UIState,
-    widget::{BuildCtx, ChangeResponse, WidgetTree},
+    widget::{ChangeResponse, WidgetTree},
 };
 
 pub struct UserInterface {
@@ -155,21 +155,35 @@ impl UserInterface {
         self.height as _
     }
 
-    pub fn handle_mutations(&mut self, ui_state: &mut UIState) {
+    pub fn handle_mutations(&mut self, ui_state: &mut UIState) -> MutationResult {
         let actions = self.root_tree.handle_mutations(ui_state);
+        let mut mutation_result = MutationResult::default();
         for (id, action) in actions {
             if let Some(action) = action {
                 match action {
                     ChangeResponse::Build => {
-                        let build_ctx = &mut BuildCtx::new(id, ui_state);
-                        self.root_tree.rebuild_element(build_ctx, id);
-                        let mut results = HashMap::new();
-                        self.root_tree.layout_element(id, ui_state, &mut results);
+                        let (parent, subtree) = self.root_tree.rebuild_element(id);
+                        if let Some(tree) = subtree {
+                            mutation_result.rebuilds.push(Rebuild { parent, id, tree })
+                        }
                     }
                     ChangeResponse::Layout => todo!(),
                     ChangeResponse::Paint => todo!(),
                 }
             }
         }
+
+        mutation_result
     }
+}
+
+pub struct Rebuild {
+    pub parent: Option<usize>,
+    pub id: usize,
+    pub tree: WidgetTree,
+}
+
+#[derive(Default)]
+pub struct MutationResult {
+    pub rebuilds: Vec<Rebuild>,
 }

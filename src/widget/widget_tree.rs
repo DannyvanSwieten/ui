@@ -241,10 +241,6 @@ impl WidgetTree {
         self.tree.add_node(WidgetElement::new(widget))
     }
 
-    fn add_element_with_id(&mut self, widget: Box<dyn Widget>, id: usize) {
-        self.tree.add_node_with_id(id, WidgetElement::new(widget))
-    }
-
     fn add_child(&mut self, parent: usize, child: usize) {
         self.tree.add_child(parent, child)
     }
@@ -264,12 +260,21 @@ impl WidgetTree {
         }
     }
 
-    pub fn rebuild_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
+    /// Removes the node from the tree and from its parent then build a new subtree from the node's widget.
+    pub fn rebuild_element(&mut self, id: usize) -> (Option<usize>, Option<WidgetTree>) {
         let node = self.remove_element(id);
         if let Some(node) = node {
             let widget = node.data.widget;
-            self.add_element_with_id(widget, id);
-            self.build_element(build_ctx, id);
+            let tree = WidgetTree::new(widget);
+            let parent = if let Some(parent) = self.tree.find_parent(id) {
+                self.tree.remove_child_from_parent(parent, id);
+                Some(parent)
+            } else {
+                None
+            };
+            (parent, Some(tree))
+        } else {
+            (None, None)
         }
     }
 
@@ -284,6 +289,10 @@ impl WidgetTree {
         } else {
             None
         }
+    }
+
+    pub fn tree_mut(&mut self) -> &mut Tree<WidgetElement> {
+        &mut self.tree
     }
 }
 
