@@ -34,6 +34,10 @@ impl UserInterface {
         }
     }
 
+    pub fn set_root_tree(&mut self, tree: WidgetTree) {
+        self.root_tree = tree
+    }
+
     pub fn resize(
         &mut self,
         width: f32,
@@ -186,6 +190,9 @@ impl UserInterface {
             self.root_tree.merge_subtree(parent, rebuild.tree);
             self.root_tree
                 .layout_element(parent, ui_state, &mut results)
+        } else {
+            self.set_root_tree(rebuild.tree);
+            results = self.layout(ui_state)
         }
 
         results
