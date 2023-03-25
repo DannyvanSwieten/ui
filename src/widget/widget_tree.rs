@@ -282,11 +282,16 @@ impl WidgetTree {
     }
 
     /// Removes the node from the tree and from its parent then build a new subtree from the node's widget.
-    pub fn rebuild_element(&mut self, id: usize) -> (Option<usize>, Option<WidgetTree>) {
+    pub fn rebuild_element(
+        &mut self,
+        id: usize,
+        ui_state: &mut UIState,
+    ) -> (Option<usize>, Option<WidgetTree>) {
         let node = self.remove_element(id);
         if let Some(node) = node {
             let widget = node.data.widget;
-            let tree = WidgetTree::new_with_root_id(widget, id);
+            let mut tree = WidgetTree::new_with_root_id(widget, id);
+            tree.build(ui_state);
             let parent = if let Some(parent) = self.tree.find_parent(id) {
                 self.tree.remove_child_from_parent(parent, id);
                 Some(parent)

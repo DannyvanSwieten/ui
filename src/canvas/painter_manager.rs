@@ -14,7 +14,7 @@ use winit::window::WindowId;
 use crate::{
     app::LayoutUpdates,
     geo::{Rect, Size},
-    painter::TreePainter,
+    painter::{PainterTree, TreePainter},
 };
 
 use super::{
@@ -40,6 +40,13 @@ pub struct StateUpdate {
     pub bounds: HashMap<usize, (Rect, Rect)>,
 }
 
+pub struct MergeResult {
+    pub window_id: WindowId,
+    pub parent: Option<usize>,
+    pub tree: PainterTree,
+    pub bounds: HashMap<usize, (Rect, Rect)>,
+}
+
 unsafe impl Send for StateUpdate {}
 
 pub enum PainterManagerMessage {
@@ -47,6 +54,7 @@ pub enum PainterManagerMessage {
     WindowSurfaceUpdate(WindowId, f32, Size),
     UpdateBounds(LayoutUpdates),
     StateUpdates(StateUpdate),
+    MergeUpdate(MergeResult),
 }
 
 impl PainterManager {
@@ -101,6 +109,16 @@ impl PainterManager {
                         let painter = self.painters.get_mut(&update.window_id).unwrap();
                         painter.tree_mut().update_bounds(update.bounds);
                         painter.tree_mut().update_state(update.states);
+                    }
+                    PainterManagerMessage::MergeUpdate(update) => {
+                        let painter = self.painters.get_mut(&update.window_id).unwrap();
+                        if let Some(parent) = update.parent {
+                            painter.merge_sub_tree(parent, update.tree);
+                        } else {
+                            painter.set_painter_tree(update.tree)
+                        }
+
+                        painter.tree_mut().update_bounds(update.bounds);
                     }
                 }
             }

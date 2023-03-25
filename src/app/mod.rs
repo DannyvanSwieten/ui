@@ -5,7 +5,7 @@ pub use application_delegate::ApplicationDelegate;
 use crate::{
     canvas::{
         canvas_renderer::CanvasRenderer,
-        painter_manager::{PainterManager, PainterManagerMessage, StateUpdate},
+        painter_manager::{MergeResult, PainterManager, PainterManagerMessage, StateUpdate},
     },
     event::MouseEvent,
     geo::{Point, Rect, Size},
@@ -373,8 +373,17 @@ impl Application {
             for (window_id, result) in mutation_results {
                 let ui = self.user_interfaces.get_mut(&window_id).unwrap();
                 for rebuild in result.rebuilds {
-                    let painter_tree = PainterTree::new(&rebuild.tree, &self.ui_state);
-                    let layout_results = ui.merge_rebuild(rebuild, &self.ui_state);
+                    let parent = rebuild.parent;
+                    let tree = PainterTree::new(&rebuild.tree, &self.ui_state);
+                    let bounds = ui.merge_rebuild(rebuild, &self.ui_state);
+                    painter_sender
+                        .send(PainterManagerMessage::MergeUpdate(MergeResult {
+                            window_id,
+                            tree,
+                            bounds,
+                            parent,
+                        }))
+                        .expect("Merge result send failed");
                 }
             }
 

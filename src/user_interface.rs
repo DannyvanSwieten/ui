@@ -162,7 +162,7 @@ impl UserInterface {
             if let Some(action) = action {
                 match action {
                     ChangeResponse::Build => {
-                        let (parent, subtree) = self.root_tree.rebuild_element(id);
+                        let (parent, subtree) = self.root_tree.rebuild_element(id, ui_state);
                         if let Some(tree) = subtree {
                             mutation_result.rebuilds.push(Rebuild { parent, id, tree })
                         }

@@ -2,7 +2,7 @@ use crate::{
     canvas::Canvas,
     geo::{Point, Rect},
     painter::{PaintCtx, Painter},
-    tree::Tree,
+    tree::{Node, Tree},
     ui_state::UIState,
     widget::WidgetTree,
 };
@@ -33,6 +33,10 @@ impl PainterTree {
         this
     }
 
+    pub fn root_id(&self) -> usize {
+        self.tree.root_id()
+    }
+
     pub fn update_bounds(&mut self, bounds_map: HashMap<usize, (Rect, Rect)>) {
         let nodes = self.tree.nodes_mut();
         for (id, (global_bounds, local_bounds)) in bounds_map {
@@ -58,6 +62,10 @@ impl PainterTree {
 
     pub fn add_element(&mut self, id: usize, element: PainterElement) {
         self.tree.add_node_with_id(id, element)
+    }
+
+    pub fn add_node_with_id(&mut self, id: usize, node: Node<PainterElement>) {
+        self.tree.nodes_mut().insert(id, node);
     }
 
     pub fn add_child(&mut self, parent: usize, child: usize) {
@@ -101,6 +109,13 @@ impl PainterTree {
         }
 
         canvas.restore()
+    }
+
+    pub fn merge_subtree(&mut self, parent: usize, tree: Self) {
+        self.add_child(parent, tree.root_id());
+        for (id, node) in tree.tree.consume_nodes() {
+            self.add_node_with_id(id, node);
+        }
     }
 }
 
