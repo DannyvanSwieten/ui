@@ -1,8 +1,6 @@
 pub mod app;
 pub mod canvas;
 pub mod constraints;
-pub mod element;
-pub mod element_tree;
 pub mod event;
 pub mod event_context;
 pub mod geo;
@@ -11,7 +9,9 @@ pub mod message;
 pub mod message_context;
 pub mod mouse_event;
 pub mod mutation;
+pub mod painter;
 pub mod std;
+pub mod tree;
 pub mod ui_state;
 pub mod user_interface;
 pub mod value;

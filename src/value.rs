@@ -56,9 +56,10 @@ macro_rules! gen_var {
     };
 }
 
-gen_var!(
-    Real(f32),
-    Integer(i32),
-    String(String),
-    StringLiteral(&'static str)
-);
+gen_var!(Real(f32), Integer(i32), String(String));
+
+impl From<&str> for Var {
+    fn from(v: &str) -> Self {
+        Var::String(v.to_string())
+    }
+}

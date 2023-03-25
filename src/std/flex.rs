@@ -2,7 +2,7 @@ use crate::{
     constraints::BoxConstraints,
     geo::{Point, Rect, Size},
     ui_state::UIState,
-    widget::{BuildCtx, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, Children, LayoutCtx, SizeCtx, Widget},
 };
 
 pub struct Row {
@@ -29,7 +29,7 @@ impl Widget for Row {
         &self,
         _children: &[usize],
         constraints: &BoxConstraints,
-        _layout_ctx: &LayoutCtx,
+        _size_ctx: &SizeCtx,
     ) -> Option<Size> {
         Some(constraints.max_size())
     }
@@ -43,12 +43,7 @@ impl Widget for Row {
     ) {
         let child_sizes = children
             .iter()
-            .map(|id| {
-                (
-                    *id,
-                    layout_ctx.preferred_size(*id, &BoxConstraints::new(), layout_ctx),
-                )
-            })
+            .map(|id| (*id, layout_ctx.preferred_size(*id, &BoxConstraints::new())))
             .collect::<Vec<(usize, Option<Size>)>>();
 
         let mut constrained_width = 0.0;

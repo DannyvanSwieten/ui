@@ -1,13 +1,16 @@
 use crate::{
-    canvas::{color::Color32f, font::Font, paint::Paint, paint_ctx::PaintCtx, Canvas},
+    canvas::{color::Color32f, font::Font, paint::Paint, Canvas},
     constraints::BoxConstraints,
     event::MouseEvent,
     event_context::EventCtx,
     geo::{Rect, Size},
     message_context::MessageCtx,
+    painter::{PaintCtx, Painter},
     ui_state::UIState,
-    widget::{BuildCtx, Children, LayoutCtx, Widget},
+    value::Value,
+    widget::{BuildCtx, Children, LayoutCtx, SizeCtx, Widget},
 };
+use std::{any::Any, sync::Arc};
 
 enum ButtonState {
     Active,
@@ -18,19 +21,13 @@ enum ButtonState {
 pub type ClickHandler = Option<Box<dyn Fn(&mut MessageCtx)>>;
 
 pub struct TextButton {
-    active_paint: Paint,
-    inactive_paint: Paint,
-    hover_paint: Paint,
-    text: String,
+    text: Value,
     click_handler: ClickHandler,
 }
 
 impl TextButton {
-    pub fn new(text: &str) -> Self {
+    pub fn new(text: impl Into<Value>) -> Self {
         Self {
-            active_paint: Paint::new(Color32f::new_grey(0.25)),
-            inactive_paint: Paint::new(Color32f::new_grey(0.05)),
-            hover_paint: Paint::new(Color32f::new_grey(0.15)),
             text: text.into(),
             click_handler: None,
         }
@@ -54,14 +51,63 @@ impl Widget for TextButton {
         &self,
         _children: &[usize],
         _constraints: &BoxConstraints,
-        _layout_ctx: &LayoutCtx,
+        _layout_ctx: &SizeCtx,
     ) -> Option<Size> {
         Some(Size::new(100.0, 50.0))
     }
 
     fn layout(&self, _ui_state: &UIState, _: &mut LayoutCtx, _: Size, _: &[usize]) {}
 
-    fn paint(&self, paint_ctx: &PaintCtx, _: &UIState, canvas: &mut dyn Canvas) {
+    fn mouse_event(
+        &self,
+        _ui_state: &UIState,
+        event_ctx: &mut EventCtx,
+        message_ctx: &mut MessageCtx,
+    ) {
+        match event_ctx.mouse_event() {
+            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| ButtonState::Hovered),
+            MouseEvent::MouseDown(_) => event_ctx.set_state(|_| ButtonState::Active),
+            MouseEvent::MouseUp(_) => {
+                if let Some(handler) = &self.click_handler {
+                    (handler)(message_ctx)
+                }
+
+                event_ctx.set_state(|_| ButtonState::Inactive)
+            }
+            _ => (),
+        }
+    }
+
+    fn state(&self, _: &UIState) -> Option<Arc<dyn Any + Send>> {
+        Some(Arc::new(ButtonState::Inactive))
+    }
+
+    fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {
+        let text = self.text.var(ui_state).to_string();
+        Some(Box::new(TextButtonPainter::new(text)))
+    }
+}
+
+pub struct TextButtonPainter {
+    active_paint: Paint,
+    inactive_paint: Paint,
+    hover_paint: Paint,
+    text: String,
+}
+
+impl TextButtonPainter {
+    pub fn new(text: String) -> Self {
+        Self {
+            active_paint: Paint::new(Color32f::new_grey(0.25)),
+            inactive_paint: Paint::new(Color32f::new_grey(0.05)),
+            hover_paint: Paint::new(Color32f::new_grey(0.15)),
+            text,
+        }
+    }
+}
+
+impl Painter for TextButtonPainter {
+    fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas) {
         let state = paint_ctx.state::<ButtonState>();
         if let Some(state) = state {
             match state {
@@ -93,29 +139,5 @@ impl Widget for TextButton {
             &Font::new("Arial", 24.0),
             &text_paint,
         );
-    }
-
-    fn mouse_event(
-        &self,
-        _ui_state: &UIState,
-        event_ctx: &mut EventCtx,
-        message_ctx: &mut MessageCtx,
-    ) {
-        match event_ctx.mouse_event() {
-            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| Box::new(ButtonState::Hovered)),
-            MouseEvent::MouseDown(_) => event_ctx.set_state(|_| Box::new(ButtonState::Active)),
-            MouseEvent::MouseUp(_) => {
-                if let Some(handler) = &self.click_handler {
-                    (handler)(message_ctx)
-                }
-
-                event_ctx.set_state(|_| Box::new(ButtonState::Inactive))
-            }
-            _ => (),
-        }
-    }
-
-    fn state(&self) -> Option<Box<dyn std::any::Any>> {
-        Some(Box::new(ButtonState::Inactive))
     }
 }

@@ -1,90 +1,69 @@
+use std::{any::Any, collections::HashMap, sync::Arc};
+
 use crate::{
-    canvas::{
-        color::{Color, Color32f},
-        skia_cpu_canvas::SkiaCanvas,
-        Canvas,
-    },
-    element_tree::ElementTree,
     event::{Event, MouseEvent},
+    event_context::SetState,
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
     std::drag_source::DragSourceData,
     ui_state::UIState,
-    widget::Widget,
+    widget::{ChangeResponse, WidgetTree},
 };
 
 pub struct UserInterface {
-    root_tree: ElementTree,
+    root_tree: WidgetTree,
     width: f32,
     height: f32,
-    dpi: f32,
-    canvas: Box<dyn Canvas>,
-    drag_source: Option<DragSourceData>,
+    _drag_source: Option<DragSourceData>,
     drag_source_offset: Option<Point>,
-    _drag_source_tree: Option<ElementTree>,
+    _drag_source_tree: Option<WidgetTree>,
 }
 
 impl UserInterface {
-    pub fn new(root_widget: Box<dyn Widget>, dpi: f32, width: f32, height: f32) -> Self {
+    pub fn new(root_tree: WidgetTree, width: f32, height: f32) -> Self {
         let width = width;
         let height = height;
-        let canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
-        let root_tree = ElementTree::new(root_widget);
 
         Self {
             root_tree,
             _drag_source_tree: None,
             width,
             height,
-            dpi,
-            canvas,
-            drag_source: None,
+            _drag_source: None,
             drag_source_offset: None,
         }
     }
 
-    pub fn resize(&mut self, dpi: f32, width: f32, height: f32, state: &UIState) {
+    pub fn set_root_tree(&mut self, tree: WidgetTree) {
+        self.root_tree = tree
+    }
+
+    pub fn resize(
+        &mut self,
+        width: f32,
+        height: f32,
+        state: &UIState,
+    ) -> HashMap<usize, (Rect, Rect)> {
         self.width = width;
         self.height = height;
         self.root_tree
             .set_bounds(&Rect::new_from_size(Size::new(width, height)));
-        self.canvas = Box::new(SkiaCanvas::new(dpi, width as _, height as _));
         self.layout(state)
     }
 
-    pub fn build(&mut self, state: &mut UIState) {
+    pub fn build(&mut self, state: &mut UIState) -> HashMap<usize, (Rect, Rect)> {
         self.root_tree.build(state);
         self.layout(state)
     }
 
-    pub fn layout(&mut self, state: &UIState) {
-        self.root_tree.layout(state)
-    }
+    pub fn layout(&mut self, state: &UIState) -> HashMap<usize, (Rect, Rect)> {
+        self.root_tree.layout(state);
+        let mut bounds = HashMap::new();
+        for (id, node) in self.root_tree.nodes() {
+            bounds.insert(*id, (node.data().global_bounds, node.data().local_bounds));
+        }
 
-    fn paint_drag_source(&mut self, _offset: Option<Point>, _ui_state: &UIState) {
-        //todo!()
-        // if let Some(data) = self.drag_source.take() {
-        //     for item in data.items() {
-        //         match item.widget() {
-        //             DragSourceWidget::Id(id) => self.paint_element(*id, offset, ui_state),
-        //             DragSourceWidget::Widget(_) => {
-        //                 println!("Custom widget not implemented yet")
-        //             }
-        //         }
-        //     }
-
-        //     self.drag_source = Some(data)
-        // }
-    }
-
-    pub fn paint(&mut self, ui_state: &UIState) {
-        self.canvas.save();
-        self.canvas.scale(&Size::new(self.dpi, self.dpi));
-        let c = Color::from(Color32f::new_grey(0.0));
-        self.canvas.clear(&c);
-        self.root_tree.paint(None, self.canvas.as_mut(), ui_state);
-        self.canvas.restore();
-        self.paint_drag_source(self.drag_source_offset, ui_state);
+        bounds
     }
 
     pub fn set_drag_source_position(&mut self, pos: Point) {
@@ -95,41 +74,81 @@ impl UserInterface {
         self.drag_source_offset = offset;
     }
 
+    pub fn handle_state_updates(
+        &mut self,
+        state_updates: HashMap<usize, SetState>,
+    ) -> HashMap<usize, Arc<dyn Any + Send>> {
+        let mut results = HashMap::new();
+        for (id, modify) in state_updates {
+            let node = self.root_tree.nodes().get(&id).unwrap();
+            if let Some(old_state) = node.data.widget_state() {
+                results.insert(id, modify(old_state.as_ref()));
+            }
+        }
+
+        results
+    }
+
+    pub fn process_state_results(
+        &mut self,
+        ui_state: &UIState,
+        results: &HashMap<usize, Arc<dyn Any + Send>>,
+    ) -> HashMap<usize, (Rect, Rect)> {
+        self.root_tree.update_state(results);
+        let mut layout_results = HashMap::new();
+        results.iter().for_each(|(id, _)| {
+            self.root_tree
+                .layout_element(*id, ui_state, &mut layout_results)
+        });
+
+        layout_results
+    }
+
     fn mouse_event(
         &mut self,
         event: &MouseEvent,
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
+    ) -> (
+        HashMap<usize, Arc<dyn Any + Send>>,
+        HashMap<usize, (Rect, Rect)>,
     ) {
-        let widget_state_updates = self.root_tree.mouse_event(event, message_ctx, ui_state);
-        self.root_tree.update_state(&widget_state_updates);
-        for (id, _) in widget_state_updates {
-            self.root_tree.layout_element(id, ui_state)
-        }
+        let state_updates = self.root_tree.mouse_event(event, message_ctx, ui_state);
+        let new_states = self.handle_state_updates(state_updates);
+        let new_bounds = self.process_state_results(ui_state, &new_states);
+        (new_states, new_bounds)
+        // let new_states = self.root_tree.update_state(&widget_state_updates);
+        // let mut layout_results = HashMap::new();
+        // for (id, _) in widget_state_updates {
+        //     self.root_tree
+        //         .layout_element(id, ui_state, &mut layout_results)
+        // }
 
-        if let MouseEvent::MouseDrag(drag_event) = event {
-            if self.drag_source.is_some() {
-                self.update_drag_source_position(drag_event.offset_to_drag_start())
-            }
-        }
+        // // if let MouseEvent::MouseDrag(drag_event) = event {
+        // //     if self.drag_source.is_some() {
+        // //         self.update_drag_source_position(drag_event.offset_to_drag_start())
+        // //     }
+        // // }
 
-        if let MouseEvent::MouseUp(_) = event {
-            self.drag_source = None;
-            self.drag_source_offset = None;
-        }
+        // if let MouseEvent::MouseUp(_) = event {
+        //     self.drag_source = None;
+        //     self.drag_source_offset = None;
+        // }
     }
 
-    pub fn event(&mut self, event: &Event, message_ctx: &mut MessageCtx, ui_state: &UIState) {
+    pub fn event(
+        &mut self,
+        event: &Event,
+        message_ctx: &mut MessageCtx,
+        ui_state: &UIState,
+    ) -> (
+        HashMap<usize, Arc<dyn Any + Send>>,
+        HashMap<usize, (Rect, Rect)>,
+    ) {
         match event {
-            Event::Mouse(mouse_event) => {
-                self.mouse_event(mouse_event, message_ctx, ui_state);
-            }
+            Event::Mouse(mouse_event) => self.mouse_event(mouse_event, message_ctx, ui_state),
             Event::Key(_) => todo!(),
         }
-    }
-
-    pub fn pixels(&mut self) -> Option<&[u8]> {
-        self.canvas.pixels()
     }
 
     pub fn width(&self) -> u32 {
@@ -140,9 +159,53 @@ impl UserInterface {
         self.height as _
     }
 
-    pub fn handle_mutations(&mut self, state: &mut UIState) {
-        self.root_tree.handle_mutations(state);
+    pub fn handle_mutations(&mut self, ui_state: &mut UIState) -> MutationResult {
+        let actions = self.root_tree.handle_mutations(ui_state);
+        let mut mutation_result = MutationResult::default();
+        for (id, action) in actions {
+            if let Some(action) = action {
+                match action {
+                    ChangeResponse::Build => {
+                        let (parent, subtree) = self.root_tree.rebuild_element(id, ui_state);
+                        if let Some(tree) = subtree {
+                            mutation_result.rebuilds.push(Rebuild { parent, id, tree })
+                        }
+                    }
+                    ChangeResponse::Layout => todo!(),
+                    ChangeResponse::Paint => todo!(),
+                }
+            }
+        }
 
-        state.clear_updates()
+        mutation_result
     }
+
+    pub fn merge_rebuild(
+        &mut self,
+        rebuild: Rebuild,
+        ui_state: &UIState,
+    ) -> HashMap<usize, (Rect, Rect)> {
+        let mut results = HashMap::new();
+        if let Some(parent) = rebuild.parent {
+            self.root_tree.merge_subtree(parent, rebuild.tree);
+            self.root_tree
+                .layout_element(parent, ui_state, &mut results)
+        } else {
+            self.set_root_tree(rebuild.tree);
+            results = self.layout(ui_state)
+        }
+
+        results
+    }
+}
+
+pub struct Rebuild {
+    pub parent: Option<usize>,
+    pub id: usize,
+    pub tree: WidgetTree,
+}
+
+#[derive(Default)]
+pub struct MutationResult {
+    pub rebuilds: Vec<Rebuild>,
 }

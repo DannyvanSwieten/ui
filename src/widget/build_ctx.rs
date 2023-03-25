@@ -14,4 +14,8 @@ impl<'a> BuildCtx<'a> {
         self.ui_state.bind_one(self.id, name);
         self.ui_state.get(name)
     }
+
+    pub fn ui_state(&'a self) -> &'a UIState {
+        self.ui_state
+    }
 }

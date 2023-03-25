@@ -9,16 +9,14 @@ pub struct SkiaCanvas {
 }
 
 impl SkiaCanvas {
-    pub fn new(dpi: f32, w: i32, h: i32) -> Self {
-        let w = w as f32 * dpi;
-        let h = h as f32 * dpi;
-        let surface = Surface::new_raster_n32_premul(skia_safe::ISize::new(w as i32, h as i32));
+    pub fn new(w: i32, h: i32) -> Self {
+        let surface = Surface::new_raster_n32_premul(skia_safe::ISize::new(w, h));
         let mut pixels = Vec::new();
         pixels.resize(4 * w as usize * h as usize, 0);
         if let Some(surface) = surface {
             Self {
                 surface,
-                size: skia_safe::ISize::new(w as i32, h as i32),
+                size: skia_safe::ISize::new(w, h),
                 pixels,
             }
         } else {
@@ -124,6 +122,10 @@ impl Canvas for SkiaCanvas {
     fn translate(&mut self, point: &geo::Point) {
         self.surface.canvas().translate((point.x, point.y));
     }
+    fn scale(&mut self, size: &Size) {
+        self.surface.canvas().scale((size.width, size.height));
+    }
+
     fn draw_rect(&mut self, rect: &Rect, paint: &Paint) {
         let rect: skia_safe::Rect = rect.into();
         self.surface.canvas().draw_rect(rect, &paint.into());
@@ -159,10 +161,6 @@ impl Canvas for SkiaCanvas {
         SkiaCanvas::pixels(self)
     }
 
-    fn scale(&mut self, size: &Size) {
-        self.surface.canvas().scale((size.width, size.height));
-    }
-
     // fn draw_text_blob(&mut self, pos: &Point, blob: &skia_safe::TextBlob, paint: &Paint) {
     //     self.surface.canvas().draw_text_blob(blob, *pos, paint);
     // }
@@ -171,3 +169,5 @@ impl Canvas for SkiaCanvas {
     //     paragraph.paint(self.surface.canvas(), *pos);
     // }
 }
+
+unsafe impl Send for SkiaCanvas {}

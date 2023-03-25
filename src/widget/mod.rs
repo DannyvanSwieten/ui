@@ -1,21 +1,26 @@
 mod build_ctx;
 mod layout_ctx;
+mod widget_tree;
 
 pub use build_ctx::BuildCtx;
 pub use layout_ctx::LayoutCtx;
+pub use layout_ctx::SizeCtx;
+pub use widget_tree::{WidgetElement, WidgetTree};
 
 use crate::{
-    canvas::{paint_ctx::PaintCtx, Canvas},
-    constraints::BoxConstraints,
-    event_context::EventCtx,
-    geo::Size,
-    message_context::MessageCtx,
-    ui_state::UIState,
+    constraints::BoxConstraints, event_context::EventCtx, geo::Size, message_context::MessageCtx,
+    painter::Painter, ui_state::UIState,
 };
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 pub type Child = Box<dyn Fn() -> Box<dyn Widget>>;
 pub type Children = Vec<Box<dyn Widget>>;
+
+pub enum ChangeResponse {
+    Build,
+    Layout,
+    Paint,
+}
 
 #[allow(unused_variables)]
 pub trait Widget {
@@ -23,7 +28,11 @@ pub trait Widget {
         vec![]
     }
 
-    fn state(&self) -> Option<Box<dyn Any>> {
+    fn state(&self, ui_state: &UIState) -> Option<Arc<dyn Any + Send>> {
+        None
+    }
+
+    fn binding_changed(&self, _name: &str) -> Option<ChangeResponse> {
         None
     }
 
@@ -31,7 +40,7 @@ pub trait Widget {
         &self,
         children: &[usize],
         constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
+        size_ctx: &SizeCtx,
     ) -> Option<Size> {
         None
     }
@@ -44,7 +53,11 @@ pub trait Widget {
         children: &[usize],
     ) {
     }
-    fn paint(&self, _paint_ctx: &PaintCtx, _ui_state: &UIState, _canvas: &mut dyn Canvas) {}
+
+    fn painter(&self, ui_state: &UIState) -> Option<Box<dyn Painter>> {
+        None
+    }
+
     fn mouse_event(
         &self,
         _ui_state: &UIState,

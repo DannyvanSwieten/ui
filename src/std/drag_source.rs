@@ -3,7 +3,7 @@ use crate::{
     event_context::EventCtx,
     geo::{Rect, Size},
     ui_state::UIState,
-    widget::{BuildCtx, Child, Children, LayoutCtx, Widget},
+    widget::{BuildCtx, Child, Children, LayoutCtx, SizeCtx, Widget},
 };
 use std::any::Any;
 
@@ -84,9 +84,9 @@ impl Widget for DragSource {
         &self,
         children: &[usize],
         constraints: &BoxConstraints,
-        layout_ctx: &LayoutCtx,
+        size_ctx: &SizeCtx,
     ) -> Option<Size> {
-        layout_ctx.preferred_size(children[0], constraints, layout_ctx)
+        size_ctx.preferred_size(children[0], constraints)
     }
 
     fn layout(

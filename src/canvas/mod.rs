@@ -5,10 +5,10 @@ pub mod canvas_renderer;
 pub mod color;
 pub mod font;
 pub mod paint;
-pub mod paint_ctx;
+pub mod painter_manager;
 pub mod skia_cpu_canvas;
 
-pub trait Canvas {
+pub trait Canvas: Send {
     fn clear(&mut self, color: &Color);
 
     fn save(&mut self);

@@ -1,21 +1,21 @@
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 use crate::{event::MouseEvent, std::drag_source::DragSourceData};
-pub type SetState = Box<dyn Fn(&dyn Any) -> Box<dyn Any>>;
+pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;
 
 pub struct EventCtx<'a> {
     id: usize,
     drag_source: Option<DragSourceData>,
     mouse_event: Option<&'a MouseEvent>,
     set_state: Option<SetState>,
-    state: &'a Option<Box<dyn Any>>,
+    state: Option<&'a (dyn Any + Send)>,
 }
 
 impl<'a> EventCtx<'a> {
     pub fn new(
         id: usize,
         mouse_event: Option<&'a MouseEvent>,
-        state: &'a Option<Box<dyn Any>>,
+        state: Option<&'a (dyn Any + Send)>,
     ) -> Self {
         Self {
             id,
@@ -42,11 +42,13 @@ impl<'a> EventCtx<'a> {
         self.drag_source.take()
     }
 
-    pub fn set_state<F>(&mut self, s: F)
+    pub fn set_state<T>(&mut self, modify: impl Fn(&T) -> T + Send + 'static)
     where
-        F: Fn(&dyn Any) -> Box<dyn Any> + 'static,
+        T: Any + Send + 'static,
     {
-        self.set_state = Some(Box::new(s))
+        self.set_state = Some(Box::new(move |any| {
+            Arc::new(modify(any.downcast_ref::<T>().unwrap()))
+        }));
     }
 
     pub fn consume_state(self) -> Option<SetState> {
@@ -58,7 +60,7 @@ impl<'a> EventCtx<'a> {
         T: 'static,
     {
         if let Some(state) = self.state {
-            state.as_ref().downcast_ref::<T>()
+            state.downcast_ref::<T>()
         } else {
             None
         }
