@@ -30,6 +30,20 @@ impl<T> Tree<T> {
         tree
     }
 
+    pub fn new_with_root_id(data: T, root: usize) -> Self {
+        let mut tree = Self {
+            nodes: HashMap::new(),
+            root,
+        };
+
+        tree.add_node_with_id(root, data);
+        tree
+    }
+
+    pub fn consume_nodes(self) -> HashMap<usize, Node<T>> {
+        self.nodes
+    }
+
     pub fn nodes(&self) -> &HashMap<usize, Node<T>> {
         &self.nodes
     }

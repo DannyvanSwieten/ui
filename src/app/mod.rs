@@ -15,7 +15,7 @@ use crate::{
     mouse_event,
     painter::{PainterTree, TreePainter},
     ui_state::UIState,
-    user_interface::UserInterface,
+    user_interface::{MutationResult, UserInterface},
     widget::WidgetTree,
     window_request::WindowRequest,
 };
@@ -364,9 +364,19 @@ impl Application {
                 delegate.handle_message(message, &mut self.ui_state);
             }
 
-            self.user_interfaces.iter_mut().for_each(|(_, ui)| {
-                ui.handle_mutations(&mut self.ui_state);
-            });
+            let mutation_results: Vec<(WindowId, MutationResult)> = self
+                .user_interfaces
+                .iter_mut()
+                .map(|(window_id, ui)| (*window_id, ui.handle_mutations(&mut self.ui_state)))
+                .collect();
+
+            for (window_id, result) in mutation_results {
+                let ui = self.user_interfaces.get_mut(&window_id).unwrap();
+                for rebuild in result.rebuilds {
+                    let painter_tree = PainterTree::new(&rebuild.tree, &self.ui_state);
+                    let layout_results = ui.merge_rebuild(rebuild, &self.ui_state);
+                }
+            }
 
             self.ui_state.clear_updates();
 

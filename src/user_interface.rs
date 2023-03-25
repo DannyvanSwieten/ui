@@ -175,6 +175,21 @@ impl UserInterface {
 
         mutation_result
     }
+
+    pub fn merge_rebuild(
+        &mut self,
+        rebuild: Rebuild,
+        ui_state: &UIState,
+    ) -> HashMap<usize, (Rect, Rect)> {
+        let mut results = HashMap::new();
+        if let Some(parent) = rebuild.parent {
+            self.root_tree.merge_subtree(parent, rebuild.tree);
+            self.root_tree
+                .layout_element(parent, ui_state, &mut results)
+        }
+
+        results
+    }
 }
 
 pub struct Rebuild {

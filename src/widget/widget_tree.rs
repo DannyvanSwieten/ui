@@ -23,6 +23,12 @@ impl WidgetTree {
         }
     }
 
+    pub fn new_with_root_id(widget: Box<dyn Widget>, root_id: usize) -> Self {
+        Self {
+            tree: Tree::new_with_root_id(WidgetElement::new(widget), root_id),
+        }
+    }
+
     pub fn root_id(&self) -> usize {
         self.tree.root_id()
     }
@@ -35,6 +41,10 @@ impl WidgetTree {
         self.tree.nodes()
     }
 
+    pub fn consume_nodes(self) -> HashMap<usize, Node<WidgetElement>> {
+        self.tree.consume_nodes()
+    }
+
     pub fn bounds(&self) -> &Rect {
         &self
             .tree
@@ -43,6 +53,17 @@ impl WidgetTree {
             .unwrap()
             .data
             .global_bounds
+    }
+
+    fn add_node(&mut self, id: usize, node: Node<WidgetElement>) {
+        self.tree.nodes_mut().insert(id, node);
+    }
+
+    pub fn merge_subtree(&mut self, parent: usize, tree: Self) {
+        self.add_child(parent, tree.root_id());
+        for (id, node) in tree.consume_nodes() {
+            self.add_node(id, node);
+        }
     }
 
     fn notify_state_update(&self, id: usize, name: &str) -> Option<ChangeResponse> {
@@ -265,7 +286,7 @@ impl WidgetTree {
         let node = self.remove_element(id);
         if let Some(node) = node {
             let widget = node.data.widget;
-            let tree = WidgetTree::new(widget);
+            let tree = WidgetTree::new_with_root_id(widget, id);
             let parent = if let Some(parent) = self.tree.find_parent(id) {
                 self.tree.remove_child_from_parent(parent, id);
                 Some(parent)
