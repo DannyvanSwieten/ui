@@ -104,7 +104,8 @@ impl CanvasRenderer {
     }
 
     pub fn rebuild(&mut self, config: SurfaceConfiguration) {
-        self.surface.configure(&self.device, &config)
+        self.surface.configure(&self.device, &config);
+        self.size = Size::new(config.width as _, config.height as _)
     }
 }
 

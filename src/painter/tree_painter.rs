@@ -43,6 +43,7 @@ impl TreePainter {
     fn handle_message(&mut self, message: TreePainterMessage) {
         match message {
             TreePainterMessage::ReplaceTree(tree) => self.tree = tree,
+            TreePainterMessage::Resize(size) => self.size = size,
         }
     }
 
@@ -61,4 +62,5 @@ impl TreePainter {
 
 pub enum TreePainterMessage {
     ReplaceTree(PainterTree),
+    Resize(Size),
 }
