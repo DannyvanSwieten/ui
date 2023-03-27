@@ -120,6 +120,29 @@ impl<T> Tree<T> {
     }
 }
 
+#[cfg(feature = "dot")]
+impl<T> Tree<T> {
+    pub fn dot(&self) -> ellipsis::Dot {
+        let mut graph = ellipsis::Graph::new(None);
+
+        self.add_node_to_dot_graph(self.root, &mut graph);
+
+        ellipsis::Dot::new(false, graph)
+    }
+
+    fn add_node_to_dot_graph(&self, id: usize, graph: &mut ellipsis::Graph) {
+        if let Some(node) = self.nodes.get(&id) {
+            graph.nodes.push(ellipsis::Node::new(format!("{id}")));
+            for child in &node.children {
+                self.add_node_to_dot_graph(*child, graph);
+                graph
+                    .edges
+                    .push(ellipsis::Edge::new(format!("{id}"), format!("{child}")));
+            }
+        }
+    }
+}
+
 impl<T> Index<usize> for Tree<T> {
     type Output = Node<T>;
 

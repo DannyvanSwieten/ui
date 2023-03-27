@@ -1,12 +1,16 @@
 [package]
+edition = "2021"
 name = "ui"
 version = "0.1.0"
-edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-winit = "*"
+ellipsis = {git = "https://github.com/stijnfrishert/ellipsis", rev = "3e83af1", optional = true}
+pollster = "*"
 skia-safe = "0.56.0"
 wgpu = "*"
-pollster = "*"
+winit = "*"
+
+[features]
+dot = ["ellipsis"]
