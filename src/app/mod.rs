@@ -1,12 +1,9 @@
 mod application_delegate;
 
 pub use application_delegate::ApplicationDelegate;
-
+pub mod render_thread;
 use crate::{
-    canvas::{
-        canvas_renderer::CanvasRenderer,
-        painter_manager::{MergeResult, PainterManager, PainterManagerMessage, StateUpdate},
-    },
+    canvas::canvas_renderer::CanvasRenderer,
     event::MouseEvent,
     geo::{Point, Rect, Size},
     gpu::GpuApi,
@@ -27,6 +24,8 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder, WindowId},
 };
+
+use self::render_thread::{MergeResult, RenderThread, RenderThreadMessage, StateUpdate};
 
 // pub struct UserInterfaceManager {
 //     user_interfaces: HashMap<WindowId, UserInterface>,
@@ -292,14 +291,14 @@ impl Application {
         let event_loop = EventLoop::new();
         let mut painter_trees = HashMap::new();
         let gpu = block_on(GpuApi::new());
-        let (painter_manager, painter_sender) = PainterManager::new();
+        let (painter_manager, io) = RenderThread::new();
         let _join_handle = painter_manager.start();
         event_loop.run(move |event, event_loop, control_flow| {
             let event_resolution = self.handle_event(&mut delegate, control_flow, &event);
 
             if let Some(resize) = &event_resolution.resize {
-                painter_sender
-                    .send(PainterManagerMessage::WindowSurfaceUpdate(
+                io.painter_message_sender
+                    .send(RenderThreadMessage::WindowSurfaceUpdate(
                         resize.window_id,
                         resize.dpi,
                         Size::new(resize.size.width, resize.size.height),
@@ -307,8 +306,8 @@ impl Application {
                     .expect("Painter message send failed");
 
                 if let Some(layout_updates) = event_resolution.layout_updates {
-                    painter_sender
-                        .send(PainterManagerMessage::UpdateBounds(layout_updates))
+                    io.painter_message_sender
+                        .send(RenderThreadMessage::UpdateBounds(layout_updates))
                         .expect("Bounds update message send failed")
                 }
             }
@@ -344,16 +343,16 @@ impl Application {
                     );
                     let bounds = ui.layout(&self.ui_state);
 
-                    painter_sender
-                        .send(PainterManagerMessage::AddWindowPainter((
+                    io.painter_message_sender
+                        .send(RenderThreadMessage::AddWindowPainter((
                             window.id(),
                             tree_painter,
                             CanvasRenderer::new(&gpu, &window),
                         )))
                         .expect("Send failed");
 
-                    painter_sender
-                        .send(PainterManagerMessage::UpdateBounds(LayoutUpdates {
+                    io.painter_message_sender
+                        .send(RenderThreadMessage::UpdateBounds(LayoutUpdates {
                             window_id: window.id(),
                             bounds,
                         }))
@@ -384,8 +383,8 @@ impl Application {
                     let parent = rebuild.parent;
                     let tree = PainterTree::new(&rebuild.tree, &self.ui_state);
                     let bounds = ui.merge_rebuild(rebuild, &self.ui_state);
-                    painter_sender
-                        .send(PainterManagerMessage::MergeUpdate(MergeResult {
+                    io.painter_message_sender
+                        .send(RenderThreadMessage::MergeUpdate(MergeResult {
                             window_id,
                             tree,
                             bounds,
@@ -398,15 +397,14 @@ impl Application {
             self.ui_state.clear_updates();
 
             if let Some(state_updates) = event_resolution.state_updates {
-                painter_sender
-                    .send(PainterManagerMessage::StateUpdates(StateUpdate {
+                io.painter_message_sender
+                    .send(RenderThreadMessage::StateUpdates(StateUpdate {
                         window_id: state_updates.window_id,
                         states: state_updates.states,
                         bounds: HashMap::new(),
                     }))
                     .expect("Send failed");
             }
-            // painter_sender.send(PainterManagerMessage::StateUpdates(StateUpdate { window_id: event_resolution.window_id, states: event_resolution.state_updates, bounds: event_resolution.layout_updates });
         });
     }
 

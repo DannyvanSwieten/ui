@@ -11,7 +11,7 @@ pub struct AppDelegate;
 impl ApplicationDelegate for AppDelegate {
     fn create_ui_state(&self) -> UIState {
         let mut state = UIState::new();
-        state.register("hello", "Hello World!");
+        state.register("label_text", "Hello World!");
         state
     }
 
@@ -29,7 +29,7 @@ impl ApplicationDelegate for AppDelegate {
                                     )
                                 })
                                 .into(),
-                            Label::new(Value::Binding("hello".into())).into(),
+                            Label::new(Value::Binding("label_text".into())).into(),
                         ]
                     })
                     .into()
@@ -39,7 +39,7 @@ impl ApplicationDelegate for AppDelegate {
 
     fn handle_message(&mut self, mut message: Message, state: &mut UIState) {
         if message.target == "set_text" {
-            state.set("hello", message.args.remove(0));
+            state.set("label_text", message.args.remove(0));
         }
     }
 }
