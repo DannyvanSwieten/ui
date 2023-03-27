@@ -14,9 +14,9 @@ use crate::{
     message_context::MessageCtx,
     mouse_event,
     painter::{PainterTree, TreePainter},
+    tree_builder::WidgetTreeBuilder,
     ui_state::UIState,
     user_interface::{MutationResult, UserInterface},
-    widget::WidgetTree,
     window_request::WindowRequest,
 };
 use pollster::block_on;
@@ -325,9 +325,7 @@ impl Application {
                     .expect("Window creation failed");
                 if let Some(builder) = request.builder() {
                     let root = (*builder)(&mut self.ui_state);
-                    let mut widget_tree = WidgetTree::new(root);
-                    widget_tree.build(&mut self.ui_state);
-                    widget_tree.layout(&self.ui_state);
+                    let widget_tree = WidgetTreeBuilder::new(root).build(&mut self.ui_state);
                     let painter_tree = PainterTree::new(&widget_tree, &self.ui_state);
                     let (tree_painter, message_sender) = TreePainter::new(
                         painter_tree,
@@ -338,6 +336,14 @@ impl Application {
                         window.scale_factor() as f32,
                     );
                     painter_trees.insert(window.id(), message_sender);
+
+                    let mut ui = UserInterface::new(
+                        widget_tree,
+                        request.width as f32,
+                        request.height as f32,
+                    );
+                    let bounds = ui.layout(&self.ui_state);
+
                     painter_sender
                         .send(PainterManagerMessage::AddWindowPainter((
                             window.id(),
@@ -345,11 +351,13 @@ impl Application {
                             CanvasRenderer::new(&gpu, &window),
                         )))
                         .expect("Send failed");
-                    let ui = UserInterface::new(
-                        widget_tree,
-                        request.width as f32,
-                        request.height as f32,
-                    );
+
+                    painter_sender
+                        .send(PainterManagerMessage::UpdateBounds(LayoutUpdates {
+                            window_id: window.id(),
+                            bounds,
+                        }))
+                        .expect("Bounds update send failed");
                     self.user_interfaces.insert(window.id(), ui);
                 }
 

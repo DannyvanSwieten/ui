@@ -18,11 +18,14 @@ impl<'a> SizeCtx<'a> {
     }
 
     pub fn state(&self) -> Option<Arc<dyn Any + Send>> {
-        self.element_tree.state(self.id)
+        self.element_tree[self.id].data().widget_state()
     }
 
     pub fn preferred_size(&self, id: usize, constraints: &BoxConstraints) -> Option<Size> {
-        self.element_tree.calculate_element_size(id, constraints)
+        let node = &self.element_tree[id];
+        node.data()
+            .widget()
+            .calculate_size(&node.children, constraints, self)
     }
 }
 
@@ -52,7 +55,11 @@ impl<'a> LayoutCtx<'a> {
     }
 
     pub fn preferred_size(&self, id: usize, constraints: &BoxConstraints) -> Option<Size> {
-        self.element_tree.calculate_element_size(id, constraints)
+        let size_ctx = SizeCtx::new(id, self.element_tree);
+        let node = &self.element_tree[id];
+        node.data()
+            .widget()
+            .calculate_size(&node.children, constraints, &size_ctx)
     }
 
     pub fn set_child_bounds(&mut self, id: usize, rect: Rect) {
@@ -69,6 +76,6 @@ impl<'a> LayoutCtx<'a> {
     }
 
     pub fn state(&self) -> Option<Arc<dyn Any + Send>> {
-        self.element_tree.state(self.id)
+        self.element_tree[self.id].data.widget_state()
     }
 }
