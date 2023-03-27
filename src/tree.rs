@@ -4,7 +4,11 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-pub struct Tree<T> {
+use crate::geo::{Point, Rect};
+
+pub type ElementId = usize;
+
+pub struct Tree<T: Sized> {
     nodes: HashMap<usize, Node<T>>,
     root: usize,
 }
@@ -38,6 +42,11 @@ impl<T> Tree<T> {
 
         tree.add_node_with_id(root, data);
         tree
+    }
+
+    pub fn root_mut(&mut self) -> &mut Node<T> {
+        let id = self.root_id();
+        &mut self[id]
     }
 
     pub fn consume_nodes(self) -> HashMap<usize, Node<T>> {
@@ -143,23 +152,25 @@ impl<T> Tree<T> {
     }
 }
 
-impl<T> Index<usize> for Tree<T> {
+impl<T> Index<ElementId> for Tree<T> {
     type Output = Node<T>;
 
-    fn index(&self, index: usize) -> &Self::Output {
+    fn index(&self, index: ElementId) -> &Self::Output {
         self.nodes.get(&index).unwrap()
     }
 }
 
-impl<T> IndexMut<usize> for Tree<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+impl<T> IndexMut<ElementId> for Tree<T> {
+    fn index_mut(&mut self, index: ElementId) -> &mut Self::Output {
         self.nodes.get_mut(&index).unwrap()
     }
 }
 
-pub struct Node<T> {
+pub struct Node<T: Sized> {
     pub data: T,
     pub children: Vec<usize>,
+    pub local_bounds: Rect,
+    pub global_bounds: Rect,
 }
 
 impl<T> Node<T> {
@@ -167,11 +178,22 @@ impl<T> Node<T> {
         Self {
             children: Vec::new(),
             data,
+            global_bounds: Rect::default(),
+            local_bounds: Rect::default(),
         }
     }
 
     pub fn data(&self) -> &T {
         &self.data
+    }
+
+    pub fn set_bounds(&mut self, rect: &Rect) {
+        self.local_bounds = *rect;
+        self.global_bounds = *rect;
+    }
+
+    pub fn hit_test(&self, point: &Point) -> bool {
+        self.global_bounds.hit_test(point)
     }
 }
 
