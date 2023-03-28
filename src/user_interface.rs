@@ -78,6 +78,8 @@ impl UserInterface {
 
     pub fn layout(&mut self, state: &UIState) -> HashMap<usize, (Rect, Rect)> {
         let mut bounds = HashMap::new();
+        let root_bounds = self.root_tree[self.root_tree.root_id()].global_bounds;
+        bounds.insert(self.root_tree.root_id(), (root_bounds, root_bounds));
         self.layout_element(self.root_tree.root_id(), state, &mut bounds);
         bounds
     }
@@ -242,38 +244,6 @@ impl UserInterface {
 
         widget_states
     }
-
-    // fn mouse_event(
-    //     &mut self,
-    //     event: &MouseEvent,
-    //     message_ctx: &mut MessageCtx,
-    //     ui_state: &UIState,
-    // ) -> (
-    //     HashMap<usize, Arc<dyn Any + Send>>,
-    //     HashMap<usize, (Rect, Rect)>,
-    // ) {
-    //     let state_updates = self.root_tree.mouse_event(event, message_ctx, ui_state);
-    //     let new_states = self.handle_state_updates(state_updates);
-    //     let new_bounds = self.process_state_results(ui_state, &new_states);
-    //     (new_states, new_bounds)
-    //     // let new_states = self.root_tree.update_state(&widget_state_updates);
-    //     // let mut layout_results = HashMap::new();
-    //     // for (id, _) in widget_state_updates {
-    //     //     self.root_tree
-    //     //         .layout_element(id, ui_state, &mut layout_results)
-    //     // }
-
-    //     // // if let MouseEvent::MouseDrag(drag_event) = event {
-    //     // //     if self.drag_source.is_some() {
-    //     // //         self.update_drag_source_position(drag_event.offset_to_drag_start())
-    //     // //     }
-    //     // // }
-
-    //     // if let MouseEvent::MouseUp(_) = event {
-    //     //     self.drag_source = None;
-    //     //     self.drag_source_offset = None;
-    //     // }
-    // }
 
     pub fn event(
         &mut self,

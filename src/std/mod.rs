@@ -1,3 +1,4 @@
+pub mod animated_color_box;
 pub mod center;
 pub mod drag_source;
 pub mod drop_target;

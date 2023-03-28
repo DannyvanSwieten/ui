@@ -1,4 +1,20 @@
 use crate::ui_state::UIState;
+#[derive(Clone)]
+pub struct Array {
+    pub data: Vec<Var>,
+}
+
+impl From<Vec<Var>> for Array {
+    fn from(value: Vec<Var>) -> Self {
+        Self { data: value }
+    }
+}
+
+impl ToString for Array {
+    fn to_string(&self) -> String {
+        "Array[".to_owned() + &self.data.len().to_string() + "]"
+    }
+}
 
 #[derive(Clone)]
 pub enum Value {
@@ -56,7 +72,7 @@ macro_rules! gen_var {
     };
 }
 
-gen_var!(Real(f32), Integer(i32), String(String));
+gen_var!(Real(f32), Integer(i32), String(String), Array(Array));
 
 impl From<&str> for Var {
     fn from(v: &str) -> Self {

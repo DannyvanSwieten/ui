@@ -1,7 +1,8 @@
 use ui::{
     app::{Application, ApplicationDelegate},
+    canvas::color::Color32f,
     message::Message,
-    std::{flex::Row, label::Label, text_button::TextButton},
+    std::{animated_color_box::AnimatedColorBox, flex::Row, label::Label, text_button::TextButton},
     ui_state::UIState,
     value::Value,
     window_request::WindowRequest,

@@ -1,3 +1,5 @@
+use std::ops::{Add, Mul};
+
 #[derive(Default)]
 pub struct Color8u {
     pub r: u8,
@@ -30,6 +32,7 @@ impl Color8u {
 
 pub type Color = Color8u;
 
+#[derive(Clone, Copy)]
 pub struct Color32f {
     pub r: f32,
     pub g: f32,
@@ -68,5 +71,34 @@ impl From<Color32f> for Color8u {
         let b = (val.b * 255.0) as u8;
         let a = (val.a * 255.0) as u8;
         Color8u { r, g, b, a }
+    }
+}
+
+impl Mul<f32> for Color32f {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self::new(self.r * rhs, self.g * rhs, self.b * rhs, self.a * rhs)
+    }
+}
+
+impl Add<Color32f> for Color32f {
+    type Output = Self;
+    fn add(self, rhs: Color32f) -> Self::Output {
+        Self::new(
+            self.r + rhs.r,
+            self.g + rhs.g,
+            self.b + rhs.b,
+            self.a + rhs.a,
+        )
+    }
+}
+
+pub trait Lerp<T: Mul<f32> + Add<T>> {
+    fn lerp(&self, rhs: T, x: f32) -> T;
+}
+
+impl Lerp<Color32f> for Color32f {
+    fn lerp(&self, rhs: Self, x: f32) -> Self {
+        *self * (1.0 - x) + rhs * x
     }
 }

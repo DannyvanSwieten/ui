@@ -1,5 +1,9 @@
-use super::{PaintCtx, PainterTree};
+use super::{render_ctx::RenderCtx, PaintCtx, PainterTree};
 use crate::{
+    animation::{
+        animation_ctx::AnimationCtx, animation_event::AnimationEvent,
+        animation_request::AnimationRequest,
+    },
     canvas::Canvas,
     geo::{Point, Rect, Size},
     tree::ElementId,
@@ -32,6 +36,18 @@ impl TreePainter {
         (tree_painter, tx)
     }
 
+    pub fn call_mounted(&self) -> HashMap<ElementId, AnimationRequest> {
+        let mut animation_requests = HashMap::new();
+        for (id, node) in self.tree.nodes() {
+            if let Some(painter) = node.data().painter() {
+                let mut ctx = RenderCtx::new(*id, &mut animation_requests);
+                painter.mounted(&mut ctx)
+            }
+        }
+
+        animation_requests
+    }
+
     pub fn update_bounds(&mut self, bounds_map: HashMap<usize, (Rect, Rect)>) {
         let nodes = self.tree.nodes_mut();
         for (id, (global_bounds, local_bounds)) in bounds_map {
@@ -51,13 +67,35 @@ impl TreePainter {
         }
     }
 
-    pub fn set_painter_tree(&mut self, tree: PainterTree) {
-        self.tree = tree
+    pub fn set_painter_tree(&mut self, tree: PainterTree) -> HashMap<ElementId, AnimationRequest> {
+        self.tree = tree;
+        let mut animation_requests = HashMap::new();
+        for (id, node) in self.tree.nodes() {
+            if let Some(painter) = &node.data.painter {
+                let mut render_ctx = RenderCtx::new(*id, &mut animation_requests);
+                painter.mounted(&mut render_ctx)
+            }
+        }
+
+        animation_requests
     }
 
-    pub fn merge_sub_tree(&mut self, parent: usize, tree: PainterTree) {
+    pub fn merge_sub_tree(
+        &mut self,
+        parent: usize,
+        tree: PainterTree,
+    ) -> HashMap<ElementId, AnimationRequest> {
         self.tree.remove_node(tree.root_id());
-        self.tree.merge_subtree(parent, tree)
+        let new_nodes = self.tree.merge_subtree(parent, tree);
+        let mut animation_requests = HashMap::new();
+        for id in new_nodes {
+            if let Some(painter) = &self.tree[id].data.painter {
+                let mut render_ctx = RenderCtx::new(id, &mut animation_requests);
+                painter.mounted(&mut render_ctx)
+            }
+        }
+
+        animation_requests
     }
 
     fn paint_element(&mut self, id: ElementId, offset: Option<Point>, canvas: &mut dyn Canvas) {
@@ -101,6 +139,15 @@ impl TreePainter {
         }
 
         self.paint_element(self.tree.root_id(), offset, canvas)
+    }
+
+    pub fn animation(&mut self, animation_events: Vec<(ElementId, AnimationEvent)>) {
+        for (id, animation_event) in animation_events {
+            if let Some(painter) = &mut self.tree[id].data.painter {
+                let mut ctx = AnimationCtx::new(id, animation_event);
+                painter.animation_event(&mut ctx)
+            }
+        }
     }
 
     fn handle_message(&mut self, message: TreePainterMessage) {

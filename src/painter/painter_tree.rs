@@ -4,7 +4,7 @@ use std::{any::Any, sync::Arc};
 pub type PainterTree = Tree<PainterElement>;
 
 pub struct PainterElement {
-    painter: Option<Box<dyn Painter>>,
+    pub painter: Option<Box<dyn Painter>>,
     painter_state: Option<Arc<dyn Any + Send>>,
     pub local_bounds: Rect,
     pub global_bounds: Rect,

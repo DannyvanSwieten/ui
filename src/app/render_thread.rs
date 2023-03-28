@@ -73,12 +73,12 @@ impl Animator {
         let has_key = self.drivers.contains_key(&window_id);
         if !has_key {
             self.drivers.insert(window_id, Vec::new());
-        } else {
-            self.drivers
-                .get_mut(&window_id)
-                .unwrap()
-                .push((element_id, AnimationDriver::new(duration)))
         }
+
+        self.drivers
+            .get_mut(&window_id)
+            .unwrap()
+            .push((element_id, AnimationDriver::new(duration)))
     }
 
     pub fn tick(&mut self) -> HashMap<WindowId, Vec<(ElementId, AnimationEvent)>> {
@@ -92,19 +92,20 @@ impl Animator {
                 } else if driver.value() >= 1.0 {
                     AnimationEvent::End(*element_id)
                 } else {
-                    driver.tick(dt.as_secs_f64());
                     AnimationEvent::Update(*element_id, driver.value())
                 };
+
+                driver.tick(dt.as_secs_f64());
 
                 let has_key = results.contains_key(window_id);
                 if !has_key {
                     results.insert(*window_id, Vec::new());
-                } else {
-                    results
-                        .get_mut(window_id)
-                        .unwrap()
-                        .push((*element_id, animation_event))
                 }
+
+                results
+                    .get_mut(window_id)
+                    .unwrap()
+                    .push((*element_id, animation_event))
             }
         }
 
@@ -124,7 +125,8 @@ pub struct RenderThread {
     canvas_renderers: HashMap<WindowId, CanvasRenderer>,
     painter_message_receiver: Receiver<RenderThreadMessage>,
     animation_message_sender: Sender<AnimationEvents>,
-    animator: Animator,
+    widget_animator: Animator,
+    painter_animator: Animator,
 }
 
 impl RenderThread {
@@ -142,7 +144,8 @@ impl RenderThread {
                 canvas_renderers: HashMap::new(),
                 painter_message_receiver,
                 animation_message_sender,
-                animator: Animator::new(),
+                widget_animator: Animator::new(),
+                painter_animator: Animator::new(),
             },
             io,
         )
@@ -168,14 +171,23 @@ impl RenderThread {
         thread::spawn(move || loop {
             while let Ok(message) = self.painter_message_receiver.try_recv() {
                 match message {
-                    RenderThreadMessage::AddWindowPainter((id, painter, renderer)) => {
+                    RenderThreadMessage::AddWindowPainter((window_id, painter, renderer)) => {
                         let size = *painter.size();
-                        self.painters.insert(id, painter);
+                        let animation_requests = painter.call_mounted();
+                        self.painters.insert(window_id, painter);
                         self.canvas.insert(
-                            id,
+                            window_id,
                             Box::new(SkiaCanvas::new(size.width as _, size.height as _)),
                         );
-                        self.canvas_renderers.insert(id, renderer);
+                        self.canvas_renderers.insert(window_id, renderer);
+
+                        for (element_id, animation_request) in animation_requests {
+                            self.painter_animator.add_driver(
+                                window_id,
+                                element_id,
+                                animation_request.duration,
+                            )
+                        }
                     }
                     RenderThreadMessage::WindowSurfaceUpdate(window_id, _dpi, size) => {
                         let config = SurfaceConfiguration {
@@ -206,23 +218,38 @@ impl RenderThread {
                     }
                     RenderThreadMessage::MergeUpdate(update) => {
                         let painter = self.painters.get_mut(&update.window_id).unwrap();
-                        if let Some(parent) = update.parent {
-                            painter.merge_sub_tree(parent, update.tree);
+                        let animation_requests = if let Some(parent) = update.parent {
+                            painter.merge_sub_tree(parent, update.tree)
                         } else {
                             painter.set_painter_tree(update.tree)
-                        }
+                        };
 
                         painter.update_bounds(update.bounds);
+                        for (element_id, animation_request) in animation_requests {
+                            self.painter_animator.add_driver(
+                                update.window_id,
+                                element_id,
+                                animation_request.duration,
+                            )
+                        }
                     }
                     RenderThreadMessage::AddAnimationDriver(window_id, element_id, duration) => {
-                        self.animator.add_driver(window_id, element_id, duration)
+                        self.widget_animator
+                            .add_driver(window_id, element_id, duration)
                     }
                 }
             }
-            let events = self.animator.tick();
+            let events = self.widget_animator.tick();
             self.animation_message_sender
                 .send(AnimationEvents { events })
                 .expect("Animation messages send failed");
+            let events = self.painter_animator.tick();
+            for (window_id, animation_events) in events {
+                self.painters
+                    .get_mut(&window_id)
+                    .unwrap()
+                    .animation(animation_events);
+            }
             self.render()
         })
     }

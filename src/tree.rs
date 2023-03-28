@@ -132,11 +132,16 @@ impl<T> Tree<T> {
         None
     }
 
-    pub fn merge_subtree(&mut self, parent: ElementId, subtree: Self) {
+    /// Returns all newly added element id's
+    pub fn merge_subtree(&mut self, parent: ElementId, subtree: Self) -> Vec<ElementId> {
+        let mut results = Vec::new();
         self.add_child(parent, subtree.root_id());
         for (id, node) in subtree.consume_nodes() {
             self.add_node_with_id(id, node);
+            results.push(id)
         }
+
+        results
     }
 }
 
