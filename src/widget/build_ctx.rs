@@ -1,12 +1,12 @@
-use crate::{ui_state::UIState, value::Var};
+use crate::{tree::ElementId, ui_state::UIState, value::Var};
 
 pub struct BuildCtx<'a> {
-    pub id: usize,
+    pub id: ElementId,
     ui_state: &'a mut UIState,
 }
 
 impl<'a> BuildCtx<'a> {
-    pub fn new(id: usize, ui_state: &'a mut UIState) -> Self {
+    pub fn new(id: ElementId, ui_state: &'a mut UIState) -> Self {
         Self { id, ui_state }
     }
 

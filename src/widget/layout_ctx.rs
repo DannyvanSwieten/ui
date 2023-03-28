@@ -1,6 +1,7 @@
 use crate::{
     constraints::BoxConstraints,
     geo::{Point, Rect, Size},
+    tree::ElementId,
     ui_state::UIState,
     value::Var,
     widget::WidgetTree,
@@ -8,12 +9,12 @@ use crate::{
 use std::{any::Any, collections::HashMap, sync::Arc};
 
 pub struct SizeCtx<'a> {
-    id: usize,
+    id: ElementId,
     element_tree: &'a WidgetTree,
 }
 
 impl<'a> SizeCtx<'a> {
-    pub fn new(id: usize, element_tree: &'a WidgetTree) -> Self {
+    pub fn new(id: ElementId, element_tree: &'a WidgetTree) -> Self {
         Self { id, element_tree }
     }
 
@@ -21,7 +22,7 @@ impl<'a> SizeCtx<'a> {
         self.element_tree[self.id].data().widget_state()
     }
 
-    pub fn preferred_size(&self, id: usize, constraints: &BoxConstraints) -> Option<Size> {
+    pub fn preferred_size(&self, id: ElementId, constraints: &BoxConstraints) -> Option<Size> {
         let node = &self.element_tree[id];
         node.data()
             .widget()
@@ -30,14 +31,14 @@ impl<'a> SizeCtx<'a> {
 }
 
 pub struct LayoutCtx<'a> {
-    id: usize,
+    id: ElementId,
     element_tree: &'a WidgetTree,
     ui_state: &'a UIState,
     bounds: HashMap<usize, Rect>,
 }
 
 impl<'a> LayoutCtx<'a> {
-    pub fn new(id: usize, element_tree: &'a WidgetTree, ui_state: &'a UIState) -> Self {
+    pub fn new(id: ElementId, element_tree: &'a WidgetTree, ui_state: &'a UIState) -> Self {
         Self {
             id,
             element_tree,
@@ -54,7 +55,7 @@ impl<'a> LayoutCtx<'a> {
         self.bounds
     }
 
-    pub fn preferred_size(&self, id: usize, constraints: &BoxConstraints) -> Option<Size> {
+    pub fn preferred_size(&self, id: ElementId, constraints: &BoxConstraints) -> Option<Size> {
         let size_ctx = SizeCtx::new(id, self.element_tree);
         let node = &self.element_tree[id];
         node.data()
@@ -62,11 +63,11 @@ impl<'a> LayoutCtx<'a> {
             .calculate_size(&node.children, constraints, &size_ctx)
     }
 
-    pub fn set_child_bounds(&mut self, id: usize, rect: Rect) {
+    pub fn set_child_bounds(&mut self, id: ElementId, rect: Rect) {
         self.bounds.insert(id, rect);
     }
 
-    pub fn set_child_position(&mut self, id: usize, position: Point) {
+    pub fn set_child_position(&mut self, id: ElementId, position: Point) {
         if let Some(bounds) = self.bounds.get_mut(&id) {
             bounds.set_position(position);
         } else {

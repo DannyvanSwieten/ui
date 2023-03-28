@@ -10,10 +10,10 @@ use crate::{
     message::Message,
     message_context::MessageCtx,
     mouse_event,
-    painter::{PainterTree, TreePainter},
-    tree_builder::WidgetTreeBuilder,
+    painter::{PainterTreeBuilder, TreePainter},
     ui_state::UIState,
     user_interface::{MutationResult, UserInterface},
+    widget_tree_builder::WidgetTreeBuilder,
     window_request::WindowRequest,
 };
 use pollster::block_on;
@@ -26,10 +26,6 @@ use winit::{
 };
 
 use self::render_thread::{MergeResult, RenderThread, RenderThreadMessage, StateUpdate};
-
-// pub struct UserInterfaceManager {
-//     user_interfaces: HashMap<WindowId, UserInterface>,
-// }
 
 pub struct Resize {
     pub window_id: WindowId,
@@ -325,7 +321,7 @@ impl Application {
                 if let Some(builder) = request.builder() {
                     let root = (*builder)(&mut self.ui_state);
                     let widget_tree = WidgetTreeBuilder::new(root).build(&mut self.ui_state);
-                    let painter_tree = PainterTree::new(&widget_tree, &self.ui_state);
+                    let painter_tree = PainterTreeBuilder::build(&widget_tree, &self.ui_state);
                     let (tree_painter, message_sender) = TreePainter::new(
                         painter_tree,
                         Size::new(
@@ -381,7 +377,7 @@ impl Application {
                 let ui = self.user_interfaces.get_mut(&window_id).unwrap();
                 for rebuild in result.rebuilds {
                     let parent = rebuild.parent;
-                    let tree = PainterTree::new(&rebuild.tree, &self.ui_state);
+                    let tree = PainterTreeBuilder::build(&rebuild.tree, &self.ui_state);
                     let bounds = ui.merge_rebuild(rebuild, &self.ui_state);
                     io.painter_message_sender
                         .send(RenderThreadMessage::MergeUpdate(MergeResult {

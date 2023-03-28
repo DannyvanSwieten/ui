@@ -40,7 +40,7 @@ impl<T> Tree<T> {
             root,
         };
 
-        tree.add_node_with_id(root, data);
+        tree.add_node_with_id(root, Node::new(data));
         tree
     }
 
@@ -61,7 +61,7 @@ impl<T> Tree<T> {
         &mut self.nodes
     }
 
-    pub fn set_root_id(&mut self, id: usize) {
+    pub fn set_root_id(&mut self, id: ElementId) {
         self.root = id
     }
 
@@ -75,14 +75,18 @@ impl<T> Tree<T> {
         id
     }
 
-    pub fn add_node_with_id(&mut self, id: usize, data: T) {
-        self.nodes.insert(id, Node::new(data));
+    pub fn add_node_with_id(&mut self, id: ElementId, node: Node<T>) {
+        self.nodes.insert(id, node);
     }
 
-    pub fn remove_node(&mut self, id: usize) -> Option<Node<T>> {
+    pub fn remove_node(&mut self, id: ElementId) -> Option<Node<T>> {
         let node = self.nodes.remove(&id);
         if let Some(node) = &node {
             self.remove_children(node);
+        }
+
+        if let Some(parent) = self.find_parent(id) {
+            self.remove_child_from_parent(parent, id)
         }
 
         node
@@ -96,11 +100,11 @@ impl<T> Tree<T> {
         }
     }
 
-    pub fn get(&self, id: usize) -> Option<&Node<T>> {
+    pub fn get(&self, id: ElementId) -> Option<&Node<T>> {
         self.nodes.get(&id)
     }
 
-    pub fn get_mut(&mut self, id: usize) -> Option<&mut Node<T>> {
+    pub fn get_mut(&mut self, id: ElementId) -> Option<&mut Node<T>> {
         self.nodes.get_mut(&id)
     }
 
@@ -127,6 +131,13 @@ impl<T> Tree<T> {
 
         None
     }
+
+    pub fn merge_subtree(&mut self, parent: ElementId, subtree: Self) {
+        self.add_child(parent, subtree.root_id());
+        for (id, node) in subtree.consume_nodes() {
+            self.add_node_with_id(id, node);
+        }
+    }
 }
 
 #[cfg(feature = "dot")]
@@ -139,7 +150,7 @@ impl<T> Tree<T> {
         ellipsis::Dot::new(false, graph)
     }
 
-    fn add_node_to_dot_graph(&self, id: usize, graph: &mut ellipsis::Graph) {
+    fn add_node_to_dot_graph(&self, id: ElementId, graph: &mut ellipsis::Graph) {
         if let Some(node) = self.nodes.get(&id) {
             graph.nodes.push(ellipsis::Node::new(format!("{id}")));
             for child in &node.children {
@@ -174,7 +185,7 @@ pub struct Node<T: Sized> {
 }
 
 impl<T> Node<T> {
-    fn new(data: T) -> Self {
+    pub fn new(data: T) -> Self {
         Self {
             children: Vec::new(),
             data,

@@ -197,12 +197,12 @@ impl RenderThread {
                     }
                     RenderThreadMessage::UpdateBounds(update) => {
                         let painter = self.painters.get_mut(&update.window_id).unwrap();
-                        painter.tree_mut().update_bounds(update.bounds)
+                        painter.update_bounds(update.bounds)
                     }
                     RenderThreadMessage::StateUpdates(update) => {
                         let painter = self.painters.get_mut(&update.window_id).unwrap();
-                        painter.tree_mut().update_bounds(update.bounds);
-                        painter.tree_mut().update_state(update.states);
+                        painter.update_bounds(update.bounds);
+                        painter.update_state(update.states);
                     }
                     RenderThreadMessage::MergeUpdate(update) => {
                         let painter = self.painters.get_mut(&update.window_id).unwrap();
@@ -212,7 +212,7 @@ impl RenderThread {
                             painter.set_painter_tree(update.tree)
                         }
 
-                        painter.tree_mut().update_bounds(update.bounds);
+                        painter.update_bounds(update.bounds);
                     }
                     RenderThreadMessage::AddAnimationDriver(window_id, element_id, duration) => {
                         self.animator.add_driver(window_id, element_id, duration)

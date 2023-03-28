@@ -7,6 +7,7 @@ pub use layout_ctx::LayoutCtx;
 pub use layout_ctx::SizeCtx;
 pub use widget_tree::{WidgetElement, WidgetTree};
 
+use crate::animation::animation_ctx::AnimationCtx;
 use crate::{
     constraints::BoxConstraints, event_context::EventCtx, geo::Size, message_context::MessageCtx,
     painter::Painter, ui_state::UIState,
@@ -65,6 +66,8 @@ pub trait Widget {
         _message_ctx: &mut MessageCtx,
     ) {
     }
+
+    fn animation_event(&self, _ui_state: &UIState, animation_context: &mut AnimationCtx) {}
     fn intercept_mouse_events(&self) -> bool {
         false
     }

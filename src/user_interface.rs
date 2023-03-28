@@ -7,9 +7,10 @@ use crate::{
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
     std::drag_source::DragSourceData,
-    tree_builder::WidgetTreeBuilder,
+    tree::ElementId,
     ui_state::UIState,
     widget::{BuildCtx, ChangeResponse, LayoutCtx, SizeCtx, WidgetElement, WidgetTree},
+    widget_tree_builder::WidgetTreeBuilder,
 };
 
 pub struct UserInterface {
@@ -54,7 +55,7 @@ impl UserInterface {
         self.layout(state)
     }
 
-    fn build_element(&mut self, build_ctx: &mut BuildCtx, id: usize) {
+    fn build_element(&mut self, build_ctx: &mut BuildCtx, id: ElementId) {
         if let Some(node) = self.root_tree.get_mut(id) {
             build_ctx.id = id;
             if let Some(state) = node.data.widget().state(build_ctx.ui_state()) {
@@ -83,7 +84,7 @@ impl UserInterface {
 
     pub fn layout_element(
         &mut self,
-        id: usize,
+        id: ElementId,
         state: &UIState,
         results: &mut HashMap<usize, (Rect, Rect)>,
     ) {
@@ -175,7 +176,7 @@ impl UserInterface {
 
     fn hit_test_element(
         &self,
-        id: usize,
+        id: ElementId,
         position: &Point,
         intercepted: &mut Vec<usize>,
         hit: &mut Option<usize>,
@@ -302,7 +303,7 @@ impl UserInterface {
         self.height as _
     }
 
-    fn notify_state_update(&self, id: usize, name: &str) -> Option<ChangeResponse> {
+    fn notify_state_update(&self, id: ElementId, name: &str) -> Option<ChangeResponse> {
         self.root_tree.nodes()[&id]
             .data()
             .widget()
@@ -340,19 +341,15 @@ impl UserInterface {
     /// Removes the node from the tree and from its parent then build a new subtree from the node's widget.
     pub fn rebuild_element(
         &mut self,
-        id: usize,
+        id: ElementId,
         ui_state: &mut UIState,
     ) -> (Option<usize>, Option<WidgetTree>) {
+        let parent = self.root_tree.find_parent(id);
         let node = self.root_tree.remove_node(id);
         if let Some(node) = node {
             let new_tree =
                 WidgetTreeBuilder::new_with_root_id(node.data.widget, id).build(ui_state);
-            let parent = if let Some(parent) = self.root_tree.find_parent(id) {
-                self.root_tree.remove_child_from_parent(parent, id);
-                Some(parent)
-            } else {
-                None
-            };
+
             (parent, Some(new_tree))
         } else {
             (None, None)
@@ -362,7 +359,7 @@ impl UserInterface {
     fn merge_subtree(&mut self, parent: usize, tree: WidgetTree) {
         self.root_tree.add_child(parent, tree.root_id());
         for (id, node) in tree.consume_nodes() {
-            self.root_tree.add_node_with_id(id, node.data);
+            self.root_tree.add_node_with_id(id, node);
         }
     }
 
@@ -383,7 +380,11 @@ impl UserInterface {
         results
     }
 
-    pub fn calculate_element_size(&self, id: usize, constraints: &BoxConstraints) -> Option<Size> {
+    pub fn calculate_element_size(
+        &self,
+        id: ElementId,
+        constraints: &BoxConstraints,
+    ) -> Option<Size> {
         if let Some(node) = self.root_tree.get(id) {
             let size_ctx = SizeCtx::new(id, &self.root_tree);
             node.data
@@ -397,7 +398,7 @@ impl UserInterface {
 
 pub struct Rebuild {
     pub parent: Option<usize>,
-    pub id: usize,
+    pub id: ElementId,
     pub tree: WidgetTree,
 }
 

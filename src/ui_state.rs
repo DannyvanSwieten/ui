@@ -3,7 +3,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::value::Var;
+use crate::{tree::ElementId, value::Var};
 
 pub struct UIState {
     values: HashMap<String, Var>,
@@ -56,7 +56,7 @@ impl UIState {
         }
     }
 
-    pub fn bind_one(&mut self, id: usize, name: &str) {
+    pub fn bind_one(&mut self, id: ElementId, name: &str) {
         if !self.dependees.contains_key(name) {
             self.dependees.insert(name.to_string(), vec![id]);
         } else {
