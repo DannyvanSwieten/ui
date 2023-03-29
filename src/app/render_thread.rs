@@ -88,11 +88,11 @@ impl Animator {
         for (window_id, drivers) in &mut self.drivers {
             for (element_id, driver) in drivers {
                 let animation_event = if driver.value() == 0.0 {
-                    AnimationEvent::Start(*element_id)
+                    AnimationEvent::Start
                 } else if driver.value() >= 1.0 {
-                    AnimationEvent::End(*element_id)
+                    AnimationEvent::End
                 } else {
-                    AnimationEvent::Update(*element_id, driver.value())
+                    AnimationEvent::Update(driver.value())
                 };
 
                 driver.tick(dt.as_secs_f64());

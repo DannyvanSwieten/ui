@@ -14,7 +14,7 @@ pub use self::painter_tree_builder::PainterTreeBuilder;
 use self::render_ctx::RenderCtx;
 
 pub trait Painter: Send {
-    fn mounted(&self, render_ctx: &mut RenderCtx) {}
-    fn animation_event(&mut self, ctx: &mut AnimationCtx) {}
+    fn mounted(&self, _render_ctx: &mut RenderCtx) {}
+    fn animation_event(&mut self, _ctx: &mut AnimationCtx) {}
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas);
 }
