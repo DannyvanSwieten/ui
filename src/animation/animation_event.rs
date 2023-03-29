@@ -1,5 +1,7 @@
+use super::AnimationId;
+
 pub enum AnimationEvent {
-    Start,
-    Update(f64),
-    End,
+    Start(AnimationId),
+    Update(AnimationId, f64),
+    End(AnimationId),
 }

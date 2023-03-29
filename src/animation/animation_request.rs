@@ -1,5 +1,8 @@
 use std::time::Duration;
 
-pub struct AnimationRequest {
-    pub duration: Duration,
+use super::AnimationId;
+
+pub enum AnimationRequest {
+    Widget(AnimationId, Duration),
+    Painter(AnimationId, Duration),
 }

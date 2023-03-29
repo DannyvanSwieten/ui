@@ -78,20 +78,20 @@ pub struct AnimatedColorBoxPainter {
 
 impl Painter for AnimatedColorBoxPainter {
     fn mounted(&self, render_ctx: &mut RenderCtx) {
-        render_ctx.animation_request(self.duration)
+        render_ctx.animation_request(0, self.duration)
     }
 
     fn animation_event(&mut self, ctx: &mut AnimationCtx) {
         match ctx.event() {
-            crate::animation::animation_event::AnimationEvent::Start => (),
-            crate::animation::animation_event::AnimationEvent::Update(phase) => {
+            crate::animation::animation_event::AnimationEvent::Start(_) => (),
+            crate::animation::animation_event::AnimationEvent::Update(_, phase) => {
                 let f = *phase * (self.colors.len() - 1) as f64;
                 let index = f as usize;
                 let next = index + 1;
                 let fract = f - index as f64;
                 self.color = self.colors[index].lerp(self.colors[next], fract as f32)
             }
-            crate::animation::animation_event::AnimationEvent::End => (),
+            crate::animation::animation_event::AnimationEvent::End(_) => (),
         }
     }
 

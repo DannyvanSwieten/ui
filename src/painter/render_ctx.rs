@@ -1,6 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
-use crate::{animation::animation_request::AnimationRequest, tree::ElementId};
+use crate::{
+    animation::{animation_request::AnimationRequest, AnimationId},
+    tree::ElementId,
+};
 
 pub struct RenderCtx<'a> {
     id: ElementId,
@@ -18,8 +21,8 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-    pub fn animation_request(&mut self, duration: Duration) {
+    pub fn animation_request(&mut self, id: AnimationId, duration: Duration) {
         self.animation_requests
-            .insert(self.id, AnimationRequest { duration });
+            .insert(self.id, AnimationRequest::Painter(id, duration));
     }
 }

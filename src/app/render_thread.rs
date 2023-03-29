@@ -13,7 +13,10 @@ use wgpu::{CompositeAlphaMode, PresentMode, SurfaceConfiguration, TextureFormat,
 use winit::window::WindowId;
 
 use crate::{
-    animation::{animation_driver::AnimationDriver, animation_event::AnimationEvent, Animation},
+    animation::{
+        animation_driver::AnimationDriver, animation_event::AnimationEvent,
+        animation_request::AnimationRequest, Animation, AnimationId,
+    },
     app::LayoutUpdates,
     canvas::{
         canvas_renderer::CanvasRenderer, color::Color32f, skia_cpu_canvas::SkiaCanvas, Canvas,
@@ -44,7 +47,7 @@ pub enum RenderThreadMessage {
     UpdateBounds(LayoutUpdates),
     StateUpdates(StateUpdate),
     MergeUpdate(MergeResult),
-    AddAnimationDriver(WindowId, ElementId, Duration),
+    AnimationRequest(WindowId, ElementId, AnimationRequest),
 }
 
 pub struct RenderSendersAndReceivers {
@@ -58,7 +61,7 @@ pub struct AnimationEvents {
 
 pub struct Animator {
     time: Instant,
-    drivers: HashMap<WindowId, Vec<(ElementId, AnimationDriver)>>,
+    drivers: HashMap<WindowId, Vec<(ElementId, AnimationId, AnimationDriver)>>,
 }
 
 impl Animator {
@@ -69,16 +72,23 @@ impl Animator {
         }
     }
 
-    pub fn add_driver(&mut self, window_id: WindowId, element_id: ElementId, duration: Duration) {
+    pub fn add_driver(
+        &mut self,
+        window_id: WindowId,
+        element_id: ElementId,
+        animation_id: AnimationId,
+        duration: Duration,
+    ) {
         let has_key = self.drivers.contains_key(&window_id);
         if !has_key {
             self.drivers.insert(window_id, Vec::new());
         }
 
-        self.drivers
-            .get_mut(&window_id)
-            .unwrap()
-            .push((element_id, AnimationDriver::new(duration)))
+        self.drivers.get_mut(&window_id).unwrap().push((
+            element_id,
+            animation_id,
+            AnimationDriver::new(duration),
+        ))
     }
 
     pub fn tick(&mut self) -> HashMap<WindowId, Vec<(ElementId, AnimationEvent)>> {
@@ -86,13 +96,13 @@ impl Animator {
         self.time = Instant::now();
         let mut results = HashMap::new();
         for (window_id, drivers) in &mut self.drivers {
-            for (element_id, driver) in drivers {
+            for (element_id, animation_id, driver) in drivers {
                 let animation_event = if driver.value() == 0.0 {
-                    AnimationEvent::Start
+                    AnimationEvent::Start(*animation_id)
                 } else if driver.value() >= 1.0 {
-                    AnimationEvent::End
+                    AnimationEvent::End(*animation_id)
                 } else {
-                    AnimationEvent::Update(driver.value())
+                    AnimationEvent::Update(*animation_id, driver.value())
                 };
 
                 driver.tick(dt.as_secs_f64());
@@ -182,11 +192,14 @@ impl RenderThread {
                         self.canvas_renderers.insert(window_id, renderer);
 
                         for (element_id, animation_request) in animation_requests {
-                            self.painter_animator.add_driver(
-                                window_id,
-                                element_id,
-                                animation_request.duration,
-                            )
+                            match animation_request {
+                                AnimationRequest::Widget(animation_id, duration) => self
+                                    .widget_animator
+                                    .add_driver(window_id, element_id, animation_id, duration),
+                                AnimationRequest::Painter(animation_id, duration) => self
+                                    .painter_animator
+                                    .add_driver(window_id, element_id, animation_id, duration),
+                            }
                         }
                     }
                     RenderThreadMessage::WindowSurfaceUpdate(window_id, _dpi, size) => {
@@ -226,17 +239,38 @@ impl RenderThread {
 
                         painter.update_bounds(update.bounds);
                         for (element_id, animation_request) in animation_requests {
-                            self.painter_animator.add_driver(
-                                update.window_id,
-                                element_id,
-                                animation_request.duration,
-                            )
+                            match animation_request {
+                                AnimationRequest::Widget(animation_id, duration) => {
+                                    self.widget_animator.add_driver(
+                                        update.window_id,
+                                        element_id,
+                                        animation_id,
+                                        duration,
+                                    )
+                                }
+                                AnimationRequest::Painter(animation_id, duration) => {
+                                    self.painter_animator.add_driver(
+                                        update.window_id,
+                                        element_id,
+                                        animation_id,
+                                        duration,
+                                    )
+                                }
+                            }
                         }
                     }
-                    RenderThreadMessage::AddAnimationDriver(window_id, element_id, duration) => {
-                        self.widget_animator
-                            .add_driver(window_id, element_id, duration)
-                    }
+                    RenderThreadMessage::AnimationRequest(
+                        window_id,
+                        element_id,
+                        animation_request,
+                    ) => match animation_request {
+                        AnimationRequest::Widget(animation_id, duration) => self
+                            .widget_animator
+                            .add_driver(window_id, element_id, animation_id, duration),
+                        AnimationRequest::Painter(animation_id, duration) => self
+                            .painter_animator
+                            .add_driver(window_id, element_id, animation_id, duration),
+                    },
                 }
             }
             let events = self.widget_animator.tick();
