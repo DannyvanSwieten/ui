@@ -9,7 +9,7 @@ use crate::{
     std::drag_source::DragSourceData,
     tree::ElementId,
     ui_state::UIState,
-    widget::{BuildCtx, ChangeResponse, LayoutCtx, SizeCtx, WidgetElement, WidgetTree},
+    widget::{BuildCtx, ChangeResponse, LayoutCtx, SizeCtx, Widget, WidgetElement, WidgetTree},
     widget_tree_builder::WidgetTreeBuilder,
 };
 
@@ -23,12 +23,12 @@ pub struct UserInterface {
 }
 
 impl UserInterface {
-    pub fn new(root_tree: WidgetTree, width: f32, height: f32) -> Self {
+    pub fn new(root_widget: Box<dyn Widget>, width: f32, height: f32) -> Self {
         let width = width;
         let height = height;
 
         Self {
-            root_tree,
+            root_tree: WidgetTree::new(WidgetElement::new(root_widget)),
             _drag_source_tree: None,
             width,
             height,
@@ -71,9 +71,11 @@ impl UserInterface {
         }
     }
 
-    pub fn build(&mut self, state: &mut UIState) {
+    pub fn build(&mut self, state: &mut UIState) -> &WidgetTree {
         let mut build_ctx = BuildCtx::new(self.root_tree.root_id(), state);
         self.build_element(&mut build_ctx, self.root_tree.root_id());
+        self.layout(state);
+        &self.root_tree
     }
 
     pub fn layout(&mut self, state: &UIState) -> HashMap<usize, (Rect, Rect)> {
@@ -285,9 +287,6 @@ impl UserInterface {
         let mut actions = HashMap::new();
         for (name, id) in updates {
             actions.insert(*id, self.notify_state_update(*id, name));
-            // let mut build_ctx = BuildCtx::new(id, ui_state);
-            // self.rebuild_element(&mut build_ctx, id);
-            // self.layout_element(id, state)
         }
         let mut mutation_result = MutationResult::default();
         for (id, action) in actions {

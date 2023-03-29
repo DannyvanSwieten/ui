@@ -1,20 +1,12 @@
-use crate::tree::ElementId;
-
-use super::{animation_event::AnimationEvent, animation_request::AnimationRequest};
+use super::animation_event::AnimationEvent;
 
 pub struct AnimationCtx {
-    id: ElementId,
     event: AnimationEvent,
-    request: Option<AnimationRequest>,
 }
 
 impl AnimationCtx {
-    pub fn new(id: ElementId, event: AnimationEvent) -> Self {
-        Self {
-            id,
-            event,
-            request: None,
-        }
+    pub fn new(event: AnimationEvent) -> Self {
+        Self { event }
     }
     pub fn event(&self) -> &AnimationEvent {
         &self.event

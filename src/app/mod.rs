@@ -13,7 +13,6 @@ use crate::{
     painter::{PainterTreeBuilder, TreePainter},
     ui_state::UIState,
     user_interface::{MutationResult, UserInterface},
-    widget_tree_builder::WidgetTreeBuilder,
     window_request::WindowRequest,
 };
 use pollster::block_on;
@@ -320,8 +319,11 @@ impl Application {
                     .expect("Window creation failed");
                 if let Some(builder) = request.builder() {
                     let root = (*builder)(&mut self.ui_state);
-                    let widget_tree = WidgetTreeBuilder::new(root).build(&mut self.ui_state);
-                    let painter_tree = PainterTreeBuilder::build(&widget_tree, &self.ui_state);
+                    let mut ui =
+                        UserInterface::new(root, request.width as f32, request.height as f32);
+                    let widget_tree = ui.build(&mut self.ui_state);
+                    let painter_tree = PainterTreeBuilder::build(widget_tree, &self.ui_state);
+                    self.user_interfaces.insert(window.id(), ui);
                     let (tree_painter, message_sender) = TreePainter::new(
                         painter_tree,
                         Size::new(
@@ -332,13 +334,6 @@ impl Application {
                     );
                     painter_trees.insert(window.id(), message_sender);
 
-                    let mut ui = UserInterface::new(
-                        widget_tree,
-                        request.width as f32,
-                        request.height as f32,
-                    );
-                    let bounds = ui.layout(&self.ui_state);
-
                     io.painter_message_sender
                         .send(RenderThreadMessage::AddWindowPainter((
                             window.id(),
@@ -346,14 +341,6 @@ impl Application {
                             CanvasRenderer::new(&gpu, &window),
                         )))
                         .expect("Send failed");
-
-                    io.painter_message_sender
-                        .send(RenderThreadMessage::UpdateBounds(LayoutUpdates {
-                            window_id: window.id(),
-                            bounds,
-                        }))
-                        .expect("Bounds update send failed");
-                    self.user_interfaces.insert(window.id(), ui);
                 }
 
                 self.windows.insert(window.id(), window);

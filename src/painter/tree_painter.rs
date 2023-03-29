@@ -144,7 +144,7 @@ impl TreePainter {
     pub fn animation(&mut self, animation_events: Vec<(ElementId, AnimationEvent)>) {
         for (id, animation_event) in animation_events {
             if let Some(painter) = &mut self.tree[id].data.painter {
-                let mut ctx = AnimationCtx::new(id, animation_event);
+                let mut ctx = AnimationCtx::new(animation_event);
                 painter.animation_event(&mut ctx)
             }
         }
