@@ -20,6 +20,7 @@ use std::{
     any::Any,
     collections::HashMap,
     sync::{mpsc::Receiver, Arc},
+    thread::JoinHandle,
 };
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
@@ -29,7 +30,8 @@ use winit::{
 };
 
 use self::render_thread::{
-    AnimationEvents, MergeResult, RenderThread, RenderThreadMessage, StateUpdate,
+    AnimationEvents, MergeResult, RenderSendersAndReceivers, RenderThread, RenderThreadMessage,
+    StateUpdate,
 };
 
 pub struct Resize {
@@ -106,11 +108,14 @@ pub struct Application {
     user_interfaces: HashMap<WindowId, UserInterface>,
     windows: HashMap<WindowId, Window>,
     pub mouse_state: ApplicationMouseState,
+    pub io: RenderSendersAndReceivers,
+    render_thread_handle: JoinHandle<()>,
 }
 
 impl Application {
     pub fn start(delegate: impl ApplicationDelegate + 'static) {
         let ui_state = delegate.create_ui_state();
+        let (render_thread, io) = RenderThread::new();
         let app = Self {
             ui_state,
             window_requests: Vec::new(),
@@ -118,6 +123,8 @@ impl Application {
             user_interfaces: HashMap::new(),
             windows: HashMap::new(),
             mouse_state: ApplicationMouseState::default(),
+            io,
+            render_thread_handle: render_thread.start(),
         };
         app.run(delegate);
     }
@@ -365,14 +372,14 @@ impl Application {
                 self.handle_window_event(window_id, event, delegate, event_resolution, control_flow)
             }
 
-            Event::MainEventsCleared => {}
+            Event::MainEventsCleared => self.collect_animation_messages(),
 
             _ => *control_flow = ControlFlow::Poll,
         }
     }
 
-    fn collect_animation_messages(&mut self, animation_receiver: Receiver<AnimationEvents>) {
-        while let Ok(message) = animation_receiver.try_recv() {
+    fn collect_animation_messages(&mut self) {
+        while let Ok(message) = self.io.animation_message_receiver.try_recv() {
             for (window_id, animation_events) in message.events {
                 let mut event_resolution = EventResolution::default();
                 event_resolution.set_window_id(window_id);
@@ -399,14 +406,13 @@ impl Application {
         let event_loop = EventLoop::new();
         let mut painter_trees = HashMap::new();
         let gpu = block_on(GpuApi::new());
-        let (painter_manager, io) = RenderThread::new();
-        let _join_handle = painter_manager.start();
         event_loop.run(move |event, event_loop, control_flow| {
             let mut event_resolution = EventResolution::default();
             self.handle_event(&mut delegate, &mut event_resolution, control_flow, &event);
 
             if let Some(resize) = &event_resolution.resize {
-                io.painter_message_sender
+                self.io
+                    .painter_message_sender
                     .send(RenderThreadMessage::WindowSurfaceUpdate(
                         resize.window_id,
                         resize.dpi,
@@ -415,7 +421,8 @@ impl Application {
                     .expect("Painter message send failed");
 
                 if let Some(layout_updates) = event_resolution.layout_updates {
-                    io.painter_message_sender
+                    self.io
+                        .painter_message_sender
                         .send(RenderThreadMessage::UpdateBounds(layout_updates))
                         .expect("Bounds update message send failed")
                 }
@@ -448,7 +455,8 @@ impl Application {
                     );
                     painter_trees.insert(window.id(), message_sender);
 
-                    io.painter_message_sender
+                    self.io
+                        .painter_message_sender
                         .send(RenderThreadMessage::AddWindowPainter((
                             window.id(),
                             tree_painter,
@@ -480,7 +488,8 @@ impl Application {
                     let parent = rebuild.parent;
                     let tree = PainterTreeBuilder::build(&rebuild.tree, &self.ui_state);
                     let bounds = ui.merge_rebuild(rebuild, &self.ui_state);
-                    io.painter_message_sender
+                    self.io
+                        .painter_message_sender
                         .send(RenderThreadMessage::MergeUpdate(MergeResult {
                             window_id,
                             tree,
@@ -494,7 +503,8 @@ impl Application {
             self.ui_state.clear_updates();
 
             if let Some(state_updates) = event_resolution.state_updates {
-                io.painter_message_sender
+                self.io
+                    .painter_message_sender
                     .send(RenderThreadMessage::StateUpdates(StateUpdate {
                         window_id: event_resolution.window_id.unwrap(),
                         states: state_updates.states,
