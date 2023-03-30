@@ -1,8 +1,11 @@
-use crate::geo::Point;
+use crate::{animation::animation_event::AnimationEvent, geo::Point};
 
 pub enum Event {
     Mouse(MouseEvent),
     Key(KeyEvent),
+    Resize(Point),
+    Focus(bool),
+    Animation(AnimationEvent),
 }
 
 pub enum MouseEvent {

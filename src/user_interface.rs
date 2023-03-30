@@ -1,6 +1,7 @@
 use std::{any::Any, collections::HashMap, sync::Arc};
 
 use crate::{
+    app::EventResolution,
     constraints::BoxConstraints,
     event::{Event, MouseEvent},
     event_context::{EventCtx, SetState},
@@ -252,18 +253,20 @@ impl UserInterface {
         event: &Event,
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
-    ) -> (
-        HashMap<usize, Arc<dyn Any + Send>>,
-        HashMap<usize, (Rect, Rect)>,
+        event_result: &mut EventResolution,
     ) {
         match event {
             Event::Mouse(mouse_event) => {
                 let state_updates = self.mouse_event(mouse_event, message_ctx, ui_state);
                 let new_states = self.handle_state_updates(state_updates);
                 let new_bounds = self.process_state_results(ui_state, &new_states);
-                (new_states, new_bounds)
+                event_result.set_state_updates(new_states);
+                event_result.set_layout_updates(new_bounds);
             }
-            Event::Key(_) => todo!(),
+            Event::Key(_) => (),
+            Event::Resize(_) => (),
+            Event::Focus(_) => (),
+            Event::Animation(_) => (),
         }
     }
 

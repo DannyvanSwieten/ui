@@ -18,8 +18,8 @@ use crate::{
 use pollster::block_on;
 use std::{any::Any, collections::HashMap, sync::Arc};
 use winit::{
-    dpi::LogicalSize,
-    event::{ElementState, Event, WindowEvent},
+    dpi::{LogicalSize, PhysicalPosition},
+    event::{DeviceId, ElementState, Event, MouseButton, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder, WindowId},
 };
@@ -33,7 +33,6 @@ pub struct Resize {
 }
 
 pub struct StateUpdates {
-    pub window_id: WindowId,
     pub states: HashMap<usize, Arc<dyn Any + Send>>,
 }
 
@@ -43,6 +42,7 @@ pub struct LayoutUpdates {
 }
 
 pub struct EventResolution {
+    pub window_id: Option<WindowId>,
     resize: Option<Resize>,
     messages: Vec<Message>,
     state_updates: Option<StateUpdates>,
@@ -52,6 +52,7 @@ pub struct EventResolution {
 impl EventResolution {
     pub fn new() -> Self {
         Self {
+            window_id: None,
             resize: None,
             messages: Vec::new(),
             state_updates: None,
@@ -59,30 +60,23 @@ impl EventResolution {
         }
     }
 
+    pub fn set_window_id(&mut self, window_id: WindowId) {
+        self.window_id = Some(window_id)
+    }
+
     pub fn set_resize(&mut self, resize: Resize) {
         self.resize = Some(resize)
     }
 
-    pub fn set_state_updates(
-        &mut self,
-        window_id: WindowId,
-        states: HashMap<usize, Arc<dyn Any + Send>>,
-    ) {
-        self.state_updates = Some(StateUpdates { window_id, states })
+    pub fn set_state_updates(&mut self, states: HashMap<usize, Arc<dyn Any + Send>>) {
+        self.state_updates = Some(StateUpdates { states })
     }
 
-    pub fn set_layout_updates(
-        &mut self,
-        window_id: WindowId,
-        bounds: HashMap<usize, (Rect, Rect)>,
-    ) {
-        self.layout_updates = Some(LayoutUpdates { window_id, bounds })
-    }
-}
-
-impl Default for EventResolution {
-    fn default() -> Self {
-        Self::new()
+    pub fn set_layout_updates(&mut self, bounds: HashMap<usize, (Rect, Rect)>) {
+        self.layout_updates = Some(LayoutUpdates {
+            window_id: self.window_id.unwrap(),
+            bounds,
+        })
     }
 }
 
@@ -116,30 +110,143 @@ impl Application {
         app.run(delegate);
     }
 
-    pub fn handle_event(
+    pub fn handle_focus_change(
         &mut self,
-        delegate: &mut (dyn ApplicationDelegate + 'static),
-        control_flow: &mut ControlFlow,
-        event: &Event<()>,
-    ) -> EventResolution {
-        let mut message_ctx = MessageCtx::default();
-        let mut resolution = EventResolution::new();
-        match event {
-            Event::LoopDestroyed => delegate.app_will_quit(),
+        window_id: &WindowId,
+        focused: bool,
+        event_resolution: &mut EventResolution,
+    ) {
+        if let Some(ui) = self.user_interfaces.get_mut(window_id) {
+            let mut message_ctx = MessageCtx::default();
+            ui.event(
+                &crate::event::Event::Focus(focused),
+                &mut message_ctx,
+                &mut self.ui_state,
+                event_resolution,
+            );
+        }
+    }
 
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
-            } => {
-                self.windows.remove(window_id);
-                if self.windows.is_empty() && delegate.quit_when_last_window_closes() {
-                    *control_flow = ControlFlow::Exit
+    pub fn handle_mouse_input(
+        &mut self,
+        window_id: &WindowId,
+        state: &ElementState,
+        button: &MouseButton,
+        device_id: &DeviceId,
+        event_resolution: &mut EventResolution,
+    ) {
+        let mut message_ctx = MessageCtx::default();
+        match state {
+            ElementState::Pressed => {
+                if let Some(ui) = self.user_interfaces.get_mut(window_id) {
+                    let mouse_event = mouse_event::MouseEvent::new(
+                        0,
+                        &self.mouse_state.last_mouse_position,
+                        &self.mouse_state.last_mouse_position,
+                    );
+                    ui.event(
+                        &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
+                        &mut message_ctx,
+                        &self.ui_state,
+                        event_resolution,
+                    );
+
+                    self.mouse_state.mouse_down_state.insert(*window_id, true);
                 }
             }
-            Event::WindowEvent {
-                event: WindowEvent::Resized(size),
-                window_id,
-            } => {
+            ElementState::Released => {
+                if let Some(ui) = self.user_interfaces.get_mut(window_id) {
+                    let mouse_event = mouse_event::MouseEvent::new(
+                        0,
+                        &self.mouse_state.last_mouse_position,
+                        &self.mouse_state.last_mouse_position,
+                    );
+
+                    if self.mouse_state.drag_start.is_some() {
+                        ui.event(
+                            &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(mouse_event)),
+                            &mut message_ctx,
+                            &self.ui_state,
+                            event_resolution,
+                        );
+
+                        self.mouse_state.drag_start = None;
+                    }
+
+                    ui.event(
+                        &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
+                        &mut message_ctx,
+                        &self.ui_state,
+                        event_resolution,
+                    );
+
+                    event_resolution.messages.extend(message_ctx.messages());
+                    self.mouse_state.mouse_down_state.insert(*window_id, false);
+                }
+            }
+        }
+    }
+
+    pub fn handle_mouse_cursor_move(
+        &mut self,
+        window_id: &WindowId,
+        position: &PhysicalPosition<f64>,
+        event_resolution: &mut EventResolution,
+    ) {
+        let mut message_ctx = MessageCtx::default();
+        let dpi = self.windows.get(window_id).unwrap().scale_factor();
+        let position = position.to_logical::<f32>(dpi);
+        let position = Point::new(position.x as _, position.y as _);
+        if let Some(ui) = self.user_interfaces.get_mut(window_id) {
+            let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
+            if let Some(mouse_down) = self.mouse_state.mouse_down_state.get(window_id) {
+                if *mouse_down {
+                    if self.mouse_state.drag_start.is_none() {
+                        self.mouse_state.drag_start = Some(position);
+                        ui.event(
+                            &crate::event::Event::Mouse(MouseEvent::MouseDragStart(mouse_event)),
+                            &mut message_ctx,
+                            &self.ui_state,
+                            event_resolution,
+                        );
+                    } else {
+                        mouse_event = mouse_event
+                            .with_delta(
+                                *mouse_event.global_position()
+                                    - self.mouse_state.last_mouse_position,
+                            )
+                            .with_drag_start(self.mouse_state.drag_start);
+                        ui.event(
+                            &crate::event::Event::Mouse(MouseEvent::MouseDrag(mouse_event)),
+                            &mut message_ctx,
+                            &self.ui_state,
+                            event_resolution,
+                        );
+                    }
+                }
+            } else {
+                ui.event(
+                    &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
+                    &mut message_ctx,
+                    &self.ui_state,
+                    event_resolution,
+                );
+            }
+        }
+        self.mouse_state.last_mouse_position = Point::new(position.x as _, position.y as _);
+    }
+
+    pub fn handle_window_event(
+        &mut self,
+        window_id: &WindowId,
+        event: &WindowEvent,
+        delegate: &mut dyn ApplicationDelegate,
+        event_resolution: &mut EventResolution,
+        control_flow: &mut ControlFlow,
+    ) {
+        event_resolution.set_window_id(*window_id);
+        match event {
+            WindowEvent::Resized(size) => {
                 if let Some(ui) = self.user_interfaces.get_mut(window_id) {
                     let dpi = self.windows.get(window_id).unwrap().scale_factor();
                     let logical_size = size.to_logical::<f32>(dpi);
@@ -148,134 +255,112 @@ impl Application {
                         logical_size.height as _,
                         &self.ui_state,
                     );
-                    resolution.set_layout_updates(*window_id, bounds);
-                    resolution.set_resize(Resize {
+                    event_resolution.set_layout_updates(bounds);
+                    event_resolution.set_resize(Resize {
                         window_id: *window_id,
                         size: Size::new(size.width as _, size.height as _),
                         dpi: dpi as _,
-                    })
+                    });
                 }
             }
-            Event::MainEventsCleared => {}
-            Event::WindowEvent {
-                event: WindowEvent::MouseInput { state: s, .. },
-                window_id,
-            } => match s {
-                ElementState::Pressed => {
-                    if let Some(ui) = self.user_interfaces.get_mut(window_id) {
-                        let mouse_event = mouse_event::MouseEvent::new(
-                            0,
-                            &self.mouse_state.last_mouse_position,
-                            &self.mouse_state.last_mouse_position,
-                        );
-                        let (state_updates, layout_updates) = ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
-                            &mut message_ctx,
-                            &self.ui_state,
-                        );
-
-                        resolution.set_state_updates(*window_id, state_updates);
-                        resolution.set_layout_updates(*window_id, layout_updates);
-
-                        self.mouse_state.mouse_down_state.insert(*window_id, true);
-                    }
+            WindowEvent::Moved(_) => todo!(),
+            WindowEvent::CloseRequested => {
+                self.windows.remove(window_id);
+                if self.windows.is_empty() && delegate.quit_when_last_window_closes() {
+                    *control_flow = ControlFlow::Exit;
                 }
-                ElementState::Released => {
-                    if let Some(ui) = self.user_interfaces.get_mut(window_id) {
-                        let mouse_event = mouse_event::MouseEvent::new(
-                            0,
-                            &self.mouse_state.last_mouse_position,
-                            &self.mouse_state.last_mouse_position,
-                        );
-
-                        if self.mouse_state.drag_start.is_some() {
-                            let (state_updates, layout_updates) = ui.event(
-                                &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(mouse_event)),
-                                &mut message_ctx,
-                                &self.ui_state,
-                            );
-
-                            resolution.set_state_updates(*window_id, state_updates);
-                            resolution.set_layout_updates(*window_id, layout_updates);
-
-                            self.mouse_state.drag_start = None;
-                        }
-
-                        let (state_updates, layout_updates) = ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
-                            &mut message_ctx,
-                            &self.ui_state,
-                        );
-
-                        resolution.set_state_updates(*window_id, state_updates);
-                        resolution.set_layout_updates(*window_id, layout_updates);
-                        resolution.messages.extend(message_ctx.messages());
-                        self.mouse_state.mouse_down_state.insert(*window_id, false);
-                    }
-                }
-            },
-            Event::WindowEvent {
-                event:
-                    WindowEvent::CursorMoved {
-                        device_id: _,
-                        position,
-                        ..
-                    },
-                window_id,
+            }
+            WindowEvent::Destroyed => todo!(),
+            WindowEvent::DroppedFile(_) => todo!(),
+            WindowEvent::HoveredFile(_) => todo!(),
+            WindowEvent::HoveredFileCancelled => todo!(),
+            WindowEvent::ReceivedCharacter(_) => todo!(),
+            WindowEvent::Focused(state) => {
+                self.handle_focus_change(window_id, *state, event_resolution);
+            }
+            WindowEvent::KeyboardInput {
+                device_id,
+                input,
+                is_synthetic,
+            } => todo!(),
+            WindowEvent::ModifiersChanged(_) => todo!(),
+            WindowEvent::Ime(_) => todo!(),
+            WindowEvent::CursorMoved {
+                device_id,
+                position,
+                ..
+            } => self.handle_mouse_cursor_move(window_id, position, event_resolution),
+            WindowEvent::CursorEntered { device_id } => (),
+            WindowEvent::CursorLeft { device_id } => (),
+            WindowEvent::MouseWheel {
+                device_id,
+                delta,
+                phase,
+                ..
+            } => todo!(),
+            WindowEvent::MouseInput {
+                device_id,
+                state,
+                button,
+                ..
             } => {
-                let dpi = self.windows.get(window_id).unwrap().scale_factor();
-                let position = position.to_logical::<f32>(dpi);
-                let position = Point::new(position.x as _, position.y as _);
-                if let Some(ui) = self.user_interfaces.get_mut(window_id) {
-                    let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
-                    if let Some(mouse_down) = self.mouse_state.mouse_down_state.get(window_id) {
-                        if *mouse_down {
-                            if self.mouse_state.drag_start.is_none() {
-                                self.mouse_state.drag_start = Some(position);
-                                let (state_updates, layout_updates) = ui.event(
-                                    &crate::event::Event::Mouse(MouseEvent::MouseDragStart(
-                                        mouse_event,
-                                    )),
-                                    &mut message_ctx,
-                                    &self.ui_state,
-                                );
-
-                                resolution.set_state_updates(*window_id, state_updates);
-                                resolution.set_layout_updates(*window_id, layout_updates);
-                            } else {
-                                mouse_event = mouse_event
-                                    .with_delta(
-                                        *mouse_event.global_position()
-                                            - self.mouse_state.last_mouse_position,
-                                    )
-                                    .with_drag_start(self.mouse_state.drag_start);
-                                let (state_updates, layout_updates) = ui.event(
-                                    &crate::event::Event::Mouse(MouseEvent::MouseDrag(mouse_event)),
-                                    &mut message_ctx,
-                                    &self.ui_state,
-                                );
-
-                                resolution.set_state_updates(*window_id, state_updates);
-                                resolution.set_layout_updates(*window_id, layout_updates);
-                            }
-                        }
-                    } else {
-                        let (state_updates, layout_updates) = ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
-                            &mut message_ctx,
-                            &self.ui_state,
-                        );
-
-                        resolution.set_state_updates(*window_id, state_updates);
-                        resolution.set_layout_updates(*window_id, layout_updates);
-                    }
-                }
-                self.mouse_state.last_mouse_position = Point::new(position.x as _, position.y as _);
+                self.handle_mouse_input(window_id, state, button, device_id, event_resolution);
             }
+            WindowEvent::TouchpadMagnify {
+                device_id,
+                delta,
+                phase,
+            } => todo!(),
+            WindowEvent::SmartMagnify { device_id } => todo!(),
+            WindowEvent::TouchpadRotate {
+                device_id,
+                delta,
+                phase,
+            } => todo!(),
+            WindowEvent::TouchpadPressure {
+                device_id,
+                pressure,
+                stage,
+            } => todo!(),
+            WindowEvent::AxisMotion {
+                device_id,
+                axis,
+                value,
+            } => todo!(),
+            WindowEvent::Touch(_) => todo!(),
+            WindowEvent::ScaleFactorChanged {
+                scale_factor,
+                new_inner_size,
+            } => todo!(),
+            WindowEvent::ThemeChanged(_) => todo!(),
+            WindowEvent::Occluded(_) => todo!(),
+        }
+    }
+
+    pub fn handle_event(
+        &mut self,
+        delegate: &mut (dyn ApplicationDelegate + 'static),
+        control_flow: &mut ControlFlow,
+        event: &Event<()>,
+    ) -> EventResolution {
+        let mut event_resolution = EventResolution::new();
+        match event {
+            Event::LoopDestroyed => delegate.app_will_quit(),
+
+            Event::WindowEvent { window_id, event } => self.handle_window_event(
+                window_id,
+                event,
+                delegate,
+                &mut event_resolution,
+                control_flow,
+            ),
+
+            Event::MainEventsCleared => {}
+
             _ => *control_flow = ControlFlow::Poll,
         }
 
-        resolution
+        event_resolution
     }
 
     fn run(mut self, delegate: impl ApplicationDelegate + 'static) {
@@ -382,7 +467,7 @@ impl Application {
             if let Some(state_updates) = event_resolution.state_updates {
                 io.painter_message_sender
                     .send(RenderThreadMessage::StateUpdates(StateUpdate {
-                        window_id: state_updates.window_id,
+                        window_id: event_resolution.window_id.unwrap(),
                         states: state_updates.states,
                         bounds: HashMap::new(),
                     }))
