@@ -275,7 +275,7 @@ impl Application {
                     });
                 }
             }
-            WindowEvent::Moved(_) => todo!(),
+            WindowEvent::Moved(_) => (), //todo!("Moved"),
             WindowEvent::CloseRequested => {
                 self.windows.remove(window_id);
                 if self.windows.is_empty() && delegate.quit_when_last_window_closes() {
@@ -347,7 +347,7 @@ impl Application {
                 new_inner_size,
             } => todo!(),
             WindowEvent::ThemeChanged(_) => todo!(),
-            WindowEvent::Occluded(_) => todo!(),
+            WindowEvent::Occluded(_) => (), // todo!("Occluded"),
         }
     }
 
