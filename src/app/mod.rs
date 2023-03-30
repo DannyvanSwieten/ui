@@ -16,7 +16,11 @@ use crate::{
     window_request::WindowRequest,
 };
 use pollster::block_on;
-use std::{any::Any, collections::HashMap, sync::Arc};
+use std::{
+    any::Any,
+    collections::HashMap,
+    sync::{mpsc::Receiver, Arc},
+};
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
     event::{DeviceId, ElementState, Event, MouseButton, WindowEvent},
@@ -24,7 +28,9 @@ use winit::{
     window::{Window, WindowBuilder, WindowId},
 };
 
-use self::render_thread::{MergeResult, RenderThread, RenderThreadMessage, StateUpdate};
+use self::render_thread::{
+    AnimationEvents, MergeResult, RenderThread, RenderThreadMessage, StateUpdate,
+};
 
 pub struct Resize {
     pub window_id: WindowId,
@@ -80,6 +86,12 @@ impl EventResolution {
     }
 }
 
+impl Default for EventResolution {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Default)]
 pub struct ApplicationMouseState {
     last_mouse_position: Point,
@@ -121,7 +133,7 @@ impl Application {
             ui.event(
                 &crate::event::Event::Focus(focused),
                 &mut message_ctx,
-                &mut self.ui_state,
+                &self.ui_state,
                 event_resolution,
             );
         }
@@ -270,7 +282,9 @@ impl Application {
                     *control_flow = ControlFlow::Exit;
                 }
             }
-            WindowEvent::Destroyed => todo!(),
+            WindowEvent::Destroyed => {
+                self.user_interfaces.remove(window_id);
+            }
             WindowEvent::DroppedFile(_) => todo!(),
             WindowEvent::HoveredFile(_) => todo!(),
             WindowEvent::HoveredFileCancelled => todo!(),
@@ -340,27 +354,41 @@ impl Application {
     pub fn handle_event(
         &mut self,
         delegate: &mut (dyn ApplicationDelegate + 'static),
+        event_resolution: &mut EventResolution,
         control_flow: &mut ControlFlow,
         event: &Event<()>,
-    ) -> EventResolution {
-        let mut event_resolution = EventResolution::new();
+    ) {
         match event {
             Event::LoopDestroyed => delegate.app_will_quit(),
 
-            Event::WindowEvent { window_id, event } => self.handle_window_event(
-                window_id,
-                event,
-                delegate,
-                &mut event_resolution,
-                control_flow,
-            ),
+            Event::WindowEvent { window_id, event } => {
+                self.handle_window_event(window_id, event, delegate, event_resolution, control_flow)
+            }
 
             Event::MainEventsCleared => {}
 
             _ => *control_flow = ControlFlow::Poll,
         }
+    }
 
-        event_resolution
+    fn collect_animation_messages(&mut self, animation_receiver: Receiver<AnimationEvents>) {
+        while let Ok(message) = animation_receiver.try_recv() {
+            for (window_id, animation_events) in message.events {
+                let mut event_resolution = EventResolution::default();
+                event_resolution.set_window_id(window_id);
+                for (element_id, event) in animation_events {
+                    if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+                        let mut message_ctx = MessageCtx::default();
+                        ui.event(
+                            &crate::event::Event::Animation(event),
+                            &mut message_ctx,
+                            &self.ui_state,
+                            &mut event_resolution,
+                        );
+                    }
+                }
+            }
+        }
     }
 
     fn run(mut self, delegate: impl ApplicationDelegate + 'static) {
@@ -374,7 +402,8 @@ impl Application {
         let (painter_manager, io) = RenderThread::new();
         let _join_handle = painter_manager.start();
         event_loop.run(move |event, event_loop, control_flow| {
-            let event_resolution = self.handle_event(&mut delegate, control_flow, &event);
+            let mut event_resolution = EventResolution::default();
+            self.handle_event(&mut delegate, &mut event_resolution, control_flow, &event);
 
             if let Some(resize) = &event_resolution.resize {
                 io.painter_message_sender

@@ -2,11 +2,19 @@ use crate::geo::Point;
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum MouseEventType {
-    MouseDown,
-    MouseUp,
-    MouseMove,
+    MouseDown(MouseButton),
+    MouseUp(MouseButton),
+    MouseMove(MouseButton),
 
-    DoubleClick,
+    DoubleClick(MouseButton),
+}
+
+#[derive(PartialEq, Eq, Hash)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+    Other(u8),
 }
 
 #[derive(Clone, Copy)]
