@@ -1,8 +1,12 @@
-use std::{any::Any, sync::Arc};
+use std::{any::Any, sync::Arc, time::Duration};
 
 use crate::{
-    animation::animation_event::AnimationEvent, event::MouseEvent,
-    std::drag_source::DragSourceData, tree::ElementId,
+    animation::{
+        animation_event::AnimationEvent, animation_request::AnimationRequest, AnimationId,
+    },
+    event::MouseEvent,
+    std::drag_source::DragSourceData,
+    tree::ElementId,
 };
 pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;
 
@@ -13,6 +17,7 @@ pub struct EventCtx<'a> {
     animation_event: Option<&'a AnimationEvent>,
     set_state: Option<SetState>,
     state: Option<&'a (dyn Any + Send)>,
+    animation_requests: Vec<AnimationRequest>,
 }
 
 impl<'a> EventCtx<'a> {
@@ -28,6 +33,7 @@ impl<'a> EventCtx<'a> {
             animation_event: None,
             set_state: None,
             state,
+            animation_requests: Vec::new(),
         }
     }
 
@@ -43,6 +49,7 @@ impl<'a> EventCtx<'a> {
             animation_event,
             set_state: None,
             state,
+            animation_requests: Vec::new(),
         }
     }
 
@@ -56,6 +63,16 @@ impl<'a> EventCtx<'a> {
 
     pub fn mouse_event(&self) -> &'a MouseEvent {
         self.mouse_event.unwrap()
+    }
+
+    pub fn request_widget_animation(&mut self, animation_id: AnimationId, duration: Duration) {
+        self.animation_requests
+            .push(AnimationRequest::Widget(animation_id, duration));
+    }
+
+    pub fn request_painter_animation(&mut self, animation_id: AnimationId, duration: Duration) {
+        self.animation_requests
+            .push(AnimationRequest::Painter(animation_id, duration));
     }
 
     pub fn animation_event(&self) -> &'a AnimationEvent {

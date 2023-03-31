@@ -47,7 +47,7 @@ pub enum RenderThreadMessage {
     UpdateBounds(LayoutUpdates),
     StateUpdates(StateUpdate),
     MergeUpdate(MergeResult),
-    AnimationRequest(WindowId, ElementId, AnimationRequest),
+    AnimationRequest(WindowId, ElementId, Vec<AnimationRequest>),
 }
 
 pub struct RenderSendersAndReceivers {
@@ -262,15 +262,19 @@ impl RenderThread {
                     RenderThreadMessage::AnimationRequest(
                         window_id,
                         element_id,
-                        animation_request,
-                    ) => match animation_request {
-                        AnimationRequest::Widget(animation_id, duration) => self
-                            .widget_animator
-                            .add_driver(window_id, element_id, animation_id, duration),
-                        AnimationRequest::Painter(animation_id, duration) => self
-                            .painter_animator
-                            .add_driver(window_id, element_id, animation_id, duration),
-                    },
+                        animation_requests,
+                    ) => {
+                        for request in animation_requests {
+                            match request {
+                                AnimationRequest::Widget(animation_id, duration) => self
+                                    .widget_animator
+                                    .add_driver(window_id, element_id, animation_id, duration),
+                                AnimationRequest::Painter(animation_id, duration) => self
+                                    .painter_animator
+                                    .add_driver(window_id, element_id, animation_id, duration),
+                            }
+                        }
+                    }
                 }
             }
             let events = self.widget_animator.tick();

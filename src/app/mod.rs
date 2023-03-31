@@ -3,6 +3,7 @@ mod application_delegate;
 pub use application_delegate::ApplicationDelegate;
 pub mod render_thread;
 use crate::{
+    animation::animation_request::AnimationRequest,
     canvas::canvas_renderer::CanvasRenderer,
     event::MouseEvent,
     geo::{Point, Rect, Size},
@@ -11,17 +12,13 @@ use crate::{
     message_context::MessageCtx,
     mouse_event,
     painter::{PainterTreeBuilder, TreePainter},
+    tree::ElementId,
     ui_state::UIState,
     user_interface::{MutationResult, UserInterface},
     window_request::WindowRequest,
 };
 use pollster::block_on;
-use std::{
-    any::Any,
-    collections::HashMap,
-    sync::{mpsc::Receiver, Arc},
-    thread::JoinHandle,
-};
+use std::{any::Any, collections::HashMap, sync::Arc, thread::JoinHandle};
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
     event::{DeviceId, ElementState, Event, MouseButton, WindowEvent},
@@ -30,8 +27,7 @@ use winit::{
 };
 
 use self::render_thread::{
-    AnimationEvents, MergeResult, RenderSendersAndReceivers, RenderThread, RenderThreadMessage,
-    StateUpdate,
+    MergeResult, RenderSendersAndReceivers, RenderThread, RenderThreadMessage, StateUpdate,
 };
 
 pub struct Resize {
@@ -46,7 +42,7 @@ pub struct StateUpdates {
 
 pub struct LayoutUpdates {
     pub window_id: WindowId,
-    pub bounds: HashMap<usize, (Rect, Rect)>,
+    pub bounds: HashMap<ElementId, (Rect, Rect)>,
 }
 
 pub struct EventResolution {
@@ -55,6 +51,7 @@ pub struct EventResolution {
     messages: Vec<Message>,
     state_updates: Option<StateUpdates>,
     layout_updates: Option<LayoutUpdates>,
+    animation_requests: HashMap<ElementId, Vec<AnimationRequest>>,
 }
 
 impl EventResolution {
@@ -65,6 +62,7 @@ impl EventResolution {
             messages: Vec::new(),
             state_updates: None,
             layout_updates: None,
+            animation_requests: HashMap::new(),
         }
     }
 
@@ -85,6 +83,14 @@ impl EventResolution {
             window_id: self.window_id.unwrap(),
             bounds,
         })
+    }
+
+    pub fn add_animation_requests(
+        &mut self,
+        element_id: ElementId,
+        requests: Vec<AnimationRequest>,
+    ) {
+        self.animation_requests.insert(element_id, requests);
     }
 }
 
@@ -372,13 +378,16 @@ impl Application {
                 self.handle_window_event(window_id, event, delegate, event_resolution, control_flow)
             }
 
-            Event::MainEventsCleared => self.collect_animation_messages(),
+            Event::MainEventsCleared => {
+                let results = self.handle_animation_messages();
+            }
 
             _ => *control_flow = ControlFlow::Poll,
         }
     }
 
-    fn collect_animation_messages(&mut self) {
+    fn handle_animation_messages(&mut self) -> Vec<EventResolution> {
+        let mut results = Vec::new();
         while let Ok(message) = self.io.animation_message_receiver.try_recv() {
             for (window_id, animation_events) in message.events {
                 let mut event_resolution = EventResolution::default();
@@ -394,8 +403,11 @@ impl Application {
                         );
                     }
                 }
+
+                results.push(event_resolution);
             }
         }
+        results
     }
 
     fn run(mut self, delegate: impl ApplicationDelegate + 'static) {
@@ -510,6 +522,17 @@ impl Application {
                         states: state_updates.states,
                         bounds: HashMap::new(),
                     }))
+                    .expect("Send failed");
+            }
+
+            for (element_id, animation_requests) in event_resolution.animation_requests {
+                self.io
+                    .painter_message_sender
+                    .send(RenderThreadMessage::AnimationRequest(
+                        event_resolution.window_id.unwrap(),
+                        element_id,
+                        animation_requests,
+                    ))
                     .expect("Send failed");
             }
         });
