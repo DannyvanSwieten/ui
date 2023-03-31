@@ -58,6 +58,10 @@ impl<'a> EventCtx<'a> {
         self.mouse_event.unwrap()
     }
 
+    pub fn animation_event(&self) -> &'a AnimationEvent {
+        self.animation_event.unwrap()
+    }
+
     pub fn drag_source(&mut self) -> Option<DragSourceData> {
         self.drag_source.take()
     }
