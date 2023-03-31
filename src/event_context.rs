@@ -1,18 +1,22 @@
 use std::{any::Any, sync::Arc};
 
-use crate::{event::MouseEvent, std::drag_source::DragSourceData, tree::ElementId};
+use crate::{
+    animation::animation_event::AnimationEvent, event::MouseEvent,
+    std::drag_source::DragSourceData, tree::ElementId,
+};
 pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;
 
 pub struct EventCtx<'a> {
     id: ElementId,
     drag_source: Option<DragSourceData>,
     mouse_event: Option<&'a MouseEvent>,
+    animation_event: Option<&'a AnimationEvent>,
     set_state: Option<SetState>,
     state: Option<&'a (dyn Any + Send)>,
 }
 
 impl<'a> EventCtx<'a> {
-    pub fn new(
+    pub fn new_mouse_event(
         id: ElementId,
         mouse_event: Option<&'a MouseEvent>,
         state: Option<&'a (dyn Any + Send)>,
@@ -21,6 +25,22 @@ impl<'a> EventCtx<'a> {
             id,
             drag_source: None,
             mouse_event,
+            animation_event: None,
+            set_state: None,
+            state,
+        }
+    }
+
+    pub fn new_animation_event(
+        id: ElementId,
+        animation_event: Option<&'a AnimationEvent>,
+        state: Option<&'a (dyn Any + Send)>,
+    ) -> Self {
+        Self {
+            id,
+            drag_source: None,
+            mouse_event: None,
+            animation_event,
             set_state: None,
             state,
         }

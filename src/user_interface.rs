@@ -1,6 +1,7 @@
 use std::{any::Any, collections::HashMap, sync::Arc};
 
 use crate::{
+    animation::{animation_ctx::AnimationCtx, animation_event::AnimationEvent},
     app::EventResolution,
     constraints::BoxConstraints,
     event::{Event, MouseEvent},
@@ -214,7 +215,8 @@ impl UserInterface {
             let node = &self.root_tree[hit];
             let local_event = event.to_local(&node.global_bounds.position());
             let state = node.data.widget_state();
-            let mut event_ctx = EventCtx::new(hit, Some(&local_event), state.as_deref());
+            let mut event_ctx =
+                EventCtx::new_mouse_event(hit, Some(&local_event), state.as_deref());
             node.data
                 .widget()
                 .mouse_event(ui_state, &mut event_ctx, message_ctx);
@@ -235,7 +237,8 @@ impl UserInterface {
             let node = &self.root_tree[intercept];
             let local_event = event.to_local(&node.global_bounds.position());
             let state = node.data.widget_state();
-            let mut event_ctx = EventCtx::new(intercept, Some(&local_event), state.as_deref());
+            let mut event_ctx =
+                EventCtx::new_mouse_event(intercept, Some(&local_event), state.as_deref());
             node.data
                 .widget()
                 .mouse_event(ui_state, &mut event_ctx, message_ctx);
@@ -246,6 +249,20 @@ impl UserInterface {
         }
 
         widget_states
+    }
+
+    pub fn animation_event(
+        &mut self,
+        element_id: ElementId,
+        event: &AnimationEvent,
+        ui_state: &UIState,
+    ) {
+        for node in self.root_tree.nodes().values() {
+            let state = node.data.widget_state();
+            let mut event_ctx =
+                EventCtx::new_animation_event(element_id, Some(event), state.as_deref());
+            node.data.widget().animation_event(&mut event_ctx, ui_state)
+        }
     }
 
     pub fn event(
@@ -266,7 +283,9 @@ impl UserInterface {
             Event::Key(_) => (),
             Event::Resize(_) => (),
             Event::Focus(_) => (),
-            Event::Animation(_) => (),
+            Event::Animation(element_id, animation_event) => {
+                self.animation_event(*element_id, animation_event, ui_state)
+            }
         }
     }
 

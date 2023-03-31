@@ -1,11 +1,11 @@
-use crate::{animation::animation_event::AnimationEvent, geo::Point};
+use crate::{animation::animation_event::AnimationEvent, geo::Point, tree::ElementId};
 
 pub enum Event {
     Mouse(MouseEvent),
     Key(KeyEvent),
     Resize(Point),
     Focus(bool),
-    Animation(AnimationEvent),
+    Animation(ElementId, AnimationEvent),
 }
 
 pub enum MouseEvent {

@@ -109,7 +109,7 @@ pub struct Application {
     windows: HashMap<WindowId, Window>,
     pub mouse_state: ApplicationMouseState,
     pub io: RenderSendersAndReceivers,
-    render_thread_handle: JoinHandle<()>,
+    _render_thread_handle: JoinHandle<()>,
 }
 
 impl Application {
@@ -124,7 +124,7 @@ impl Application {
             windows: HashMap::new(),
             mouse_state: ApplicationMouseState::default(),
             io,
-            render_thread_handle: render_thread.start(),
+            _render_thread_handle: render_thread.start(),
         };
         app.run(delegate);
     }
@@ -387,7 +387,7 @@ impl Application {
                     if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
                         let mut message_ctx = MessageCtx::default();
                         ui.event(
-                            &crate::event::Event::Animation(event),
+                            &crate::event::Event::Animation(element_id, event),
                             &mut message_ctx,
                             &self.ui_state,
                             &mut event_resolution,

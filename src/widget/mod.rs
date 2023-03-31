@@ -67,7 +67,7 @@ pub trait Widget {
     ) {
     }
 
-    fn animation_event(&self, _ui_state: &UIState, animation_context: &mut AnimationCtx) {}
+    fn animation_event(&self, event_context: &mut EventCtx, _ui_state: &UIState) {}
     fn intercept_mouse_events(&self) -> bool {
         false
     }
