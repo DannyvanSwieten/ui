@@ -21,22 +21,22 @@ impl WidgetTreeBuilder {
         }
     }
 
-    fn build_element(&mut self, build_ctx: &mut BuildCtx, id: ElementId) {
+    fn build_element(&mut self, ui_state: &mut UIState, id: ElementId) {
         let node = &mut self.tree[id];
-        build_ctx.id = id;
-        if let Some(state) = node.data.widget().state(build_ctx.ui_state()) {
+        if let Some(state) = node.data.widget().state(ui_state) {
             node.data.set_state(state)
         }
-        for child in node.data.widget().build(build_ctx) {
+
+        let mut build_ctx = BuildCtx::new(id, node.data.widget_state(), ui_state);
+        for child in node.data.widget().build(&mut build_ctx) {
             let child_id = self.tree.add_node(WidgetElement::new(child));
-            self.build_element(build_ctx, child_id);
+            self.build_element(ui_state, child_id);
             self.tree.add_child(id, child_id);
         }
     }
 
     pub fn build(mut self, ui_state: &mut UIState) -> WidgetTree {
-        let mut build_ctx = BuildCtx::new(self.tree.root_id(), ui_state);
-        self.build_element(&mut build_ctx, self.tree.root_id());
+        self.build_element(ui_state, self.tree.root_id());
         self.tree
     }
 }

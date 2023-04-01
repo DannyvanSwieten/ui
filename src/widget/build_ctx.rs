@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{any::Any, sync::Arc, time::Duration};
 
 use crate::{
     animation::{animation_request::AnimationRequest, AnimationId},
@@ -11,15 +11,27 @@ pub struct BuildCtx<'a> {
     pub id: ElementId,
     ui_state: &'a mut UIState,
     animation_requests: Vec<AnimationRequest>,
+    widget_state: Option<Arc<dyn Any + Send>>,
 }
 
 impl<'a> BuildCtx<'a> {
-    pub fn new(id: ElementId, ui_state: &'a mut UIState) -> Self {
+    pub fn new(
+        id: ElementId,
+        widget_state: Option<Arc<dyn Any + Send>>,
+        ui_state: &'a mut UIState,
+    ) -> Self {
         Self {
             id,
+            widget_state,
             ui_state,
             animation_requests: Vec::new(),
         }
+    }
+
+    pub fn state<T: Any>(&self) -> Option<&T> {
+        self.widget_state
+            .as_ref()
+            .map(|arc| arc.downcast_ref::<T>().unwrap())
     }
 
     pub fn bind(&mut self, name: &str) -> Option<&Var> {

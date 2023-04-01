@@ -57,15 +57,16 @@ impl UserInterface {
         self.layout(state)
     }
 
-    fn build_element(&mut self, build_ctx: &mut BuildCtx, id: ElementId) {
+    fn build_element(&mut self, ui_state: &mut UIState, id: ElementId) {
         if let Some(node) = self.root_tree.get_mut(id) {
-            build_ctx.id = id;
-            if let Some(state) = node.data.widget().state(build_ctx.ui_state()) {
+            if let Some(state) = node.data.widget().state(ui_state) {
                 node.data.set_state(state)
             }
-            for child in node.data.widget().build(build_ctx) {
+            let widget_state = node.data.widget_state();
+            let mut build_ctx = BuildCtx::new(id, widget_state, ui_state);
+            for child in node.data.widget().build(&mut build_ctx) {
                 let child_id = self.root_tree.add_node(WidgetElement::new(child));
-                self.build_element(build_ctx, child_id);
+                self.build_element(ui_state, child_id);
                 self.root_tree.add_child(id, child_id);
             }
         } else {
@@ -73,10 +74,9 @@ impl UserInterface {
         }
     }
 
-    pub fn build(&mut self, state: &mut UIState) -> &WidgetTree {
-        let mut build_ctx = BuildCtx::new(self.root_tree.root_id(), state);
-        self.build_element(&mut build_ctx, self.root_tree.root_id());
-        self.layout(state);
+    pub fn build(&mut self, ui_state: &mut UIState) -> &WidgetTree {
+        self.build_element(ui_state, self.root_tree.root_id());
+        self.layout(ui_state);
         &self.root_tree
     }
 
