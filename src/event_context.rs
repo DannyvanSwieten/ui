@@ -20,6 +20,11 @@ pub struct EventCtx<'a> {
     animation_requests: Vec<AnimationRequest>,
 }
 
+pub struct Consumed {
+    pub animation_requests: Vec<AnimationRequest>,
+    pub set_state: Option<SetState>,
+}
+
 impl<'a> EventCtx<'a> {
     pub fn new_mouse_event(
         id: ElementId,
@@ -50,6 +55,13 @@ impl<'a> EventCtx<'a> {
             set_state: None,
             state,
             animation_requests: Vec::new(),
+        }
+    }
+
+    pub fn consume(self) -> Consumed {
+        Consumed {
+            animation_requests: self.animation_requests,
+            set_state: self.set_state,
         }
     }
 

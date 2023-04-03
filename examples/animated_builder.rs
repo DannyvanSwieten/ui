@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use ui::{
     app::{Application, ApplicationDelegate},
     geo::Size,
@@ -22,7 +24,7 @@ impl ApplicationDelegate for AppDelegate {
                     Row::new(|| {
                         vec![
                             Label::new(Value::Const("Label 1".into())).into(),
-                            AnimatedBuilder::new(|_, phase| {
+                            AnimatedBuilder::new(Duration::new(4, 0), |_, phase| {
                                 let width = 100.0 + 100.0 * phase;
                                 vec![SizedBox::new(Size::new(width as f32, 100.0)).into()]
                             })

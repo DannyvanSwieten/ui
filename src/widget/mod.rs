@@ -1,8 +1,10 @@
 mod build_ctx;
+mod build_result;
 mod layout_ctx;
 mod widget_tree;
 
 pub use build_ctx::BuildCtx;
+pub use build_result::BuildResult;
 pub use layout_ctx::LayoutCtx;
 pub use layout_ctx::SizeCtx;
 pub use widget_tree::{WidgetElement, WidgetTree};

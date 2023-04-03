@@ -79,11 +79,10 @@ impl<T> Tree<T> {
         self.nodes.insert(id, node);
     }
 
-    pub fn remove_node(&mut self, id: ElementId) -> Option<Node<T>> {
-        let node = self.nodes.remove(&id);
-        if let Some(node) = &node {
-            self.remove_children(node);
-        }
+    pub fn remove_node(&mut self, id: ElementId) -> Node<T> {
+        let node = self.nodes.remove(&id).unwrap();
+
+        self.remove_children(&node);
 
         if let Some(parent) = self.find_parent(id) {
             self.remove_child_from_parent(parent, id)
@@ -110,7 +109,8 @@ impl<T> Tree<T> {
 
     pub fn add_child(&mut self, parent: usize, child: usize) {
         if let Some(node) = self.nodes.get_mut(&parent) {
-            node.children.push(child)
+            node.children.push(child);
+            node.children.sort();
         }
     }
 

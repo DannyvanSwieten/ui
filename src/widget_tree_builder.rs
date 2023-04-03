@@ -21,7 +21,7 @@ impl WidgetTreeBuilder {
         }
     }
 
-    fn build_element(&mut self, ui_state: &mut UIState, id: ElementId) {
+    fn build_element(&mut self, ui_state: &UIState, id: ElementId) {
         let node = &mut self.tree[id];
         if let Some(state) = node.data.widget().state(ui_state) {
             node.data.set_state(state)
@@ -35,7 +35,7 @@ impl WidgetTreeBuilder {
         }
     }
 
-    pub fn build(mut self, ui_state: &mut UIState) -> WidgetTree {
+    pub fn build(mut self, ui_state: &UIState) -> WidgetTree {
         self.build_element(ui_state, self.tree.root_id());
         self.tree
     }

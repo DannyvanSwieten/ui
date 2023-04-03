@@ -6,6 +6,7 @@ use crate::{
     animation::animation_request::AnimationRequest,
     canvas::canvas_renderer::CanvasRenderer,
     event::MouseEvent,
+    event_context::SetState,
     geo::{Point, Rect, Size},
     gpu::GpuApi,
     message::Message,
@@ -14,7 +15,8 @@ use crate::{
     painter::{PainterTreeBuilder, TreePainter},
     tree::ElementId,
     ui_state::UIState,
-    user_interface::{MutationResult, UserInterface},
+    user_interface::{MutationResult, Rebuild, UserInterface},
+    widget::WidgetTree,
     window_request::WindowRequest,
 };
 use pollster::block_on;
@@ -36,6 +38,12 @@ pub struct Resize {
     pub dpi: f32,
 }
 
+impl Resize {
+    pub fn logical_size(&self) -> Size {
+        Size::new(self.size.width / self.dpi, self.size.height / self.dpi)
+    }
+}
+
 pub struct StateUpdates {
     pub states: HashMap<usize, Arc<dyn Any + Send>>,
 }
@@ -45,23 +53,21 @@ pub struct LayoutUpdates {
     pub bounds: HashMap<ElementId, (Rect, Rect)>,
 }
 
-pub struct EventResolution {
+pub struct EventResponse {
     pub window_id: Option<WindowId>,
-    resize: Option<Resize>,
-    messages: Vec<Message>,
-    state_updates: Option<StateUpdates>,
-    layout_updates: Option<LayoutUpdates>,
-    animation_requests: HashMap<ElementId, Vec<AnimationRequest>>,
+    pub resize: Option<Resize>,
+    pub messages: Vec<Message>,
+    pub update_state: HashMap<ElementId, SetState>,
+    pub animation_requests: HashMap<ElementId, Vec<AnimationRequest>>,
 }
 
-impl EventResolution {
+impl EventResponse {
     pub fn new() -> Self {
         Self {
             window_id: None,
             resize: None,
             messages: Vec::new(),
-            state_updates: None,
-            layout_updates: None,
+            update_state: HashMap::new(),
             animation_requests: HashMap::new(),
         }
     }
@@ -74,23 +80,42 @@ impl EventResolution {
         self.resize = Some(resize)
     }
 
-    pub fn set_state_updates(&mut self, states: HashMap<usize, Arc<dyn Any + Send>>) {
-        self.state_updates = Some(StateUpdates { states })
-    }
-
-    pub fn set_layout_updates(&mut self, bounds: HashMap<usize, (Rect, Rect)>) {
-        self.layout_updates = Some(LayoutUpdates {
-            window_id: self.window_id.unwrap(),
-            bounds,
-        })
-    }
-
     pub fn add_animation_requests(
         &mut self,
         element_id: ElementId,
         requests: Vec<AnimationRequest>,
     ) {
         self.animation_requests.insert(element_id, requests);
+    }
+}
+
+impl Default for EventResponse {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct EventResolution {
+    pub window_id: Option<WindowId>,
+    pub resize: Option<Resize>,
+    pub new_states: HashMap<ElementId, Arc<dyn Any + Send>>,
+    pub new_bounds: HashMap<ElementId, (Rect, Rect)>,
+    pub rebuilds: Vec<Rebuild>,
+}
+
+impl EventResolution {
+    pub fn new() -> Self {
+        Self {
+            window_id: None,
+            resize: None,
+            new_states: HashMap::new(),
+            new_bounds: HashMap::new(),
+            rebuilds: Vec::new(),
+        }
+    }
+
+    pub fn set_window_id(&mut self, window_id: WindowId) {
+        self.window_id = Some(window_id)
     }
 }
 
@@ -139,7 +164,7 @@ impl Application {
         &mut self,
         window_id: &WindowId,
         focused: bool,
-        event_resolution: &mut EventResolution,
+        event_response: &mut EventResponse,
     ) {
         if let Some(ui) = self.user_interfaces.get_mut(window_id) {
             let mut message_ctx = MessageCtx::default();
@@ -147,7 +172,7 @@ impl Application {
                 &crate::event::Event::Focus(focused),
                 &mut message_ctx,
                 &self.ui_state,
-                event_resolution,
+                event_response,
             );
         }
     }
@@ -158,7 +183,7 @@ impl Application {
         state: &ElementState,
         button: &MouseButton,
         device_id: &DeviceId,
-        event_resolution: &mut EventResolution,
+        event_response: &mut EventResponse,
     ) {
         let mut message_ctx = MessageCtx::default();
         match state {
@@ -173,7 +198,7 @@ impl Application {
                         &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
                         &mut message_ctx,
                         &self.ui_state,
-                        event_resolution,
+                        event_response,
                     );
 
                     self.mouse_state.mouse_down_state.insert(*window_id, true);
@@ -192,7 +217,7 @@ impl Application {
                             &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(mouse_event)),
                             &mut message_ctx,
                             &self.ui_state,
-                            event_resolution,
+                            event_response,
                         );
 
                         self.mouse_state.drag_start = None;
@@ -202,10 +227,10 @@ impl Application {
                         &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
                         &mut message_ctx,
                         &self.ui_state,
-                        event_resolution,
+                        event_response,
                     );
 
-                    event_resolution.messages.extend(message_ctx.messages());
+                    event_response.messages.extend(message_ctx.messages());
                     self.mouse_state.mouse_down_state.insert(*window_id, false);
                 }
             }
@@ -216,7 +241,7 @@ impl Application {
         &mut self,
         window_id: &WindowId,
         position: &PhysicalPosition<f64>,
-        event_resolution: &mut EventResolution,
+        event_response: &mut EventResponse,
     ) {
         let mut message_ctx = MessageCtx::default();
         let dpi = self.windows.get(window_id).unwrap().scale_factor();
@@ -232,7 +257,7 @@ impl Application {
                             &crate::event::Event::Mouse(MouseEvent::MouseDragStart(mouse_event)),
                             &mut message_ctx,
                             &self.ui_state,
-                            event_resolution,
+                            event_response,
                         );
                     } else {
                         mouse_event = mouse_event
@@ -245,7 +270,7 @@ impl Application {
                             &crate::event::Event::Mouse(MouseEvent::MouseDrag(mouse_event)),
                             &mut message_ctx,
                             &self.ui_state,
-                            event_resolution,
+                            event_response,
                         );
                     }
                 }
@@ -254,7 +279,7 @@ impl Application {
                     &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
                     &mut message_ctx,
                     &self.ui_state,
-                    event_resolution,
+                    event_response,
                 );
             }
         }
@@ -266,22 +291,15 @@ impl Application {
         window_id: &WindowId,
         event: &WindowEvent,
         delegate: &mut dyn ApplicationDelegate,
-        event_resolution: &mut EventResolution,
+        event_response: &mut EventResponse,
         control_flow: &mut ControlFlow,
     ) {
-        event_resolution.set_window_id(*window_id);
+        event_response.set_window_id(*window_id);
         match event {
             WindowEvent::Resized(size) => {
                 if let Some(ui) = self.user_interfaces.get_mut(window_id) {
                     let dpi = self.windows.get(window_id).unwrap().scale_factor();
-                    let logical_size = size.to_logical::<f32>(dpi);
-                    let bounds = ui.resize(
-                        logical_size.width as _,
-                        logical_size.height as _,
-                        &self.ui_state,
-                    );
-                    event_resolution.set_layout_updates(bounds);
-                    event_resolution.set_resize(Resize {
+                    event_response.set_resize(Resize {
                         window_id: *window_id,
                         size: Size::new(size.width as _, size.height as _),
                         dpi: dpi as _,
@@ -303,20 +321,20 @@ impl Application {
             WindowEvent::HoveredFileCancelled => todo!(),
             WindowEvent::ReceivedCharacter(_) => todo!(),
             WindowEvent::Focused(state) => {
-                self.handle_focus_change(window_id, *state, event_resolution);
+                self.handle_focus_change(window_id, *state, event_response);
             }
             WindowEvent::KeyboardInput {
                 device_id,
                 input,
                 is_synthetic,
             } => todo!(),
-            WindowEvent::ModifiersChanged(_) => todo!(),
+            WindowEvent::ModifiersChanged(_) => (), //todo!(),
             WindowEvent::Ime(_) => todo!(),
             WindowEvent::CursorMoved {
                 device_id,
                 position,
                 ..
-            } => self.handle_mouse_cursor_move(window_id, position, event_resolution),
+            } => self.handle_mouse_cursor_move(window_id, position, event_response),
             WindowEvent::CursorEntered { device_id } => (),
             WindowEvent::CursorLeft { device_id } => (),
             WindowEvent::MouseWheel {
@@ -331,7 +349,7 @@ impl Application {
                 button,
                 ..
             } => {
-                self.handle_mouse_input(window_id, state, button, device_id, event_resolution);
+                self.handle_mouse_input(window_id, state, button, device_id, event_response);
             }
             WindowEvent::TouchpadMagnify {
                 device_id,
@@ -367,7 +385,7 @@ impl Application {
     pub fn handle_event(
         &mut self,
         delegate: &mut (dyn ApplicationDelegate + 'static),
-        event_resolution: &mut EventResolution,
+        event_response: &mut EventResponse,
         control_flow: &mut ControlFlow,
         event: &Event<()>,
     ) {
@@ -375,7 +393,7 @@ impl Application {
             Event::LoopDestroyed => delegate.app_will_quit(),
 
             Event::WindowEvent { window_id, event } => {
-                self.handle_window_event(window_id, event, delegate, event_resolution, control_flow)
+                self.handle_window_event(window_id, event, delegate, event_response, control_flow)
             }
 
             Event::MainEventsCleared => {
@@ -386,12 +404,12 @@ impl Application {
         }
     }
 
-    fn handle_animation_messages(&mut self) -> Vec<EventResolution> {
+    fn handle_animation_messages(&mut self) -> Vec<EventResponse> {
         let mut results = Vec::new();
         while let Ok(message) = self.io.animation_message_receiver.try_recv() {
             for (window_id, animation_events) in message.events {
-                let mut event_resolution = EventResolution::default();
-                event_resolution.set_window_id(window_id);
+                let mut event_response = EventResponse::default();
+                event_response.set_window_id(window_id);
                 for (element_id, event) in animation_events {
                     if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
                         let mut message_ctx = MessageCtx::default();
@@ -399,15 +417,65 @@ impl Application {
                             &crate::event::Event::Animation(element_id, event),
                             &mut message_ctx,
                             &self.ui_state,
-                            &mut event_resolution,
+                            &mut event_response,
                         );
                     }
                 }
 
-                results.push(event_resolution);
+                results.push(event_response);
             }
         }
         results
+    }
+
+    fn handle_window_event_resolution(&mut self, event_response: &EventResponse) {
+        let window_id = event_response.window_id.unwrap();
+        if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
+            let resolution = ui.resolve_event_response(event_response, &self.ui_state);
+
+            for rebuild in resolution.rebuilds {
+                let painter_tree = PainterTreeBuilder::build(&rebuild.tree, &self.ui_state);
+                let parent = rebuild.parent;
+                let bounds = ui.merge_rebuild(rebuild, &self.ui_state);
+                self.io
+                    .painter_message_sender
+                    .send(RenderThreadMessage::MergeUpdate(MergeResult {
+                        window_id,
+                        parent,
+                        tree: painter_tree,
+                        bounds,
+                    }))
+                    .expect("Bounds update message send failed");
+            }
+
+            if let Some(resize) = &event_response.resize {
+                self.io
+                    .painter_message_sender
+                    .send(RenderThreadMessage::WindowSurfaceUpdate(
+                        resize.window_id,
+                        resize.dpi,
+                        Size::new(resize.size.width, resize.size.height),
+                    ))
+                    .expect("Painter message send failed");
+
+                self.io
+                    .painter_message_sender
+                    .send(RenderThreadMessage::UpdateBounds(LayoutUpdates {
+                        window_id,
+                        bounds: resolution.new_bounds,
+                    }))
+                    .expect("Bounds update message send failed")
+            }
+
+            self.io
+                .painter_message_sender
+                .send(RenderThreadMessage::StateUpdates(StateUpdate {
+                    window_id: event_response.window_id.unwrap(),
+                    states: resolution.new_states,
+                    bounds: HashMap::new(),
+                }))
+                .expect("Send failed");
+        }
     }
 
     fn run(mut self, delegate: impl ApplicationDelegate + 'static) {
@@ -419,25 +487,11 @@ impl Application {
         let mut painter_trees = HashMap::new();
         let gpu = block_on(GpuApi::new());
         event_loop.run(move |event, event_loop, control_flow| {
-            let mut event_resolution = EventResolution::default();
-            self.handle_event(&mut delegate, &mut event_resolution, control_flow, &event);
+            let mut event_response = EventResponse::default();
+            self.handle_event(&mut delegate, &mut event_response, control_flow, &event);
 
-            if let Some(resize) = &event_resolution.resize {
-                self.io
-                    .painter_message_sender
-                    .send(RenderThreadMessage::WindowSurfaceUpdate(
-                        resize.window_id,
-                        resize.dpi,
-                        Size::new(resize.size.width, resize.size.height),
-                    ))
-                    .expect("Painter message send failed");
-
-                if let Some(layout_updates) = event_resolution.layout_updates {
-                    self.io
-                        .painter_message_sender
-                        .send(RenderThreadMessage::UpdateBounds(layout_updates))
-                        .expect("Bounds update message send failed")
-                }
+            if event_response.window_id.is_some() {
+                self.handle_window_event_resolution(&event_response);
             }
 
             while let Some(request) = self.window_requests.pop() {
@@ -452,9 +506,11 @@ impl Application {
                     .expect("Window creation failed");
                 if let Some(builder) = request.builder() {
                     let root = (*builder)(&mut self.ui_state);
-                    let mut ui =
-                        UserInterface::new(root, request.width as f32, request.height as f32);
-                    let widget_tree = ui.build(&mut self.ui_state);
+                    let mut ui = UserInterface::new(
+                        root,
+                        Size::new(request.width as f32, request.height as f32),
+                    );
+                    let (widget_tree, build_result) = ui.build(&mut self.ui_state);
                     let painter_tree = PainterTreeBuilder::build(widget_tree, &self.ui_state);
                     self.user_interfaces.insert(window.id(), ui);
                     let (tree_painter, message_sender) = TreePainter::new(
@@ -475,12 +531,23 @@ impl Application {
                             CanvasRenderer::new(&gpu, &window),
                         )))
                         .expect("Send failed");
+
+                    for (element_id, animation_requests) in build_result.animation_requests {
+                        self.io
+                            .painter_message_sender
+                            .send(RenderThreadMessage::AnimationRequest(
+                                window.id(),
+                                element_id,
+                                animation_requests,
+                            ))
+                            .expect("Send failed");
+                    }
                 }
 
                 self.windows.insert(window.id(), window);
             }
 
-            for message in event_resolution.messages {
+            for message in event_response.messages {
                 self.dispatch(message)
             }
 
@@ -514,22 +581,22 @@ impl Application {
 
             self.ui_state.clear_updates();
 
-            if let Some(state_updates) = event_resolution.state_updates {
-                self.io
-                    .painter_message_sender
-                    .send(RenderThreadMessage::StateUpdates(StateUpdate {
-                        window_id: event_resolution.window_id.unwrap(),
-                        states: state_updates.states,
-                        bounds: HashMap::new(),
-                    }))
-                    .expect("Send failed");
-            }
+            // if let Some(state_updates) = event_response.state_updates {
+            //     self.io
+            //         .painter_message_sender
+            //         .send(RenderThreadMessage::StateUpdates(StateUpdate {
+            //             window_id: event_response.window_id.unwrap(),
+            //             states: state_updates.states,
+            //             bounds: HashMap::new(),
+            //         }))
+            //         .expect("Send failed");
+            // }
 
-            for (element_id, animation_requests) in event_resolution.animation_requests {
+            for (element_id, animation_requests) in event_response.animation_requests {
                 self.io
                     .painter_message_sender
                     .send(RenderThreadMessage::AnimationRequest(
-                        event_resolution.window_id.unwrap(),
+                        event_response.window_id.unwrap(),
                         element_id,
                         animation_requests,
                     ))
