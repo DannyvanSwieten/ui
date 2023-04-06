@@ -12,6 +12,7 @@ pub struct BuildCtx<'a> {
     ui_state: &'a UIState,
     animation_requests: Vec<AnimationRequest>,
     widget_state: Option<Arc<dyn Any + Send>>,
+    binds: Vec<String>,
 }
 
 impl<'a> BuildCtx<'a> {
@@ -25,6 +26,7 @@ impl<'a> BuildCtx<'a> {
             widget_state,
             ui_state,
             animation_requests: Vec::new(),
+            binds: Vec::new(),
         }
     }
 
@@ -35,7 +37,7 @@ impl<'a> BuildCtx<'a> {
     }
 
     pub fn bind(&mut self, name: &str) -> Option<&Var> {
-        // self.ui_state.bind_one(self.id, name);
+        self.binds.push(name.into());
         self.ui_state.get(name)
     }
 
@@ -55,5 +57,9 @@ impl<'a> BuildCtx<'a> {
 
     pub fn animation_requests(&self) -> Vec<AnimationRequest> {
         self.animation_requests.clone()
+    }
+
+    pub fn binds(&self) -> Vec<String> {
+        self.binds.clone()
     }
 }

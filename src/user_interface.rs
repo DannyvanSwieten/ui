@@ -60,6 +60,10 @@ impl UserInterface {
             build_result
                 .animation_requests
                 .insert(id, build_ctx.animation_requests());
+            let binds = build_ctx.binds();
+            if !binds.is_empty() {
+                build_result.binds.insert(id, binds);
+            }
             for child in children {
                 let child_id = self.root_tree.add_node(WidgetElement::new(child));
                 self.build_element(ui_state, child_id, build_result);
