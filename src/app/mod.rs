@@ -511,6 +511,11 @@ impl Application {
                         Size::new(request.width as f32, request.height as f32),
                     );
                     let (widget_tree, build_result) = ui.build(&mut self.ui_state);
+                    for (element_id, bindings) in build_result.binds {
+                        for bind in bindings {
+                            self.ui_state.bind_one(element_id, &bind);
+                        }
+                    }
                     let painter_tree = PainterTreeBuilder::build(widget_tree, &self.ui_state);
                     self.user_interfaces.insert(window.id(), ui);
                     let (tree_painter, message_sender) = TreePainter::new(
