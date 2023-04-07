@@ -23,7 +23,7 @@ impl WidgetElement {
         self.widget_state.clone()
     }
 
-    pub fn set_state(&mut self, state: Arc<dyn Any + Send>) {
-        self.widget_state = Some(state)
+    pub fn set_state(&mut self, state: Option<Arc<dyn Any + Send>>) {
+        self.widget_state = state
     }
 }

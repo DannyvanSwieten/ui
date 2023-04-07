@@ -34,13 +34,23 @@ impl<T> Tree<T> {
         tree
     }
 
-    pub fn new_with_root_id(data: T, root: usize) -> Self {
+    pub fn new_with_root_id(data: T, root: ElementId) -> Self {
         let mut tree = Self {
             nodes: HashMap::new(),
             root,
         };
 
         tree.add_node_with_id(root, Node::new(data));
+        tree
+    }
+
+    pub fn new_with_root_node(node: Node<T>, id: ElementId) -> Self {
+        let mut tree = Self {
+            nodes: HashMap::new(),
+            root: id,
+        };
+
+        tree.add_node_with_id(id, node);
         tree
     }
 

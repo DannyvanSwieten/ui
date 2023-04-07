@@ -397,18 +397,16 @@ impl Application {
             }
 
             Event::MainEventsCleared => {
-                let results = self.handle_animation_messages();
+                self.handle_animation_messages(event_response);
             }
 
             _ => *control_flow = ControlFlow::Poll,
         }
     }
 
-    fn handle_animation_messages(&mut self) -> Vec<EventResponse> {
-        let mut results = Vec::new();
+    fn handle_animation_messages(&mut self, event_response: &mut EventResponse) {
         while let Ok(message) = self.io.animation_message_receiver.try_recv() {
             for (window_id, animation_events) in message.events {
-                let mut event_response = EventResponse::default();
                 event_response.set_window_id(window_id);
                 for (element_id, event) in animation_events {
                     if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
@@ -417,15 +415,12 @@ impl Application {
                             &crate::event::Event::Animation(element_id, event),
                             &mut message_ctx,
                             &self.ui_state,
-                            &mut event_response,
+                            event_response,
                         );
                     }
                 }
-
-                results.push(event_response);
             }
         }
-        results
     }
 
     fn handle_window_event_resolution(&mut self, event_response: &EventResponse) {

@@ -62,4 +62,13 @@ impl Widget for AnimatedBuilder {
         };
         event_context.set_state(move |_old_state| new_state);
     }
+
+    fn calculate_size(
+        &self,
+        children: &[usize],
+        constraints: &crate::constraints::BoxConstraints,
+        size_ctx: &crate::widget::SizeCtx,
+    ) -> Option<crate::geo::Size> {
+        size_ctx.preferred_size(children[0], constraints)
+    }
 }

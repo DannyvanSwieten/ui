@@ -119,6 +119,19 @@ impl Animator {
             }
         }
 
+        for (window_id, events) in &mut results {
+            for (element_id, event) in events {
+                if let AnimationEvent::End(animation_id) = event {
+                    let drivers = self.drivers.get_mut(window_id).unwrap();
+                    let index = drivers
+                        .iter()
+                        .position(|(e_id, a_id, _)| e_id == element_id && a_id == animation_id)
+                        .unwrap();
+                    drivers.remove(index);
+                }
+            }
+        }
+
         results
     }
 }

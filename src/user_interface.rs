@@ -51,15 +51,20 @@ impl UserInterface {
 
     fn build_element(&mut self, ui_state: &UIState, id: ElementId, build_result: &mut BuildResult) {
         if let Some(node) = self.root_tree.get_mut(id) {
-            if let Some(state) = node.data.widget().state(ui_state) {
-                node.data.set_state(state)
+            if node.data.widget_state().is_none() {
+                node.data.set_state(node.data.widget().state(ui_state));
             }
+
             let widget_state = node.data.widget_state();
             let mut build_ctx = BuildCtx::new(id, widget_state, ui_state);
             let children = node.data.widget().build(&mut build_ctx);
-            build_result
-                .animation_requests
-                .insert(id, build_ctx.animation_requests());
+            let animation_requests = build_ctx.animation_requests();
+            if !animation_requests.is_empty() {
+                build_result
+                    .animation_requests
+                    .insert(id, build_ctx.animation_requests());
+            }
+
             let binds = build_ctx.binds();
             if !binds.is_empty() {
                 build_result.binds.insert(id, binds);
@@ -150,7 +155,8 @@ impl UserInterface {
         let mut resolution = EventResolution::default();
         resolution.new_states = self.handle_state_updates(response);
         if !resolution.new_states.is_empty() {
-            resolution.new_states.iter().for_each(|(id, _)| {
+            resolution.new_states.iter().for_each(|(id, new_state)| {
+                self.root_tree[*id].data.set_state(Some(new_state.clone()));
                 let rebuild = self.rebuild_element(*id, ui_state);
                 resolution.rebuilds.push(rebuild);
             });
@@ -185,7 +191,7 @@ impl UserInterface {
     ) -> HashMap<usize, (Rect, Rect)> {
         let mut layout_results = HashMap::new();
         results.iter().for_each(|(id, result)| {
-            self.root_tree[*id].data.set_state(result.clone());
+            self.root_tree[*id].data.set_state(Some(result.clone()));
 
             let mut build_result = BuildResult::default();
             self.build_element(ui_state, *id, &mut build_result);
@@ -294,19 +300,13 @@ impl UserInterface {
             EventCtx::new_animation_event(element_id, Some(event), state.as_deref());
         node.data.widget().animation_event(&mut event_ctx, ui_state);
         let consume = event_ctx.consume();
-        let mut widget_states = HashMap::new();
         if let Some(set_state) = consume.set_state {
-            widget_states.insert(element_id, set_state);
+            event_response.update_state.insert(element_id, set_state);
         }
 
-        // // here we push all side-effects into the event resolution
-        // let state_updates = self.handle_state_updates(widget_states);
-        // // new widget states
-        // event_response.set_state_updates(state_updates);
-        // // animation requests
-        // event_response
-        //     .animation_requests
-        //     .insert(element_id, consume.animation_requests);
+        event_response
+            .animation_requests
+            .insert(element_id, consume.animation_requests);
     }
 
     pub fn event(
@@ -373,9 +373,9 @@ impl UserInterface {
     /// Removes the node from the tree and from its parent then build a new subtree from the node's widget.
     pub fn rebuild_element(&mut self, id: ElementId, ui_state: &UIState) -> Rebuild {
         let parent = self.root_tree.find_parent(id);
-        let node = self.root_tree.remove_node(id);
-
-        let tree = WidgetTreeBuilder::new_with_root_id(node.data.widget, id).build(ui_state);
+        let mut node = self.root_tree.remove_node(id);
+        node.children.clear();
+        let tree = WidgetTreeBuilder::new_with_root_node(node, id).build(ui_state);
 
         Rebuild { parent, id, tree }
     }

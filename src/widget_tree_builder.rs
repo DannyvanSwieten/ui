@@ -1,5 +1,5 @@
 use crate::{
-    tree::ElementId,
+    tree::{ElementId, Node},
     ui_state::UIState,
     widget::{BuildCtx, Widget, WidgetElement, WidgetTree},
 };
@@ -15,6 +15,12 @@ impl WidgetTreeBuilder {
         }
     }
 
+    pub fn new_with_root_node(root: Node<WidgetElement>, root_id: ElementId) -> Self {
+        Self {
+            tree: WidgetTree::new_with_root_node(root, root_id),
+        }
+    }
+
     pub fn new_with_root_id(root: Box<dyn Widget>, root_id: ElementId) -> Self {
         Self {
             tree: WidgetTree::new_with_root_id(WidgetElement::new(root), root_id),
@@ -23,8 +29,8 @@ impl WidgetTreeBuilder {
 
     fn build_element(&mut self, ui_state: &UIState, id: ElementId) {
         let node = &mut self.tree[id];
-        if let Some(state) = node.data.widget().state(ui_state) {
-            node.data.set_state(state)
+        if node.data.widget_state().is_none() {
+            node.data.set_state(node.data().widget().state(ui_state))
         }
 
         let mut build_ctx = BuildCtx::new(id, node.data.widget_state(), ui_state);
