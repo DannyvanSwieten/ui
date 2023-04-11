@@ -1,11 +1,7 @@
 use ui::{
     app::{Application, ApplicationDelegate},
     message::Message,
-    std::{
-        center::Center,
-        drag_source::{DragSource, DragSourceData, DragSourceItem},
-        text_button::TextButton,
-    },
+    std::{center::Center, drag_source::DragSource, text_button::TextButton},
     ui_state::UIState,
     window_request::WindowRequest,
 };
@@ -23,11 +19,7 @@ impl ApplicationDelegate for AppDelegate {
                 .with_ui(|_| {
                     Center::new(|| {
                         DragSource::new(|| TextButton::new("Button").into())
-                            .with_drag_start(|| {
-                                DragSourceData::new().with_item(DragSourceItem::new(
-                                    TextButton::new("You're Dragging Me").into(),
-                                ))
-                            })
+                            .with_drag_start(|| "Drag start".to_string())
                             .into()
                     })
                     .into()

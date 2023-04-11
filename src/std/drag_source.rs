@@ -1,61 +1,19 @@
+use std::sync::Arc;
+
 use crate::{
     constraints::BoxConstraints,
     event_context::EventCtx,
-    geo::{Rect, Size},
+    geo::{Point, Rect, Size},
     ui_state::UIState,
     widget::{BuildCtx, Child, Children, LayoutCtx, SizeCtx, Widget},
 };
-use std::any::Any;
 
-pub struct DragSourceItem {
-    widget: Box<dyn Widget>,
-    _data: Option<Box<dyn Any>>,
-}
-
-impl DragSourceItem {
-    pub fn widget(&self) -> &dyn Widget {
-        self.widget.as_ref()
-    }
-
-    pub fn new(widget: Box<dyn Widget>) -> DragSourceItem {
-        Self {
-            widget,
-            _data: None,
-        }
-    }
-}
-
-pub struct DragSourceData {
-    items: Vec<DragSourceItem>,
-}
-
-impl DragSourceData {
-    pub fn new() -> Self {
-        Self { items: Vec::new() }
-    }
-
-    pub fn with_item(mut self, item: DragSourceItem) -> Self {
-        self.items.push(item);
-        self
-    }
-
-    pub fn items(&self) -> &[DragSourceItem] {
-        &self.items
-    }
-}
-
-impl Default for DragSourceData {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-pub struct DragSource {
+pub struct DragSource<T> {
     child: Child,
-    drag_start: Option<Box<dyn Fn() -> DragSourceData>>,
+    drag_start: Option<Box<dyn Fn() -> T>>,
 }
 
-impl DragSource {
+impl<T> DragSource<T> {
     pub fn new<C>(child: C) -> Self
     where
         C: Fn() -> Box<dyn Widget> + 'static,
@@ -68,16 +26,28 @@ impl DragSource {
 
     pub fn with_drag_start<F>(mut self, handler: F) -> Self
     where
-        F: Fn() -> DragSourceData + 'static,
+        F: Fn() -> T + 'static,
     {
         self.drag_start = Some(Box::new(handler));
         self
     }
 }
 
-impl Widget for DragSource {
+struct DragState {
+    pub dragging: bool,
+    pub position: Point,
+}
+
+impl<T: 'static> Widget for DragSource<T> {
     fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![(self.child)()]
+    }
+
+    fn state(&self, _: &UIState) -> Option<std::sync::Arc<dyn std::any::Any + Send>> {
+        Some(std::sync::Arc::new(DragState {
+            dragging: false,
+            position: Point::new(0.0, 0.0),
+        }))
     }
 
     fn calculate_size(
@@ -96,7 +66,22 @@ impl Widget for DragSource {
         size: Size,
         children: &[usize],
     ) {
-        layout_ctx.set_child_bounds(children[0], Rect::new_from_size(size))
+        if let Some(state) = layout_ctx.state::<DragState>() {
+            let child_size = layout_ctx
+                .preferred_size(
+                    children[0],
+                    &BoxConstraints::new_with_max(size.width, size.height),
+                )
+                .unwrap_or(size);
+            if state.dragging {
+                layout_ctx.set_child_bounds(
+                    children[0],
+                    Rect::new(state.position - (size * 0.5).into(), child_size),
+                );
+            } else {
+                layout_ctx.set_child_bounds(children[0], Rect::new_from_size(child_size));
+            }
+        }
     }
 
     fn mouse_event(
@@ -105,11 +90,46 @@ impl Widget for DragSource {
         event_ctx: &mut EventCtx,
         _message_ctx: &mut crate::message_context::MessageCtx,
     ) {
-        if let crate::event::MouseEvent::MouseDragStart(_mouse_event) = event_ctx.mouse_event() {
+        if let crate::event::MouseEvent::MouseDragStart(mouse_event) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
                 event_ctx.set_drag_source(handler())
             }
+            let position = *mouse_event.local_position();
+            event_ctx.set_state(move |_| DragState {
+                dragging: true,
+                position,
+            });
+
+            // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
+            // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
+        }
+
+        if let crate::event::MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
+            // Register this component as drag source in ctx
+            if let Some(handler) = &self.drag_start {
+                event_ctx.set_drag_source(handler())
+            }
+            let position = *mouse_event.local_position();
+            event_ctx.set_state(move |_| DragState {
+                dragging: true,
+                position,
+            });
+
+            // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
+            // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
+        }
+
+        if let crate::event::MouseEvent::MouseDragEnd(_) = event_ctx.mouse_event() {
+            // Register this component as drag source in ctx
+            if let Some(handler) = &self.drag_start {
+                event_ctx.set_drag_source(handler())
+            }
+            let position = Point::default();
+            event_ctx.set_state(move |_| DragState {
+                dragging: true,
+                position,
+            });
 
             // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
             // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.

@@ -8,7 +8,6 @@ use crate::{
     event_context::EventCtx,
     geo::{Point, Rect, Size},
     message_context::MessageCtx,
-    std::drag_source::DragSourceData,
     tree::ElementId,
     ui_state::UIState,
     widget::{
@@ -21,19 +20,17 @@ use crate::{
 pub struct UserInterface {
     root_tree: WidgetTree,
     size: Size,
-    _drag_source: Option<DragSourceData>,
-    drag_source_offset: Option<Point>,
-    _drag_source_tree: Option<WidgetTree>,
+    _drag_source: Option<Box<dyn Any>>,
+    mouse_down_elements: Vec<ElementId>,
 }
 
 impl UserInterface {
     pub fn new(root_widget: Box<dyn Widget>, size: Size) -> Self {
         Self {
             root_tree: WidgetTree::new(WidgetElement::new(root_widget)),
-            _drag_source_tree: None,
             size,
             _drag_source: None,
-            drag_source_offset: None,
+            mouse_down_elements: Vec::new(),
         }
     }
 
@@ -51,11 +48,11 @@ impl UserInterface {
 
     fn build_element(&mut self, ui_state: &UIState, id: ElementId, build_result: &mut BuildResult) {
         if let Some(node) = self.root_tree.get_mut(id) {
-            if node.data.widget_state().is_none() {
+            if node.data.state().is_none() {
                 node.data.set_state(node.data.widget().state(ui_state));
             }
 
-            let widget_state = node.data.widget_state();
+            let widget_state = node.data.state();
             let mut build_ctx = BuildCtx::new(id, widget_state, ui_state);
             let children = node.data.widget().build(&mut build_ctx);
             let animation_requests = build_ctx.animation_requests();
@@ -139,14 +136,6 @@ impl UserInterface {
         }
     }
 
-    pub fn set_drag_source_position(&mut self, pos: Point) {
-        self.drag_source_offset = Some(pos)
-    }
-
-    pub fn update_drag_source_position(&mut self, offset: Option<Point>) {
-        self.drag_source_offset = offset;
-    }
-
     pub fn resolve_event_response(
         &mut self,
         response: &EventResponse,
@@ -156,9 +145,11 @@ impl UserInterface {
         resolution.new_states = self.handle_state_updates(response);
         if !resolution.new_states.is_empty() {
             resolution.new_states.iter().for_each(|(id, new_state)| {
-                self.root_tree[*id].data.set_state(Some(new_state.clone()));
-                let rebuild = self.rebuild_element(*id, ui_state);
-                resolution.rebuilds.push(rebuild);
+                if let Some(node) = self.root_tree.get_mut(*id) {
+                    node.data.set_state(Some(new_state.clone()));
+                    let rebuild = self.rebuild_element(*id, ui_state);
+                    resolution.rebuilds.push(rebuild);
+                }
             });
         }
 
@@ -176,7 +167,7 @@ impl UserInterface {
         let mut results = HashMap::new();
         for (id, modify) in &response.update_state {
             let node = &self.root_tree[*id];
-            if let Some(old_state) = node.data.widget_state() {
+            if let Some(old_state) = node.data.state() {
                 results.insert(*id, modify(old_state.as_ref()));
             }
         }
@@ -204,8 +195,8 @@ impl UserInterface {
     pub fn hit_test(
         &self,
         position: &Point,
-        intercepted: &mut Vec<usize>,
-        hit: &mut Option<usize>,
+        intercepted: &mut Vec<ElementId>,
+        hit: &mut Option<ElementId>,
     ) {
         self.hit_test_element(self.root_tree.root_id(), position, intercepted, hit);
     }
@@ -214,8 +205,8 @@ impl UserInterface {
         &self,
         id: ElementId,
         position: &Point,
-        intercepted: &mut Vec<usize>,
-        hit: &mut Option<usize>,
+        intercepted: &mut Vec<ElementId>,
+        hit: &mut Option<ElementId>,
     ) {
         let node = &self.root_tree[id];
         if node.hit_test(position) {
@@ -231,6 +222,34 @@ impl UserInterface {
         }
     }
 
+    fn send_mouse_event(
+        &mut self,
+        element_id: ElementId,
+        event: &MouseEvent,
+        message_ctx: &mut MessageCtx,
+        ui_state: &UIState,
+        event_response: &mut EventResponse,
+    ) {
+        if let Some(node) = &self.root_tree.get(element_id) {
+            let local_event = event.to_local(&node.global_bounds.position());
+            let state = node.data.state();
+            let mut event_ctx =
+                EventCtx::new_mouse_event(element_id, true, Some(&local_event), state.as_deref());
+            node.data
+                .widget()
+                .mouse_event(ui_state, &mut event_ctx, message_ctx);
+
+            let consume = event_ctx.consume();
+            if let Some(set_state) = consume.set_state {
+                event_response.update_state.insert(element_id, set_state);
+            }
+            // animation requests
+            event_response
+                .animation_requests
+                .insert(element_id, consume.animation_requests);
+        }
+    }
+
     pub fn mouse_event(
         &mut self,
         event: &MouseEvent,
@@ -242,48 +261,39 @@ impl UserInterface {
         let mut hit = None;
         self.hit_test(event.local_position(), &mut intercepted, &mut hit);
         if let Some(hit) = hit {
-            let node = &self.root_tree[hit];
-            let local_event = event.to_local(&node.global_bounds.position());
-            let state = node.data.widget_state();
-            let mut event_ctx =
-                EventCtx::new_mouse_event(hit, Some(&local_event), state.as_deref());
-            node.data
-                .widget()
-                .mouse_event(ui_state, &mut event_ctx, message_ctx);
-            // if let Some(drag_source) = event_ctx.drag_source() {
-            //     for _item in drag_source.items() {
-            //         // item.widget().build(build_ctx);
-            //         todo!()
-            //     }
-            // }
-
-            let consume = event_ctx.consume();
-            if let Some(set_state) = consume.set_state {
-                event_response.update_state.insert(hit, set_state);
-            }
-            // animation requests
-            event_response
-                .animation_requests
-                .insert(hit, consume.animation_requests);
+            self.send_mouse_event(hit, event, message_ctx, ui_state, event_response)
         }
 
-        // for intercept in intercepted {
-        //     let mut widget_states = HashMap::new();
-        //     let node = &self.root_tree[intercept];
-        //     let local_event = event.to_local(&node.global_bounds.position());
-        //     let state = node.data.widget_state();
-        //     let mut event_ctx =
-        //         EventCtx::new_mouse_event(intercept, Some(&local_event), state.as_deref());
-        //     node.data
-        //         .widget()
-        //         .mouse_event(ui_state, &mut event_ctx, message_ctx);
-        //     let set_state = event_ctx.consume_state();
-        //     if let Some(set_state) = set_state {
-        //         widget_states.insert(intercept, set_state);
-        //     }
+        for intercept in &intercepted {
+            self.send_mouse_event(*intercept, event, message_ctx, ui_state, event_response)
+        }
 
-        //     event_response.set_state_updates(self.handle_state_updates(widget_states));
-        // }
+        match event {
+            MouseEvent::MouseUp(_) => {
+                for mouse_down in self.mouse_down_elements.clone() {
+                    self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
+                }
+
+                self.mouse_down_elements.clear();
+            }
+            MouseEvent::MouseDown(_) => {
+                if let Some(hit) = hit {
+                    self.mouse_down_elements.push(hit);
+                }
+                self.mouse_down_elements.extend(intercepted.into_iter())
+            }
+            MouseEvent::MouseDrag(_) => {
+                for mouse_down in self.mouse_down_elements.clone() {
+                    self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
+                }
+            }
+            MouseEvent::MouseDragEnd(_) => {
+                for mouse_down in self.mouse_down_elements.clone() {
+                    self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
+                }
+            }
+            _ => {}
+        }
     }
 
     pub fn animation_event(
@@ -295,7 +305,7 @@ impl UserInterface {
     ) {
         let node = &self.root_tree[element_id];
 
-        let state = node.data.widget_state();
+        let state = node.data.state();
         let mut event_ctx =
             EventCtx::new_animation_event(element_id, Some(event), state.as_deref());
         node.data.widget().animation_event(&mut event_ctx, ui_state);
@@ -319,9 +329,6 @@ impl UserInterface {
         match event {
             Event::Mouse(mouse_event) => {
                 self.mouse_event(mouse_event, message_ctx, ui_state, event_response);
-                // let new_bounds =
-                // self.process_state_results(ui_state, &event_response.state_updates);
-                // event_response.set_layout_updates(new_bounds);
             }
             Event::Key(_) => (),
             Event::Resize(_) => (),

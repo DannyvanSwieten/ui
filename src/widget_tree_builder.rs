@@ -29,11 +29,11 @@ impl WidgetTreeBuilder {
 
     fn build_element(&mut self, ui_state: &UIState, id: ElementId) {
         let node = &mut self.tree[id];
-        if node.data.widget_state().is_none() {
+        if node.data.state().is_none() {
             node.data.set_state(node.data().widget().state(ui_state))
         }
 
-        let mut build_ctx = BuildCtx::new(id, node.data.widget_state(), ui_state);
+        let mut build_ctx = BuildCtx::new(id, node.data.state(), ui_state);
         for child in node.data.widget().build(&mut build_ctx) {
             let child_id = self.tree.add_node(WidgetElement::new(child));
             self.build_element(ui_state, child_id);

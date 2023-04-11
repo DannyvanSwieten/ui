@@ -214,7 +214,9 @@ impl Application {
 
                     if self.mouse_state.drag_start.is_some() {
                         ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(mouse_event)),
+                            &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(
+                                mouse_event.clone(),
+                            )),
                             &mut message_ctx,
                             &self.ui_state,
                             event_response,
@@ -224,7 +226,7 @@ impl Application {
                     }
 
                     ui.event(
-                        &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event)),
+                        &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event.clone())),
                         &mut message_ctx,
                         &self.ui_state,
                         event_response,
@@ -254,13 +256,16 @@ impl Application {
                     if self.mouse_state.drag_start.is_none() {
                         self.mouse_state.drag_start = Some(position);
                         ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseDragStart(mouse_event)),
+                            &crate::event::Event::Mouse(MouseEvent::MouseDragStart(
+                                mouse_event.clone(),
+                            )),
                             &mut message_ctx,
                             &self.ui_state,
                             event_response,
                         );
                     } else {
                         mouse_event = mouse_event
+                            .clone()
                             .with_delta(
                                 *mouse_event.global_position()
                                     - self.mouse_state.last_mouse_position,
@@ -276,7 +281,7 @@ impl Application {
                 }
             } else {
                 ui.event(
-                    &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event)),
+                    &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event.clone())),
                     &mut message_ctx,
                     &self.ui_state,
                     event_response,

@@ -39,19 +39,15 @@ impl Widget for Label {
         _constraints: &BoxConstraints,
         size_ctx: &SizeCtx,
     ) -> Option<Size> {
-        let size = if let Some(state) = size_ctx.state() {
-            if let Some(state) =
-                state.downcast_ref::<Option<(String, Option<skia_safe::TextBlob>)>>()
-            {
-                match state {
-                    Some((_, blob)) => {
-                        let bounds = blob.as_ref().unwrap().bounds();
-                        Some(Size::new(bounds.width(), bounds.height()))
-                    }
-                    _ => None,
+        let size = if let Some(state) =
+            size_ctx.state::<Option<(String, Option<skia_safe::TextBlob>)>>()
+        {
+            match state {
+                Some((_, blob)) => {
+                    let bounds = blob.as_ref().unwrap().bounds();
+                    Some(Size::new(bounds.width(), bounds.height()))
                 }
-            } else {
-                None
+                _ => None,
             }
         } else {
             None

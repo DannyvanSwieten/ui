@@ -1,5 +1,7 @@
 use std::ops::{Add, Sub};
 
+use super::Size;
+
 #[derive(Clone, Copy, Default)]
 pub struct Point {
     pub x: f32,
@@ -30,6 +32,15 @@ impl Add<Point> for Point {
         Self {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Into<Point> for Size {
+    fn into(self) -> Point {
+        Point {
+            x: self.width,
+            y: self.height,
         }
     }
 }

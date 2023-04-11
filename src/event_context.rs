@@ -5,14 +5,14 @@ use crate::{
         animation_event::AnimationEvent, animation_request::AnimationRequest, AnimationId,
     },
     event::MouseEvent,
-    std::drag_source::DragSourceData,
     tree::ElementId,
 };
 pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;
 
 pub struct EventCtx<'a> {
     id: ElementId,
-    drag_source: Option<DragSourceData>,
+    is_mouse_over: bool,
+    drag_source: Option<Box<dyn Any>>,
     mouse_event: Option<&'a MouseEvent>,
     animation_event: Option<&'a AnimationEvent>,
     set_state: Option<SetState>,
@@ -28,11 +28,13 @@ pub struct Consumed {
 impl<'a> EventCtx<'a> {
     pub fn new_mouse_event(
         id: ElementId,
+        is_mouse_over: bool,
         mouse_event: Option<&'a MouseEvent>,
         state: Option<&'a (dyn Any + Send)>,
     ) -> Self {
         Self {
             id,
+            is_mouse_over,
             drag_source: None,
             mouse_event,
             animation_event: None,
@@ -49,6 +51,7 @@ impl<'a> EventCtx<'a> {
     ) -> Self {
         Self {
             id,
+            is_mouse_over: false,
             drag_source: None,
             mouse_event: None,
             animation_event,
@@ -69,8 +72,8 @@ impl<'a> EventCtx<'a> {
         self.id
     }
 
-    pub fn set_drag_source(&mut self, data: DragSourceData) {
-        self.drag_source = Some(data)
+    pub fn set_drag_source<T: 'static>(&mut self, data: T) {
+        self.drag_source = Some(Box::new(data))
     }
 
     pub fn mouse_event(&self) -> &'a MouseEvent {
@@ -91,8 +94,8 @@ impl<'a> EventCtx<'a> {
         self.animation_event.unwrap()
     }
 
-    pub fn drag_source(&mut self) -> Option<DragSourceData> {
-        self.drag_source.take()
+    pub fn drag_source(&mut self) -> Option<&dyn Any> {
+        self.drag_source.as_deref()
     }
 
     pub fn set_state<T>(&mut self, modify: impl Fn(&T) -> T + Send + 'static)
@@ -117,5 +120,9 @@ impl<'a> EventCtx<'a> {
         } else {
             None
         }
+    }
+
+    pub fn is_mouse_over(&self) -> bool {
+        self.is_mouse_over
     }
 }

@@ -19,7 +19,13 @@ impl WidgetElement {
         self.widget.as_ref()
     }
 
-    pub fn widget_state(&self) -> Option<Arc<dyn Any + Send>> {
+    pub fn widget_state<T: 'static>(&self) -> Option<&T> {
+        self.widget_state
+            .as_ref()
+            .and_then(|s| s.downcast_ref::<T>())
+    }
+
+    pub fn state(&self) -> Option<Arc<dyn Any + Send>> {
         self.widget_state.clone()
     }
 

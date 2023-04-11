@@ -12,7 +12,7 @@ impl PainterTreeBuilder {
 
         for (id, node) in widget_tree.nodes() {
             let painter = node.data.widget().painter(ui_state);
-            let state = node.data.widget_state();
+            let state = node.data.state();
             painter_tree.add_node_with_id(*id, Node::new(PainterElement::new(painter, state)));
             for child in &node.children {
                 painter_tree.add_child(*id, *child);

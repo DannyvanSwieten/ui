@@ -6,7 +6,7 @@ use crate::{
     value::Var,
     widget::WidgetTree,
 };
-use std::{any::Any, collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 pub struct SizeCtx<'a> {
     id: ElementId,
@@ -18,7 +18,7 @@ impl<'a> SizeCtx<'a> {
         Self { id, element_tree }
     }
 
-    pub fn state(&self) -> Option<Arc<dyn Any + Send>> {
+    pub fn state<T: 'static>(&self) -> Option<&T> {
         self.element_tree[self.id].data().widget_state()
     }
 
@@ -76,7 +76,7 @@ impl<'a> LayoutCtx<'a> {
         }
     }
 
-    pub fn state(&self) -> Option<Arc<dyn Any + Send>> {
+    pub fn state<T: 'static>(&self) -> Option<&T> {
         self.element_tree[self.id].data.widget_state()
     }
 }

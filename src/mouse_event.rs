@@ -1,3 +1,5 @@
+use std::{any::Any, rc::Rc};
+
 use crate::geo::Point;
 
 #[derive(PartialEq, Eq, Hash)]
@@ -17,13 +19,14 @@ pub enum MouseButton {
     Other(u8),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct MouseEvent {
     modifiers: u32,
     global_position: Point,
     local_position: Point,
     delta_position: Point,
     drag_start: Option<Point>,
+    drag_data: Option<Rc<dyn Any>>,
 }
 
 impl MouseEvent {
@@ -34,13 +37,14 @@ impl MouseEvent {
             local_position: *local_position,
             delta_position: Point::new(0., 0.),
             drag_start: None,
+            drag_data: None,
         }
     }
 
     pub fn to_local(&self, position: &Point) -> Self {
-        let mut new_event = *self;
-        new_event.local_position = self.local_position - *position;
-        new_event
+        let mut new = self.clone();
+        new.local_position = self.local_position - *position;
+        new
     }
 
     pub fn new_with_delta(
@@ -55,6 +59,7 @@ impl MouseEvent {
             local_position: *local_position,
             delta_position: *delta_position,
             drag_start: None,
+            drag_data: None,
         }
     }
 
@@ -100,5 +105,16 @@ impl MouseEvent {
 
     pub fn delta_position(&self) -> &Point {
         &self.delta_position
+    }
+
+    pub fn with_drag_data(mut self, data: Rc<dyn Any>) -> Self {
+        self.drag_data = Some(data);
+        self
+    }
+
+    pub fn drag_data<T: 'static>(&self) -> Option<&T> {
+        self.drag_data
+            .as_ref()
+            .and_then(|data| data.downcast_ref::<T>())
     }
 }

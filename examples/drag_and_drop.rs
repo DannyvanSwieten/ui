@@ -17,8 +17,10 @@ impl ApplicationDelegate for AppDelegate {
             WindowRequest::new(480, 240)
                 .with_title("Drag and Drop Example")
                 .with_ui(|_| {
-                    Center::new(|| DragSource::new(|| TextButton::new("Button").into()).into())
-                        .into()
+                    Center::new(|| {
+                        DragSource::<String>::new(|| TextButton::new("Button").into()).into()
+                    })
+                    .into()
                 }),
         );
     }

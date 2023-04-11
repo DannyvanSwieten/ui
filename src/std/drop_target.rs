@@ -6,22 +6,26 @@ use crate::{
     widget::{BuildCtx, Child, Children, LayoutCtx, SizeCtx, Widget},
 };
 
-pub struct DropTarget {
+pub struct DropTarget<T> {
     child: Child,
+    accept: Option<Box<dyn Fn(&T) -> bool>>,
+    _data: std::marker::PhantomData<T>,
 }
 
-impl DropTarget {
+impl<T> DropTarget<T> {
     pub fn new<C>(child: C) -> Self
     where
         C: Fn() -> Box<dyn Widget> + 'static,
     {
         Self {
             child: Box::new(child),
+            accept: None,
+            _data: std::marker::PhantomData::default(),
         }
     }
 }
 
-impl Widget for DropTarget {
+impl<T: 'static> Widget for DropTarget<T> {
     fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![(self.child)()]
     }
@@ -51,7 +55,13 @@ impl Widget for DropTarget {
         event_ctx: &mut EventCtx,
         _message_ctx: &mut crate::message_context::MessageCtx,
     ) {
-        if let crate::event::MouseEvent::MouseDrag(_mouse_event) = event_ctx.mouse_event() {}
+        if let crate::event::MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
+            if let Some(data) = mouse_event.drag_data::<T>() {
+                if let Some(accept) = &self.accept {
+                    accept(data);
+                }
+            }
+        }
     }
 
     fn intercept_mouse_events(&self) -> bool {
