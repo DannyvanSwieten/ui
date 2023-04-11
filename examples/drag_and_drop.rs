@@ -1,7 +1,7 @@
 use ui::{
     app::{Application, ApplicationDelegate},
     message::Message,
-    std::{center::Center, drag_source::DragSource, text_button::TextButton},
+    std::{center::Center, drag_source::DragSource, label::Label, text_button::TextButton},
     ui_state::UIState,
     window_request::WindowRequest,
 };
@@ -18,7 +18,12 @@ impl ApplicationDelegate for AppDelegate {
                 .with_title("Drag and Drop Example")
                 .with_ui(|_| {
                     Center::new(|| {
-                        DragSource::<String>::new(|| TextButton::new("Button").into()).into()
+                        DragSource::<String>::new(|| TextButton::new("Child").into())
+                            .with_child_when_dragging(|| {
+                                TextButton::new("Child when dragging").into()
+                            })
+                            .with_dragging_child(|| TextButton::new("Dragged Widget").into())
+                            .into()
                     })
                     .into()
                 }),

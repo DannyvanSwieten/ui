@@ -53,7 +53,25 @@ impl Widget for TextButton {
         _constraints: &BoxConstraints,
         _layout_ctx: &SizeCtx,
     ) -> Option<Size> {
-        Some(Size::new(100.0, 50.0))
+        let font = Font::new("Arial", 24.0);
+        let font = skia_safe::Font::new(
+            skia_safe::Typeface::new(font.typeface(), skia_safe::FontStyle::normal()).unwrap(),
+            font.size(),
+        );
+        let blob = match &self.text {
+            Value::Binding(_) => None,
+            Value::Const(str) => skia_safe::TextBlob::new(str.to_string(), &font),
+        };
+
+        if let Some(blob) = blob {
+            let bounds = blob.bounds();
+            Some(Size::new(
+                bounds.width() + bounds.width() * 0.1,
+                bounds.height() + bounds.height() * 0.1,
+            ))
+        } else {
+            None
+        }
     }
 
     fn layout(&self, _ui_state: &UIState, _: &mut LayoutCtx, _: Size, _: &[usize]) {}

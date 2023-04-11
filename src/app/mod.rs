@@ -128,7 +128,6 @@ impl Default for EventResolution {
 #[derive(Default)]
 pub struct ApplicationMouseState {
     last_mouse_position: Point,
-    mouse_down_state: HashMap<WindowId, bool>,
     drag_start: Option<Point>,
 }
 
@@ -138,7 +137,6 @@ pub struct Application {
     pending_messages: Vec<Message>,
     user_interfaces: HashMap<WindowId, UserInterface>,
     windows: HashMap<WindowId, Window>,
-    pub mouse_state: ApplicationMouseState,
     pub io: RenderSendersAndReceivers,
     _render_thread_handle: JoinHandle<()>,
 }
@@ -153,7 +151,6 @@ impl Application {
             pending_messages: Vec::new(),
             user_interfaces: HashMap::new(),
             windows: HashMap::new(),
-            mouse_state: ApplicationMouseState::default(),
             io,
             _render_thread_handle: render_thread.start(),
         };
@@ -189,51 +186,13 @@ impl Application {
         match state {
             ElementState::Pressed => {
                 if let Some(ui) = self.user_interfaces.get_mut(window_id) {
-                    let mouse_event = mouse_event::MouseEvent::new(
-                        0,
-                        &self.mouse_state.last_mouse_position,
-                        &self.mouse_state.last_mouse_position,
-                    );
-                    ui.event(
-                        &crate::event::Event::Mouse(MouseEvent::MouseDown(mouse_event)),
-                        &mut message_ctx,
-                        &self.ui_state,
-                        event_response,
-                    );
-
-                    self.mouse_state.mouse_down_state.insert(*window_id, true);
+                    ui.mouse_down(&mut message_ctx, &self.ui_state, event_response)
                 }
             }
             ElementState::Released => {
                 if let Some(ui) = self.user_interfaces.get_mut(window_id) {
-                    let mouse_event = mouse_event::MouseEvent::new(
-                        0,
-                        &self.mouse_state.last_mouse_position,
-                        &self.mouse_state.last_mouse_position,
-                    );
-
-                    if self.mouse_state.drag_start.is_some() {
-                        ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseDragEnd(
-                                mouse_event.clone(),
-                            )),
-                            &mut message_ctx,
-                            &self.ui_state,
-                            event_response,
-                        );
-
-                        self.mouse_state.drag_start = None;
-                    }
-
-                    ui.event(
-                        &crate::event::Event::Mouse(MouseEvent::MouseUp(mouse_event.clone())),
-                        &mut message_ctx,
-                        &self.ui_state,
-                        event_response,
-                    );
-
+                    ui.mouse_up(&mut message_ctx, &self.ui_state, event_response);
                     event_response.messages.extend(message_ctx.messages());
-                    self.mouse_state.mouse_down_state.insert(*window_id, false);
                 }
             }
         }
@@ -250,45 +209,8 @@ impl Application {
         let position = position.to_logical::<f32>(dpi);
         let position = Point::new(position.x as _, position.y as _);
         if let Some(ui) = self.user_interfaces.get_mut(window_id) {
-            let mut mouse_event = mouse_event::MouseEvent::new(0, &position, &position);
-            if let Some(mouse_down) = self.mouse_state.mouse_down_state.get(window_id) {
-                if *mouse_down {
-                    if self.mouse_state.drag_start.is_none() {
-                        self.mouse_state.drag_start = Some(position);
-                        ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseDragStart(
-                                mouse_event.clone(),
-                            )),
-                            &mut message_ctx,
-                            &self.ui_state,
-                            event_response,
-                        );
-                    } else {
-                        mouse_event = mouse_event
-                            .clone()
-                            .with_delta(
-                                *mouse_event.global_position()
-                                    - self.mouse_state.last_mouse_position,
-                            )
-                            .with_drag_start(self.mouse_state.drag_start);
-                        ui.event(
-                            &crate::event::Event::Mouse(MouseEvent::MouseDrag(mouse_event)),
-                            &mut message_ctx,
-                            &self.ui_state,
-                            event_response,
-                        );
-                    }
-                }
-            } else {
-                ui.event(
-                    &crate::event::Event::Mouse(MouseEvent::MouseMove(mouse_event.clone())),
-                    &mut message_ctx,
-                    &self.ui_state,
-                    event_response,
-                );
-            }
+            ui.mouse_move(position, &mut message_ctx, &self.ui_state, event_response);
         }
-        self.mouse_state.last_mouse_position = Point::new(position.x as _, position.y as _);
     }
 
     pub fn handle_window_event(

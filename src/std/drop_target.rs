@@ -1,7 +1,11 @@
+use std::{any::Any, sync::Arc};
+
 use crate::{
+    canvas::{color::Color32f, paint::Paint},
     constraints::BoxConstraints,
     event_context::EventCtx,
     geo::{Rect, Size},
+    painter::Painter,
     ui_state::UIState,
     widget::{BuildCtx, Child, Children, LayoutCtx, SizeCtx, Widget},
 };
@@ -25,7 +29,15 @@ impl<T> DropTarget<T> {
     }
 }
 
-impl<T: 'static> Widget for DropTarget<T> {
+struct DropTargetState {
+    pub accepted: bool,
+}
+
+impl<T: Send + 'static> Widget for DropTarget<T> {
+    fn state(&self, _: &UIState) -> Option<Arc<dyn Any + Send>> {
+        Some(Arc::new(DropTargetState { accepted: false }))
+    }
+
     fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
         vec![(self.child)()]
     }
@@ -58,7 +70,9 @@ impl<T: 'static> Widget for DropTarget<T> {
         if let crate::event::MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
             if let Some(data) = mouse_event.drag_data::<T>() {
                 if let Some(accept) = &self.accept {
-                    accept(data);
+                    if accept(data) {
+                        event_ctx.set_state(|_| DropTargetState { accepted: true })
+                    }
                 }
             }
         }
@@ -66,5 +80,25 @@ impl<T: 'static> Widget for DropTarget<T> {
 
     fn intercept_mouse_events(&self) -> bool {
         true
+    }
+
+    fn painter(&self, _: &UIState) -> Option<Box<dyn Painter>> {
+        Some(Box::new(DropTargetPainter::<T> {
+            _data: std::marker::PhantomData::default(),
+        }))
+    }
+}
+
+pub struct DropTargetPainter<T: 'static> {
+    _data: std::marker::PhantomData<T>,
+}
+impl<T: Send + 'static> Painter for DropTargetPainter<T> {
+    fn paint(&self, paint_ctx: &crate::painter::PaintCtx, canvas: &mut dyn crate::canvas::Canvas) {
+        if let Some(state) = paint_ctx.state::<DropTargetState>() {
+            if state.accepted {
+                let paint = Paint::new(Color32f::new(0.0, 1.0, 0.0, 0.5));
+                canvas.draw_rect(paint_ctx.local_bounds(), &paint);
+            }
+        }
     }
 }

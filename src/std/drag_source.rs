@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     constraints::BoxConstraints,
     event_context::EventCtx,
@@ -10,6 +8,8 @@ use crate::{
 
 pub struct DragSource<T> {
     child: Child,
+    child_when_dragging: Option<Child>,
+    dragging_child: Option<Child>,
     drag_start: Option<Box<dyn Fn() -> T>>,
 }
 
@@ -21,6 +21,8 @@ impl<T> DragSource<T> {
         Self {
             child: Box::new(child),
             drag_start: None,
+            child_when_dragging: None,
+            dragging_child: None,
         }
     }
 
@@ -31,16 +33,53 @@ impl<T> DragSource<T> {
         self.drag_start = Some(Box::new(handler));
         self
     }
+
+    pub fn with_child_when_dragging<C>(mut self, child: C) -> Self
+    where
+        C: Fn() -> Box<dyn Widget> + 'static,
+    {
+        self.child_when_dragging = Some(Box::new(child));
+        self
+    }
+
+    pub fn with_dragging_child<C>(mut self, child: C) -> Self
+    where
+        C: Fn() -> Box<dyn Widget> + 'static,
+    {
+        self.dragging_child = Some(Box::new(child));
+        self
+    }
 }
 
+#[derive(Clone, Copy)]
 struct DragState {
     pub dragging: bool,
     pub position: Point,
 }
 
 impl<T: 'static> Widget for DragSource<T> {
-    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
-        vec![(self.child)()]
+    fn build(&self, build_ctx: &mut BuildCtx) -> Children {
+        let state = build_ctx.state::<DragState>().unwrap();
+        let first_child = if let Some(c) = &self.child_when_dragging {
+            if state.dragging {
+                (c)()
+            } else {
+                (self.child)()
+            }
+        } else {
+            (self.child)()
+        };
+
+        if !state.dragging {
+            vec![first_child]
+        } else {
+            let second_child = if let Some(c) = &self.dragging_child {
+                c()
+            } else {
+                (self.child)()
+            };
+            vec![first_child, second_child]
+        }
     }
 
     fn state(&self, _: &UIState) -> Option<std::sync::Arc<dyn std::any::Any + Send>> {
@@ -66,21 +105,28 @@ impl<T: 'static> Widget for DragSource<T> {
         size: Size,
         children: &[usize],
     ) {
-        if let Some(state) = layout_ctx.state::<DragState>() {
+        let state = *layout_ctx.state::<DragState>().unwrap();
+
+        let child_size = layout_ctx
+            .preferred_size(
+                children[0],
+                &BoxConstraints::new_with_max(size.width, size.height),
+            )
+            .unwrap_or(size);
+
+        layout_ctx.set_child_bounds(children[0], Rect::new_from_size(child_size));
+        if state.dragging {
             let child_size = layout_ctx
                 .preferred_size(
-                    children[0],
+                    children[1],
                     &BoxConstraints::new_with_max(size.width, size.height),
                 )
                 .unwrap_or(size);
-            if state.dragging {
-                layout_ctx.set_child_bounds(
-                    children[0],
-                    Rect::new(state.position - (size * 0.5).into(), child_size),
-                );
-            } else {
-                layout_ctx.set_child_bounds(children[0], Rect::new_from_size(child_size));
-            }
+
+            layout_ctx.set_child_bounds(
+                children[1],
+                Rect::new(state.position - (size * 0.5).into(), child_size),
+            );
         }
     }
 
@@ -127,7 +173,7 @@ impl<T: 'static> Widget for DragSource<T> {
             }
             let position = Point::default();
             event_ctx.set_state(move |_| DragState {
-                dragging: true,
+                dragging: false,
                 position,
             });
 

@@ -21,7 +21,9 @@ pub struct UserInterface {
     root_tree: WidgetTree,
     size: Size,
     _drag_source: Option<Box<dyn Any>>,
+    mouse_position: Option<Point>,
     mouse_down_elements: Vec<ElementId>,
+    dragging: bool,
 }
 
 impl UserInterface {
@@ -31,6 +33,8 @@ impl UserInterface {
             size,
             _drag_source: None,
             mouse_down_elements: Vec::new(),
+            mouse_position: None,
+            dragging: false,
         }
     }
 
@@ -248,6 +252,78 @@ impl UserInterface {
                 .animation_requests
                 .insert(element_id, consume.animation_requests);
         }
+    }
+
+    pub fn mouse_move(
+        &mut self,
+        location: Point,
+        message_ctx: &mut MessageCtx,
+        ui_state: &UIState,
+        event_response: &mut EventResponse,
+    ) {
+        self.mouse_position = Some(location);
+        let event_type = if self.mouse_down_elements.is_empty() {
+            MouseEvent::MouseMove(super::mouse_event::MouseEvent::new(
+                0,
+                &self.mouse_position.unwrap(),
+                &self.mouse_position.unwrap(),
+            ))
+        } else if !self.dragging {
+            self.dragging = true;
+            MouseEvent::MouseDragStart(super::mouse_event::MouseEvent::new(
+                0,
+                &self.mouse_position.unwrap(),
+                &self.mouse_position.unwrap(),
+            ))
+        } else {
+            MouseEvent::MouseDrag(super::mouse_event::MouseEvent::new(
+                0,
+                &self.mouse_position.unwrap(),
+                &self.mouse_position.unwrap(),
+            ))
+        };
+
+        let event = Event::Mouse(event_type);
+        self.event(&event, message_ctx, ui_state, event_response)
+    }
+
+    pub fn mouse_down(
+        &mut self,
+        message_ctx: &mut MessageCtx,
+        ui_state: &UIState,
+        event_response: &mut EventResponse,
+    ) {
+        let event = Event::Mouse(MouseEvent::MouseDown(super::mouse_event::MouseEvent::new(
+            0,
+            &self.mouse_position.unwrap(),
+            &self.mouse_position.unwrap(),
+        )));
+        self.event(&event, message_ctx, ui_state, event_response)
+    }
+
+    pub fn mouse_up(
+        &mut self,
+        message_ctx: &mut MessageCtx,
+        ui_state: &UIState,
+        event_response: &mut EventResponse,
+    ) {
+        if self.dragging {
+            self.dragging = false;
+            let event = Event::Mouse(MouseEvent::MouseDragEnd(
+                super::mouse_event::MouseEvent::new(
+                    0,
+                    &self.mouse_position.unwrap(),
+                    &self.mouse_position.unwrap(),
+                ),
+            ));
+            self.event(&event, message_ctx, ui_state, event_response)
+        }
+        let event = Event::Mouse(MouseEvent::MouseUp(super::mouse_event::MouseEvent::new(
+            0,
+            &self.mouse_position.unwrap(),
+            &self.mouse_position.unwrap(),
+        )));
+        self.event(&event, message_ctx, ui_state, event_response)
     }
 
     pub fn mouse_event(

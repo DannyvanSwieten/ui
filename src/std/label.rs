@@ -63,7 +63,7 @@ impl Widget for Label {
         };
 
         let blob = if let Some(text) = text {
-            let font = Font::new("Arial", 32.0);
+            let font = Font::new("Arial", 24.0);
             let font = skia_safe::Font::new(
                 skia_safe::Typeface::new(font.typeface(), skia_safe::FontStyle::normal()).unwrap(),
                 font.size(),
