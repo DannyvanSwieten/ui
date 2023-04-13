@@ -157,7 +157,7 @@ impl<T: 'static> Widget for DragSource<T> {
         if let MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
-                event_ctx.set_drag_source(handler())
+                event_ctx.set_drag_source(handler());
             }
             let position = *mouse_event.local_position();
             event_ctx.set_state(move |_| DragState {

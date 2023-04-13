@@ -20,7 +20,7 @@ impl ApplicationDelegate for AppDelegate {
                 .with_ui(|_| {
                     Row::new(|| {
                         vec![
-                            TextButton::new("Btn")
+                            TextButton::new("Click Me!")
                                 .on_click(|message_ctx| {
                                     message_ctx.dispatch(
                                         Message::new("set_text").with_arg("Label set by button"),

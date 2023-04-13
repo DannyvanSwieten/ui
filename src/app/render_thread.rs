@@ -179,7 +179,7 @@ impl RenderThread {
             let canvas = self.canvas.get_mut(window_id).unwrap().as_mut();
             canvas.save();
             canvas.scale(&Size::new(painter.dpi(), painter.dpi()));
-            canvas.clear(&Color32f::new_grey(0.4).into());
+            canvas.clear(&Color32f::new_grey(0.1).into());
             painter.paint(None, canvas);
             canvas.restore();
             let renderer = self.canvas_renderers.get_mut(window_id).unwrap();

@@ -15,6 +15,7 @@ use crate::{
 
 pub struct DropTarget<T> {
     child: Child,
+    child_on_accept: Option<Child>,
     accept: Option<Box<dyn Fn(&T) -> bool>>,
     _data: std::marker::PhantomData<T>,
 }
@@ -26,9 +27,26 @@ impl<T> DropTarget<T> {
     {
         Self {
             child: Box::new(child),
+            child_on_accept: None,
             accept: None,
             _data: std::marker::PhantomData::default(),
         }
+    }
+
+    pub fn with_accept<F>(mut self, accept: F) -> Self
+    where
+        F: Fn(&T) -> bool + 'static,
+    {
+        self.accept = Some(Box::new(accept));
+        self
+    }
+
+    pub fn with_child_on_accept<C>(mut self, child: C) -> Self
+    where
+        C: Fn() -> Box<dyn Widget> + 'static,
+    {
+        self.child_on_accept = Some(Box::new(child));
+        self
     }
 }
 
@@ -41,8 +59,17 @@ impl<T: Send + 'static> Widget for DropTarget<T> {
         Some(Arc::new(DropTargetState { accepted: false }))
     }
 
-    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
-        vec![(self.child)()]
+    fn build(&self, build_ctx: &mut BuildCtx) -> Children {
+        let state = build_ctx.state::<DropTargetState>().unwrap();
+        if state.accepted {
+            if let Some(child) = &self.child_on_accept {
+                vec![(child)()]
+            } else {
+                vec![(self.child)()]
+            }
+        } else {
+            vec![(self.child)()]
+        }
     }
 
     fn calculate_size(
@@ -70,8 +97,8 @@ impl<T: Send + 'static> Widget for DropTarget<T> {
         event_ctx: &mut EventCtx,
         _message_ctx: &mut MessageCtx,
     ) {
-        if let MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
-            if let Some(data) = mouse_event.drag_data::<T>() {
+        if let MouseEvent::MouseDrag(_) = event_ctx.mouse_event() {
+            if let Some(data) = event_ctx.drag_data::<T>() {
                 if let Some(accept) = &self.accept {
                     if accept(data) {
                         event_ctx.set_state(|_| DropTargetState { accepted: true })
@@ -83,25 +110,5 @@ impl<T: Send + 'static> Widget for DropTarget<T> {
 
     fn intercept_mouse_events(&self) -> bool {
         true
-    }
-
-    fn painter(&self, _: &UIState) -> Option<Box<dyn Painter>> {
-        Some(Box::new(DropTargetPainter::<T> {
-            _data: std::marker::PhantomData::default(),
-        }))
-    }
-}
-
-pub struct DropTargetPainter<T: 'static> {
-    _data: std::marker::PhantomData<T>,
-}
-impl<T: Send + 'static> Painter for DropTargetPainter<T> {
-    fn paint(&self, paint_ctx: &crate::painter::PaintCtx, canvas: &mut dyn crate::canvas::Canvas) {
-        if let Some(state) = paint_ctx.state::<DropTargetState>() {
-            if state.accepted {
-                let paint = Paint::new(Color32f::new(0.0, 1.0, 0.0, 0.5));
-                canvas.draw_rect(paint_ctx.local_bounds(), &paint);
-            }
-        }
     }
 }

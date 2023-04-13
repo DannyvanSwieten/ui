@@ -12,7 +12,7 @@ pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;
 pub struct EventCtx<'a> {
     id: ElementId,
     is_mouse_over: bool,
-    drag_source: Option<Box<dyn Any>>,
+    pub drag_data: Option<Box<dyn Any>>,
     mouse_event: Option<&'a MouseEvent>,
     animation_event: Option<&'a AnimationEvent>,
     set_state: Option<SetState>,
@@ -23,6 +23,7 @@ pub struct EventCtx<'a> {
 pub struct Consumed {
     pub animation_requests: Vec<AnimationRequest>,
     pub set_state: Option<SetState>,
+    pub drag_data: Option<Box<dyn Any>>,
 }
 
 impl<'a> EventCtx<'a> {
@@ -35,7 +36,7 @@ impl<'a> EventCtx<'a> {
         Self {
             id,
             is_mouse_over,
-            drag_source: None,
+            drag_data: None,
             mouse_event,
             animation_event: None,
             set_state: None,
@@ -52,7 +53,7 @@ impl<'a> EventCtx<'a> {
         Self {
             id,
             is_mouse_over: false,
-            drag_source: None,
+            drag_data: None,
             mouse_event: None,
             animation_event,
             set_state: None,
@@ -65,6 +66,7 @@ impl<'a> EventCtx<'a> {
         Consumed {
             animation_requests: self.animation_requests,
             set_state: self.set_state,
+            drag_data: self.drag_data,
         }
     }
 
@@ -73,7 +75,7 @@ impl<'a> EventCtx<'a> {
     }
 
     pub fn set_drag_source<T: 'static>(&mut self, data: T) {
-        self.drag_source = Some(Box::new(data))
+        self.drag_data = Some(Box::new(data))
     }
 
     pub fn mouse_event(&self) -> &'a MouseEvent {
@@ -94,8 +96,10 @@ impl<'a> EventCtx<'a> {
         self.animation_event.unwrap()
     }
 
-    pub fn drag_source(&mut self) -> Option<&dyn Any> {
-        self.drag_source.as_deref()
+    pub fn drag_data<T: 'static>(&mut self) -> Option<&T> {
+        self.drag_data
+            .as_ref()
+            .map(|any| any.downcast_ref::<T>().unwrap())
     }
 
     pub fn set_state<T>(&mut self, modify: impl Fn(&T) -> T + Send + 'static)

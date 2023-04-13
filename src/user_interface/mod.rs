@@ -35,6 +35,7 @@ pub struct UserInterface {
     mouse_position: Option<Point>,
     mouse_down_elements: Vec<ElementId>,
     dragging: bool,
+    drag_data: Option<Box<dyn Any>>,
 }
 
 impl UserInterface {
@@ -46,6 +47,7 @@ impl UserInterface {
             mouse_down_elements: Vec::new(),
             mouse_position: None,
             dragging: false,
+            drag_data: None,
         }
     }
 
@@ -250,9 +252,21 @@ impl UserInterface {
             let state = node.data.state();
             let mut event_ctx =
                 EventCtx::new_mouse_event(element_id, true, Some(&local_event), state.as_deref());
+            if self.drag_data.is_some() {
+                event_ctx.drag_data = self.drag_data.take()
+            }
             node.data
                 .widget()
                 .mouse_event(ui_state, &mut event_ctx, message_ctx);
+
+            if event_ctx.drag_data.is_some() {
+                self.drag_data = event_ctx.drag_data.take()
+            }
+            if self.drag_data.is_some() {
+                println!("There is drag data");
+            } else {
+                println!("There is no drag data")
+            }
 
             let consume = event_ctx.consume();
             if let Some(set_state) = consume.set_state {
@@ -295,7 +309,7 @@ impl UserInterface {
         };
 
         let event = ApplicationEvent::Mouse(event_type);
-        self.event(&event, message_ctx, ui_state, event_response)
+        self.event(&event, message_ctx, ui_state, event_response);
     }
 
     pub fn mouse_down(
