@@ -3,8 +3,7 @@ use std::{any::Any, sync::Arc, time::Duration};
 use crate::{
     animation::{animation_request::AnimationRequest, AnimationId},
     tree::ElementId,
-    ui_state::UIState,
-    value::Var,
+    user_interface::{ui_state::UIState, value::Var},
 };
 
 pub struct BuildCtx<'a> {

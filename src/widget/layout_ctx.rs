@@ -1,12 +1,11 @@
 use crate::{
-    constraints::BoxConstraints,
     geo::{Point, Rect, Size},
     tree::ElementId,
-    ui_state::UIState,
-    value::Var,
-    widget::WidgetTree,
+    user_interface::{ui_state::UIState, value::Var, widget_tree::WidgetTree},
 };
 use std::collections::HashMap;
+
+use super::constraints::BoxConstraints;
 
 pub struct SizeCtx<'a> {
     id: ElementId,

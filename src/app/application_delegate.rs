@@ -1,5 +1,6 @@
-use super::Application;
-use crate::{message::Message, ui_state::UIState};
+use crate::user_interface::ui_state::UIState;
+
+use super::{message::Message, Application};
 
 pub trait ApplicationDelegate {
     fn create_ui_state(&self) -> UIState;

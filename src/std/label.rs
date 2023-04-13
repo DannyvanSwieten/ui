@@ -2,12 +2,10 @@ use std::{any::Any, sync::Arc};
 
 use crate::{
     canvas::{color::Color32f, font::Font, paint::Paint, Canvas},
-    constraints::BoxConstraints,
-    geo::{Rect, Size},
+    geo::Size,
     painter::{PaintCtx, Painter},
-    ui_state::UIState,
-    value::Value,
-    widget::{BuildCtx, ChangeResponse, Children, SizeCtx, Widget},
+    user_interface::{ui_state::UIState, value::Value},
+    widget::{constraints::BoxConstraints, BuildCtx, ChangeResponse, Children, SizeCtx, Widget},
 };
 
 pub struct Label {

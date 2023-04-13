@@ -1,7 +1,11 @@
 use crate::{
     tree::{ElementId, Node},
+    widget::{BuildCtx, Widget},
+};
+
+use super::{
     ui_state::UIState,
-    widget::{BuildCtx, Widget, WidgetElement, WidgetTree},
+    widget_tree::{WidgetElement, WidgetTree},
 };
 
 pub struct WidgetTreeBuilder {

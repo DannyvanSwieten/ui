@@ -4,7 +4,7 @@ use crate::{
     animation::{
         animation_event::AnimationEvent, animation_request::AnimationRequest, AnimationId,
     },
-    event::MouseEvent,
+    app::event::MouseEvent,
     tree::ElementId,
 };
 pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;

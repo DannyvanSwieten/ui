@@ -1,13 +1,16 @@
 use std::{any::Any, sync::Arc};
 
 use crate::{
+    app::event::MouseEvent,
     canvas::{color::Color32f, paint::Paint},
-    constraints::BoxConstraints,
     event_context::EventCtx,
     geo::{Rect, Size},
     painter::Painter,
-    ui_state::UIState,
-    widget::{BuildCtx, Child, Children, LayoutCtx, SizeCtx, Widget},
+    user_interface::ui_state::UIState,
+    widget::{
+        constraints::BoxConstraints, message_context::MessageCtx, BuildCtx, Child, Children,
+        LayoutCtx, SizeCtx, Widget,
+    },
 };
 
 pub struct DropTarget<T> {
@@ -65,9 +68,9 @@ impl<T: Send + 'static> Widget for DropTarget<T> {
         &self,
         _ui_state: &UIState,
         event_ctx: &mut EventCtx,
-        _message_ctx: &mut crate::message_context::MessageCtx,
+        _message_ctx: &mut MessageCtx,
     ) {
-        if let crate::event::MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
+        if let MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
             if let Some(data) = mouse_event.drag_data::<T>() {
                 if let Some(accept) = &self.accept {
                     if accept(data) {

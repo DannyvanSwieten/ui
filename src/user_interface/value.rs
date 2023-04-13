@@ -1,4 +1,5 @@
-use crate::ui_state::UIState;
+use crate::user_interface::ui_state::UIState;
+
 #[derive(Clone)]
 pub struct Array {
     pub data: Vec<Var>,

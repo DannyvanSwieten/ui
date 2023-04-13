@@ -7,11 +7,10 @@ use crate::{
         paint::Paint,
         Canvas,
     },
-    constraints::BoxConstraints,
     geo::Size,
     painter::{render_ctx::RenderCtx, PaintCtx, Painter},
-    ui_state::UIState,
-    widget::{BuildCtx, Child, Children, SizeCtx, Widget},
+    user_interface::ui_state::UIState,
+    widget::{constraints::BoxConstraints, BuildCtx, Child, Children, SizeCtx, Widget},
 };
 
 pub struct AnimatedColorBox {

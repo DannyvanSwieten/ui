@@ -1,6 +1,9 @@
-use crate::{animation::animation_event::AnimationEvent, geo::Point, tree::ElementId};
+use crate::{
+    animation::animation_event::AnimationEvent, geo::Point, mouse_event::MouseEventData,
+    tree::ElementId,
+};
 
-pub enum Event {
+pub enum ApplicationEvent {
     Mouse(MouseEvent),
     Key(KeyEvent),
     Resize(Point),
@@ -9,14 +12,14 @@ pub enum Event {
 }
 
 pub enum MouseEvent {
-    MouseMove(super::mouse_event::MouseEvent),
-    MouseEnter(super::mouse_event::MouseEvent),
-    MouseLeave(super::mouse_event::MouseEvent),
-    MouseUp(super::mouse_event::MouseEvent),
-    MouseDown(super::mouse_event::MouseEvent),
-    MouseDrag(super::mouse_event::MouseEvent),
-    MouseDragStart(super::mouse_event::MouseEvent),
-    MouseDragEnd(super::mouse_event::MouseEvent),
+    MouseMove(MouseEventData),
+    MouseEnter(MouseEventData),
+    MouseLeave(MouseEventData),
+    MouseUp(MouseEventData),
+    MouseDown(MouseEventData),
+    MouseDrag(MouseEventData),
+    MouseDragStart(MouseEventData),
+    MouseDragEnd(MouseEventData),
 }
 
 impl MouseEvent {

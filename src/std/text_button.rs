@@ -1,14 +1,14 @@
 use crate::{
+    app::event::MouseEvent,
     canvas::{color::Color32f, font::Font, paint::Paint, Canvas},
-    constraints::BoxConstraints,
-    event::MouseEvent,
     event_context::EventCtx,
     geo::{Rect, Size},
-    message_context::MessageCtx,
     painter::{PaintCtx, Painter},
-    ui_state::UIState,
-    value::Value,
-    widget::{BuildCtx, Children, LayoutCtx, SizeCtx, Widget},
+    user_interface::{ui_state::UIState, value::Value},
+    widget::{
+        constraints::BoxConstraints, message_context::MessageCtx, BuildCtx, Children, LayoutCtx,
+        SizeCtx, Widget,
+    },
 };
 use std::{any::Any, sync::Arc};
 

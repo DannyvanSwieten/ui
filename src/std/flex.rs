@@ -1,8 +1,7 @@
 use crate::{
-    constraints::BoxConstraints,
     geo::{Point, Rect, Size},
-    ui_state::UIState,
-    widget::{BuildCtx, Children, LayoutCtx, SizeCtx, Widget},
+    user_interface::ui_state::UIState,
+    widget::{constraints::BoxConstraints, BuildCtx, Children, LayoutCtx, SizeCtx, Widget},
 };
 
 pub struct Row {

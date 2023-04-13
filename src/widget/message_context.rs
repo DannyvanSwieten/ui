@@ -1,4 +1,4 @@
-use crate::message::Message;
+use crate::app::message::Message;
 
 #[derive(Default)]
 pub struct MessageCtx {

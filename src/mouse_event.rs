@@ -20,7 +20,7 @@ pub enum MouseButton {
 }
 
 #[derive(Clone)]
-pub struct MouseEvent {
+pub struct MouseEventData {
     modifiers: u32,
     global_position: Point,
     local_position: Point,
@@ -29,7 +29,7 @@ pub struct MouseEvent {
     drag_data: Option<Rc<dyn Any>>,
 }
 
-impl MouseEvent {
+impl MouseEventData {
     pub fn new(modifiers: u32, global_position: &Point, local_position: &Point) -> Self {
         Self {
             modifiers,

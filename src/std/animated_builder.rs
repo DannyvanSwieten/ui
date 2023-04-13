@@ -3,8 +3,8 @@ use std::{any::Any, sync::Arc, time::Duration};
 use crate::{
     animation::animation_event::AnimationEvent,
     event_context::EventCtx,
-    ui_state::UIState,
-    widget::{BuildCtx, Children, Widget},
+    user_interface::ui_state::UIState,
+    widget::{constraints::BoxConstraints, BuildCtx, Children, Widget},
 };
 
 pub struct AnimatedBuilder {
@@ -66,7 +66,7 @@ impl Widget for AnimatedBuilder {
     fn calculate_size(
         &self,
         children: &[usize],
-        constraints: &crate::constraints::BoxConstraints,
+        constraints: &BoxConstraints,
         size_ctx: &crate::widget::SizeCtx,
     ) -> Option<crate::geo::Size> {
         size_ctx.preferred_size(children[0], constraints)

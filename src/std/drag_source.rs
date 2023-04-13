@@ -1,9 +1,12 @@
 use crate::{
-    constraints::BoxConstraints,
+    app::event::MouseEvent,
     event_context::EventCtx,
     geo::{Point, Rect, Size},
-    ui_state::UIState,
-    widget::{BuildCtx, Child, Children, LayoutCtx, SizeCtx, Widget},
+    user_interface::ui_state::UIState,
+    widget::{
+        constraints::BoxConstraints, message_context::MessageCtx, BuildCtx, Child, Children,
+        LayoutCtx, SizeCtx, Widget,
+    },
 };
 
 pub struct DragSource<T> {
@@ -134,9 +137,9 @@ impl<T: 'static> Widget for DragSource<T> {
         &self,
         _ui_state: &UIState,
         event_ctx: &mut EventCtx,
-        _message_ctx: &mut crate::message_context::MessageCtx,
+        _message_ctx: &mut MessageCtx,
     ) {
-        if let crate::event::MouseEvent::MouseDragStart(mouse_event) = event_ctx.mouse_event() {
+        if let MouseEvent::MouseDragStart(mouse_event) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
                 event_ctx.set_drag_source(handler())
@@ -151,7 +154,7 @@ impl<T: 'static> Widget for DragSource<T> {
             // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
         }
 
-        if let crate::event::MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
+        if let MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
                 event_ctx.set_drag_source(handler())
@@ -166,7 +169,7 @@ impl<T: 'static> Widget for DragSource<T> {
             // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
         }
 
-        if let crate::event::MouseEvent::MouseDragEnd(_) = event_ctx.mouse_event() {
+        if let MouseEvent::MouseDragEnd(_) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
                 event_ctx.set_drag_source(handler())

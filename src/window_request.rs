@@ -1,4 +1,4 @@
-use crate::{ui_state::UIState, widget::Widget};
+use crate::{user_interface::ui_state::UIState, widget::Widget};
 
 type UIBuilder = dyn Fn(&UIState) -> Box<dyn Widget>;
 

@@ -1,4 +1,7 @@
-use crate::{tree::Node, ui_state::UIState, widget::WidgetTree};
+use crate::{
+    tree::Node,
+    user_interface::{ui_state::UIState, widget_tree::WidgetTree},
+};
 
 use super::{PainterElement, PainterTree};
 

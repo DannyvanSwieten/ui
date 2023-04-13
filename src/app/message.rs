@@ -1,4 +1,4 @@
-use crate::value::Var;
+use crate::user_interface::value::Var;
 
 pub struct Message {
     pub target: String,

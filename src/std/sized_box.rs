@@ -1,6 +1,7 @@
 use crate::{
     geo::{Point, Rect, Size},
-    widget::{Child, Widget},
+    user_interface::ui_state::UIState,
+    widget::{constraints::BoxConstraints, Child, LayoutCtx, Widget},
 };
 /// A widget that has a fixed size. It will not violate maximum or minimum constraints.
 /// It will force its child to have the same size.
@@ -33,7 +34,7 @@ impl Widget for SizedBox {
     fn calculate_size(
         &self,
         _: &[usize],
-        constraints: &crate::constraints::BoxConstraints,
+        constraints: &BoxConstraints,
         _: &crate::widget::SizeCtx,
     ) -> Option<Size> {
         let width = constraints
@@ -49,13 +50,7 @@ impl Widget for SizedBox {
         Some(Size::new(width, height))
     }
 
-    fn layout(
-        &self,
-        _: &crate::ui_state::UIState,
-        layout_ctx: &mut crate::widget::LayoutCtx,
-        size: Size,
-        children: &[usize],
-    ) {
+    fn layout(&self, _: &UIState, layout_ctx: &mut LayoutCtx, size: Size, children: &[usize]) {
         if children.len() == 1 {
             layout_ctx.set_child_bounds(children[0], Rect::new(Point::new(0.0, 0.0), size));
         }

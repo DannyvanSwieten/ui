@@ -1,19 +1,30 @@
+pub mod build_result;
+pub mod ui_state;
+pub mod value;
+pub mod widget_tree;
+pub mod widget_tree_builder;
 use std::{any::Any, collections::HashMap, sync::Arc};
 
 use crate::{
     animation::animation_event::AnimationEvent,
-    app::{EventResolution, EventResponse},
-    constraints::BoxConstraints,
-    event::{Event, MouseEvent},
+    app::{
+        event::{ApplicationEvent, MouseEvent},
+        EventResolution, EventResponse,
+    },
     event_context::EventCtx,
     geo::{Point, Rect, Size},
-    message_context::MessageCtx,
+    mouse_event::MouseEventData,
     tree::ElementId,
-    ui_state::UIState,
     widget::{
-        BuildCtx, BuildResult, ChangeResponse, LayoutCtx, SizeCtx, Widget, WidgetElement,
-        WidgetTree,
+        constraints::BoxConstraints, message_context::MessageCtx, BuildCtx, ChangeResponse,
+        LayoutCtx, SizeCtx, Widget,
     },
+};
+
+use self::{
+    build_result::BuildResult,
+    ui_state::UIState,
+    widget_tree::{WidgetElement, WidgetTree},
     widget_tree_builder::WidgetTreeBuilder,
 };
 
@@ -263,27 +274,27 @@ impl UserInterface {
     ) {
         self.mouse_position = Some(location);
         let event_type = if self.mouse_down_elements.is_empty() {
-            MouseEvent::MouseMove(super::mouse_event::MouseEvent::new(
+            MouseEvent::MouseMove(MouseEventData::new(
                 0,
                 &self.mouse_position.unwrap(),
                 &self.mouse_position.unwrap(),
             ))
         } else if !self.dragging {
             self.dragging = true;
-            MouseEvent::MouseDragStart(super::mouse_event::MouseEvent::new(
+            MouseEvent::MouseDragStart(MouseEventData::new(
                 0,
                 &self.mouse_position.unwrap(),
                 &self.mouse_position.unwrap(),
             ))
         } else {
-            MouseEvent::MouseDrag(super::mouse_event::MouseEvent::new(
+            MouseEvent::MouseDrag(MouseEventData::new(
                 0,
                 &self.mouse_position.unwrap(),
                 &self.mouse_position.unwrap(),
             ))
         };
 
-        let event = Event::Mouse(event_type);
+        let event = ApplicationEvent::Mouse(event_type);
         self.event(&event, message_ctx, ui_state, event_response)
     }
 
@@ -293,7 +304,7 @@ impl UserInterface {
         ui_state: &UIState,
         event_response: &mut EventResponse,
     ) {
-        let event = Event::Mouse(MouseEvent::MouseDown(super::mouse_event::MouseEvent::new(
+        let event = ApplicationEvent::Mouse(MouseEvent::MouseDown(MouseEventData::new(
             0,
             &self.mouse_position.unwrap(),
             &self.mouse_position.unwrap(),
@@ -309,16 +320,14 @@ impl UserInterface {
     ) {
         if self.dragging {
             self.dragging = false;
-            let event = Event::Mouse(MouseEvent::MouseDragEnd(
-                super::mouse_event::MouseEvent::new(
-                    0,
-                    &self.mouse_position.unwrap(),
-                    &self.mouse_position.unwrap(),
-                ),
-            ));
+            let event = ApplicationEvent::Mouse(MouseEvent::MouseDragEnd(MouseEventData::new(
+                0,
+                &self.mouse_position.unwrap(),
+                &self.mouse_position.unwrap(),
+            )));
             self.event(&event, message_ctx, ui_state, event_response)
         }
-        let event = Event::Mouse(MouseEvent::MouseUp(super::mouse_event::MouseEvent::new(
+        let event = ApplicationEvent::Mouse(MouseEvent::MouseUp(MouseEventData::new(
             0,
             &self.mouse_position.unwrap(),
             &self.mouse_position.unwrap(),
@@ -397,19 +406,19 @@ impl UserInterface {
 
     pub fn event(
         &mut self,
-        event: &Event,
+        event: &ApplicationEvent,
         message_ctx: &mut MessageCtx,
         ui_state: &UIState,
         event_response: &mut EventResponse,
     ) {
         match event {
-            Event::Mouse(mouse_event) => {
+            ApplicationEvent::Mouse(mouse_event) => {
                 self.mouse_event(mouse_event, message_ctx, ui_state, event_response);
             }
-            Event::Key(_) => (),
-            Event::Resize(_) => (),
-            Event::Focus(_) => (),
-            Event::Animation(element_id, animation_event) => {
+            ApplicationEvent::Key(_) => (),
+            ApplicationEvent::Resize(_) => (),
+            ApplicationEvent::Focus(_) => (),
+            ApplicationEvent::Animation(element_id, animation_event) => {
                 self.animation_event(*element_id, animation_event, ui_state, event_response)
             }
         }

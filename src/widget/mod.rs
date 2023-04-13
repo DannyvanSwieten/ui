@@ -1,19 +1,18 @@
 mod build_ctx;
-mod build_result;
+pub mod constraints;
 mod layout_ctx;
-mod widget_tree;
+pub mod message_context;
 
 pub use build_ctx::BuildCtx;
-pub use build_result::BuildResult;
 pub use layout_ctx::LayoutCtx;
 pub use layout_ctx::SizeCtx;
-pub use widget_tree::{WidgetElement, WidgetTree};
 
-use crate::{
-    constraints::BoxConstraints, event_context::EventCtx, geo::Size, message_context::MessageCtx,
-    painter::Painter, ui_state::UIState,
-};
+use crate::user_interface::ui_state::UIState;
+use crate::{event_context::EventCtx, geo::Size, painter::Painter};
 use std::{any::Any, sync::Arc};
+
+use self::constraints::BoxConstraints;
+use self::message_context::MessageCtx;
 
 pub type Child = Box<dyn Fn() -> Box<dyn Widget>>;
 pub type Children = Vec<Box<dyn Widget>>;

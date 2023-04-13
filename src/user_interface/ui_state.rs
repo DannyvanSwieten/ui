@@ -3,7 +3,9 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::{tree::ElementId, value::Var};
+use crate::tree::ElementId;
+
+use super::value::Var;
 
 pub struct UIState {
     values: HashMap<String, Var>,

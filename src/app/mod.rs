@@ -1,22 +1,19 @@
 mod application_delegate;
+pub mod event;
 
 pub use application_delegate::ApplicationDelegate;
+pub mod message;
 pub mod render_thread;
 use crate::{
     animation::animation_request::AnimationRequest,
     canvas::canvas_renderer::CanvasRenderer,
-    event::MouseEvent,
     event_context::SetState,
     geo::{Point, Rect, Size},
     gpu::GpuApi,
-    message::Message,
-    message_context::MessageCtx,
-    mouse_event,
     painter::{PainterTreeBuilder, TreePainter},
     tree::ElementId,
-    ui_state::UIState,
-    user_interface::{MutationResult, Rebuild, UserInterface},
-    widget::WidgetTree,
+    user_interface::{ui_state::UIState, MutationResult, Rebuild, UserInterface},
+    widget::message_context::MessageCtx,
     window_request::WindowRequest,
 };
 use pollster::block_on;
@@ -28,8 +25,12 @@ use winit::{
     window::{Window, WindowBuilder, WindowId},
 };
 
-use self::render_thread::{
-    MergeResult, RenderSendersAndReceivers, RenderThread, RenderThreadMessage, StateUpdate,
+use self::{
+    event::ApplicationEvent,
+    message::Message,
+    render_thread::{
+        MergeResult, RenderSendersAndReceivers, RenderThread, RenderThreadMessage, StateUpdate,
+    },
 };
 
 pub struct Resize {
@@ -166,7 +167,7 @@ impl Application {
         if let Some(ui) = self.user_interfaces.get_mut(window_id) {
             let mut message_ctx = MessageCtx::default();
             ui.event(
-                &crate::event::Event::Focus(focused),
+                &ApplicationEvent::Focus(focused),
                 &mut message_ctx,
                 &self.ui_state,
                 event_response,
@@ -339,7 +340,7 @@ impl Application {
                     if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
                         let mut message_ctx = MessageCtx::default();
                         ui.event(
-                            &crate::event::Event::Animation(element_id, event),
+                            &ApplicationEvent::Animation(element_id, event),
                             &mut message_ctx,
                             &self.ui_state,
                             event_response,
