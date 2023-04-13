@@ -146,6 +146,7 @@ impl Canvas for SkiaCanvas {
 
     fn draw_string(&mut self, rect: &Rect, text: &str, font: &Font, paint: &Paint) {
         let rect: skia_safe::Rect = rect.into();
+        let rect = rect.with_offset(Point::new(0.0, rect.center_y() / 2.0));
         self.surface.canvas().draw_str_align(
             text,
             rect.center(),

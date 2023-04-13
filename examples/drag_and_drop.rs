@@ -1,7 +1,7 @@
 use ui::{
     app::{Application, ApplicationDelegate},
     message::Message,
-    std::{center::Center, drag_source::DragSource, label::Label, text_button::TextButton},
+    std::{center::Center, drag_source::DragSource, text_button::TextButton},
     ui_state::UIState,
     window_request::WindowRequest,
 };

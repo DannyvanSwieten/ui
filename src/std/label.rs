@@ -85,18 +85,15 @@ pub struct LabelPainter {}
 
 impl Painter for LabelPainter {
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas) {
-        let font = Font::new("Arial", 32.0);
+        let font = Font::new("Arial", 24.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
         let state = paint_ctx.state::<Option<(String, Option<skia_safe::TextBlob>)>>();
 
         if let Some(state) = state {
             match state {
-                Some((text, _)) => canvas.draw_string(
-                    &Rect::new_from_size(paint_ctx.local_bounds().size()),
-                    text,
-                    &font,
-                    &paint,
-                ),
+                Some((text, _)) => {
+                    canvas.draw_string(paint_ctx.local_bounds(), text, &font, &paint)
+                }
                 None => todo!(),
             }
         }

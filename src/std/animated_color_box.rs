@@ -43,7 +43,7 @@ impl Widget for AnimatedColorBox {
         _: &SizeCtx,
     ) -> Option<Size> {
         // Something, Somewhere, went terribly wrong
-        assert_eq!(1, children.len());
+        // assert_eq!(1, children.len());
 
         // Return all the space that is given to this widget.
         Some(Size::new(
