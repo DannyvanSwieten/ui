@@ -1,12 +1,10 @@
 use std::time::Duration;
 
 use ui::{
-    app::{Application, ApplicationDelegate},
+    app::{message::Message, Application, ApplicationDelegate},
     geo::Size,
-    message::Message,
     std::{animated_builder::AnimatedBuilder, flex::Row, label::Label, sized_box::SizedBox},
-    ui_state::UIState,
-    value::Value,
+    user_interface::{ui_state::UIState, value::Value},
     window_request::WindowRequest,
 };
 

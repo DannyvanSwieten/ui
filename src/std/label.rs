@@ -1,8 +1,8 @@
 use std::{any::Any, sync::Arc};
 
 use crate::{
-    canvas::{color::Color32f, font::Font, paint::Paint, Canvas},
-    geo::Size,
+    canvas::{color::Color32f, font::Font, paint::Paint, text::Text, Canvas},
+    geo::{Rect, Size},
     painter::{PaintCtx, Painter},
     user_interface::{ui_state::UIState, value::Value},
     widget::{constraints::BoxConstraints, BuildCtx, ChangeResponse, Children, SizeCtx, Widget},
@@ -37,21 +37,7 @@ impl Widget for Label {
         _constraints: &BoxConstraints,
         size_ctx: &SizeCtx,
     ) -> Option<Size> {
-        let size = if let Some(state) =
-            size_ctx.state::<Option<(String, Option<skia_safe::TextBlob>)>>()
-        {
-            match state {
-                Some((_, blob)) => {
-                    let bounds = blob.as_ref().unwrap().bounds();
-                    Some(Size::new(bounds.width(), bounds.height()))
-                }
-                _ => None,
-            }
-        } else {
-            None
-        };
-
-        size
+        size_ctx.state::<Text>().map(|state| state.bounds().size())
     }
 
     fn state(&self, ui_state: &UIState) -> Option<Arc<dyn Any + Send>> {
@@ -60,18 +46,12 @@ impl Widget for Label {
             Value::Const(text) => Some(text.to_string()),
         };
 
-        let blob = if let Some(text) = text {
+        if let Some(text) = text {
             let font = Font::new("Arial", 24.0);
-            let font = skia_safe::Font::new(
-                skia_safe::Typeface::new(font.typeface(), skia_safe::FontStyle::normal()).unwrap(),
-                font.size(),
-            );
-            Some((text.clone(), skia_safe::TextBlob::new(text, &font)))
+            Some(Arc::new(Text::new(&text, font)))
         } else {
             None
-        };
-
-        Some(Arc::new(blob))
+        }
     }
 
     fn painter(&self, _: &UIState) -> Option<Box<dyn Painter>> {
@@ -83,17 +63,14 @@ pub struct LabelPainter {}
 
 impl Painter for LabelPainter {
     fn paint(&self, paint_ctx: &PaintCtx, canvas: &mut dyn Canvas) {
-        let font = Font::new("Arial", 24.0);
         let paint = Paint::new(Color32f::new_grey(1.0));
-        let state = paint_ctx.state::<Option<(String, Option<skia_safe::TextBlob>)>>();
 
-        if let Some(state) = state {
-            match state {
-                Some((text, _)) => {
-                    canvas.draw_string(paint_ctx.local_bounds(), text, &font, &paint)
-                }
-                None => todo!(),
-            }
+        if let Some(state) = paint_ctx.state::<Text>() {
+            canvas.draw_text(
+                state,
+                &Rect::new_from_size(paint_ctx.local_bounds().size()),
+                &paint,
+            )
         }
     }
 }

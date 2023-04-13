@@ -1,4 +1,4 @@
-use super::{color::Color, font::Font, paint::Paint, Canvas};
+use super::{color::Color, font::Font, paint::Paint, text::Text, Canvas};
 use crate::geo::{self, Rect, Size};
 use skia_safe::{utils::text_utils::Align, ISize, Point, Surface, TextBlob};
 
@@ -158,6 +158,18 @@ impl Canvas for SkiaCanvas {
 
     fn pixels(&mut self) -> Option<&[u8]> {
         SkiaCanvas::pixels(self)
+    }
+
+    fn draw_text(&mut self, text: &Text, rect: &Rect, paint: &Paint) {
+        let rect: skia_safe::Rect = rect.into();
+        let rect = rect.with_offset(Point::new(0.0, rect.center_y() / 2.0));
+        self.surface.canvas().draw_str_align(
+            text.text(),
+            rect.center(),
+            &text.font().into(),
+            &paint.into(),
+            Align::Center,
+        );
     }
 
     // fn draw_text_blob(&mut self, pos: &Point, blob: &skia_safe::TextBlob, paint: &Paint) {

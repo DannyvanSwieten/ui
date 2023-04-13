@@ -1,11 +1,10 @@
 use std::time::Duration;
 
 use ui::{
-    app::{Application, ApplicationDelegate},
+    app::{message::Message, Application, ApplicationDelegate},
     canvas::color::Color32f,
-    message::Message,
     std::animated_color_box::AnimatedColorBox,
-    ui_state::UIState,
+    user_interface::ui_state::UIState,
     window_request::WindowRequest,
 };
 

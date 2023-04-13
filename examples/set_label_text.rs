@@ -1,9 +1,7 @@
 use ui::{
-    app::{Application, ApplicationDelegate},
-    message::Message,
+    app::{message::Message, Application, ApplicationDelegate},
     std::{flex::Row, label::Label, text_button::TextButton},
-    ui_state::UIState,
-    value::Value,
+    user_interface::{ui_state::UIState, value::Value},
     window_request::WindowRequest,
 };
 
