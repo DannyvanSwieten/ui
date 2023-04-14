@@ -2,10 +2,8 @@ use std::{any::Any, sync::Arc};
 
 use crate::{
     app::event::MouseEvent,
-    canvas::{color::Color32f, paint::Paint},
     event_context::EventCtx,
     geo::{Rect, Size},
-    painter::Painter,
     user_interface::ui_state::UIState,
     widget::{
         constraints::BoxConstraints, message_context::MessageCtx, BuildCtx, Child, Children,

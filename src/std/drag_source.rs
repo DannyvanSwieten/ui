@@ -57,7 +57,6 @@ impl<T> DragSource<T> {
 #[derive(Clone, Copy)]
 struct DragState {
     pub dragging: bool,
-    pub position: Point,
 }
 
 impl<T: 'static> Widget for DragSource<T> {
@@ -77,10 +76,7 @@ impl<T: 'static> Widget for DragSource<T> {
     }
 
     fn state(&self, _: &UIState) -> Option<std::sync::Arc<dyn std::any::Any + Send>> {
-        Some(std::sync::Arc::new(DragState {
-            dragging: false,
-            position: Point::new(0.0, 0.0),
-        }))
+        Some(std::sync::Arc::new(DragState { dragging: false }))
     }
 
     fn calculate_size(
@@ -115,7 +111,7 @@ impl<T: 'static> Widget for DragSource<T> {
         event_ctx: &mut EventCtx,
         _message_ctx: &mut MessageCtx,
     ) {
-        if let MouseEvent::MouseDragStart(mouse_event) = event_ctx.mouse_event() {
+        if let MouseEvent::MouseDragStart(_) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
                 if let Some(dragging_child) = &self.dragging_child {
@@ -124,53 +120,14 @@ impl<T: 'static> Widget for DragSource<T> {
                     event_ctx.set_drag_source((self.child)(), handler())
                 }
             }
-            let position = *mouse_event.local_position();
-            event_ctx.set_state(move |_| DragState {
-                dragging: true,
-                position,
-            });
+            event_ctx.set_state(move |_| DragState { dragging: true });
 
             // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
             // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
         }
 
-        if let MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
-            // Register this component as drag source in ctx
-            if let Some(handler) = &self.drag_start {
-                if let Some(dragging_child) = &self.dragging_child {
-                    event_ctx.set_drag_source(dragging_child(), handler())
-                } else {
-                    event_ctx.set_drag_source((self.child)(), handler())
-                }
-            }
-            let position = *mouse_event.local_position();
-            event_ctx.set_state(move |_| DragState {
-                dragging: true,
-                position,
-            });
-
-            // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
-            // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
-        }
-
-        if let MouseEvent::MouseDragEnd(_) = event_ctx.mouse_event() {
-            // Register this component as drag source in ctx
-            if let Some(handler) = &self.drag_start {
-                if let Some(dragging_child) = &self.dragging_child {
-                    event_ctx.set_drag_source(dragging_child(), handler())
-                } else {
-                    event_ctx.set_drag_source((self.child)(), handler())
-                }
-            }
-            let position = Point::default();
-            event_ctx.set_state(move |_| DragState {
-                dragging: false,
-                position,
-            });
-
-            // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
-            // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
-        }
+        // If the DropTarget widget receives a MouseDrag event it may or may not signal to accept this widget by painting for example an outline.
+        // If the DropTarget widget receives a MouseDragEnd event it then fires it's on_element_dropped callback.
     }
 
     fn intercept_mouse_events(&self) -> bool {
