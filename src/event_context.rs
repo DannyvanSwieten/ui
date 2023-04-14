@@ -6,6 +6,7 @@ use crate::{
     },
     app::event::MouseEvent,
     tree::ElementId,
+    widget::Widget,
 };
 pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;
 
@@ -13,17 +14,19 @@ pub struct EventCtx<'a> {
     id: ElementId,
     is_mouse_over: bool,
     pub drag_data: Option<Box<dyn Any>>,
+    pub drag_widget: Option<Box<dyn Widget>>,
     mouse_event: Option<&'a MouseEvent>,
     animation_event: Option<&'a AnimationEvent>,
+    animation_requests: Vec<AnimationRequest>,
     set_state: Option<SetState>,
     state: Option<&'a (dyn Any + Send)>,
-    animation_requests: Vec<AnimationRequest>,
 }
 
 pub struct Consumed {
     pub animation_requests: Vec<AnimationRequest>,
     pub set_state: Option<SetState>,
     pub drag_data: Option<Box<dyn Any>>,
+    pub drag_widget: Option<Box<dyn Widget>>,
 }
 
 impl<'a> EventCtx<'a> {
@@ -37,6 +40,7 @@ impl<'a> EventCtx<'a> {
             id,
             is_mouse_over,
             drag_data: None,
+            drag_widget: None,
             mouse_event,
             animation_event: None,
             set_state: None,
@@ -54,6 +58,7 @@ impl<'a> EventCtx<'a> {
             id,
             is_mouse_over: false,
             drag_data: None,
+            drag_widget: None,
             mouse_event: None,
             animation_event,
             set_state: None,
@@ -67,6 +72,7 @@ impl<'a> EventCtx<'a> {
             animation_requests: self.animation_requests,
             set_state: self.set_state,
             drag_data: self.drag_data,
+            drag_widget: self.drag_widget,
         }
     }
 
@@ -74,8 +80,9 @@ impl<'a> EventCtx<'a> {
         self.id
     }
 
-    pub fn set_drag_source<T: 'static>(&mut self, data: T) {
-        self.drag_data = Some(Box::new(data))
+    pub fn set_drag_source<T: 'static>(&mut self, widget: Box<dyn Widget>, data: T) {
+        self.drag_data = Some(Box::new(data));
+        self.drag_widget = Some(widget);
     }
 
     pub fn mouse_event(&self) -> &'a MouseEvent {

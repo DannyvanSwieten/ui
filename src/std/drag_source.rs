@@ -63,7 +63,7 @@ struct DragState {
 impl<T: 'static> Widget for DragSource<T> {
     fn build(&self, build_ctx: &mut BuildCtx) -> Children {
         let state = build_ctx.state::<DragState>().unwrap();
-        let first_child = if let Some(c) = &self.child_when_dragging {
+        let child = if let Some(c) = &self.child_when_dragging {
             if state.dragging {
                 (c)()
             } else {
@@ -73,16 +73,7 @@ impl<T: 'static> Widget for DragSource<T> {
             (self.child)()
         };
 
-        if !state.dragging {
-            vec![first_child]
-        } else {
-            let second_child = if let Some(c) = &self.dragging_child {
-                c()
-            } else {
-                (self.child)()
-            };
-            vec![first_child, second_child]
-        }
+        vec![child]
     }
 
     fn state(&self, _: &UIState) -> Option<std::sync::Arc<dyn std::any::Any + Send>> {
@@ -108,8 +99,6 @@ impl<T: 'static> Widget for DragSource<T> {
         size: Size,
         children: &[usize],
     ) {
-        let state = *layout_ctx.state::<DragState>().unwrap();
-
         let child_size = layout_ctx
             .preferred_size(
                 children[0],
@@ -118,19 +107,6 @@ impl<T: 'static> Widget for DragSource<T> {
             .unwrap_or(size);
 
         layout_ctx.set_child_bounds(children[0], Rect::new_from_size(child_size));
-        if state.dragging {
-            let child_size = layout_ctx
-                .preferred_size(
-                    children[1],
-                    &BoxConstraints::new_with_max(size.width, size.height),
-                )
-                .unwrap_or(size);
-
-            layout_ctx.set_child_bounds(
-                children[1],
-                Rect::new(state.position - (size * 0.5).into(), child_size),
-            );
-        }
     }
 
     fn mouse_event(
@@ -142,7 +118,11 @@ impl<T: 'static> Widget for DragSource<T> {
         if let MouseEvent::MouseDragStart(mouse_event) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
-                event_ctx.set_drag_source(handler())
+                if let Some(dragging_child) = &self.dragging_child {
+                    event_ctx.set_drag_source(dragging_child(), handler())
+                } else {
+                    event_ctx.set_drag_source((self.child)(), handler())
+                }
             }
             let position = *mouse_event.local_position();
             event_ctx.set_state(move |_| DragState {
@@ -157,7 +137,11 @@ impl<T: 'static> Widget for DragSource<T> {
         if let MouseEvent::MouseDrag(mouse_event) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
-                event_ctx.set_drag_source(handler());
+                if let Some(dragging_child) = &self.dragging_child {
+                    event_ctx.set_drag_source(dragging_child(), handler())
+                } else {
+                    event_ctx.set_drag_source((self.child)(), handler())
+                }
             }
             let position = *mouse_event.local_position();
             event_ctx.set_state(move |_| DragState {
@@ -172,7 +156,11 @@ impl<T: 'static> Widget for DragSource<T> {
         if let MouseEvent::MouseDragEnd(_) = event_ctx.mouse_event() {
             // Register this component as drag source in ctx
             if let Some(handler) = &self.drag_start {
-                event_ctx.set_drag_source(handler())
+                if let Some(dragging_child) = &self.dragging_child {
+                    event_ctx.set_drag_source(dragging_child(), handler())
+                } else {
+                    event_ctx.set_drag_source((self.child)(), handler())
+                }
             }
             let position = Point::default();
             event_ctx.set_state(move |_| DragState {

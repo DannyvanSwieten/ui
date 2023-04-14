@@ -19,6 +19,7 @@ use std::{
 
 pub struct TreePainter {
     tree: PainterTree,
+    drag_tree: Option<PainterTree>,
     rx: Receiver<TreePainterMessage>,
     size: Size,
     dpi: f32,
@@ -30,10 +31,15 @@ impl TreePainter {
         let tree_painter = Self {
             size,
             tree,
+            drag_tree: None,
             rx,
             dpi,
         };
         (tree_painter, tx)
+    }
+
+    pub fn set_drag_painter_tree(&mut self, tree: PainterTree) {
+        self.drag_tree = Some(tree);
     }
 
     pub fn call_mounted(&self) -> HashMap<ElementId, AnimationRequest> {
@@ -98,6 +104,54 @@ impl TreePainter {
         animation_requests
     }
 
+    fn paint_drag_source_element(
+        &mut self,
+        id: ElementId,
+        offset: Option<Point>,
+        canvas: &mut dyn Canvas,
+    ) {
+        let children = if let Some(node) = self.drag_tree.as_mut().unwrap().get_mut(id) {
+            let global_bounds = node
+                .data
+                .global_bounds
+                .with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
+
+            let local_bounds = node
+                .data
+                .local_bounds
+                .with_offset(offset.unwrap_or(Point::new(0.0, 0.0)));
+
+            canvas.save();
+            canvas.translate(&local_bounds.position());
+
+            if let Some(painter) = node.data.painter() {
+                let paint_ctx =
+                    PaintCtx::new(&global_bounds, &local_bounds, node.data.painter_state());
+                painter.paint(&paint_ctx, canvas);
+            }
+
+            Some(node.children.clone())
+        } else {
+            None
+        };
+
+        if let Some(children) = children {
+            for child in children {
+                self.paint_drag_source_element(child, offset, canvas);
+            }
+        }
+
+        canvas.restore()
+    }
+
+    pub fn paint_drag_source(&mut self, offset: Option<Point>, canvas: &mut dyn Canvas) {
+        while let Ok(message) = self.rx.try_recv() {
+            self.handle_message(message)
+        }
+
+        self.paint_drag_source_element(self.tree.root_id(), offset, canvas)
+    }
+
     fn paint_element(&mut self, id: ElementId, offset: Option<Point>, canvas: &mut dyn Canvas) {
         let children = if let Some(node) = self.tree.get_mut(id) {
             let global_bounds = node
@@ -138,7 +192,14 @@ impl TreePainter {
             self.handle_message(message)
         }
 
-        self.paint_element(self.tree.root_id(), offset, canvas)
+        self.paint_element(self.tree.root_id(), offset, canvas);
+        if self.drag_tree.is_some() {
+            self.paint_drag_source_element(
+                self.drag_tree.as_ref().unwrap().root_id(),
+                offset,
+                canvas,
+            )
+        }
     }
 
     pub fn animation(&mut self, animation_events: Vec<(ElementId, AnimationEvent)>) {

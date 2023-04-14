@@ -12,8 +12,11 @@ use crate::{
     gpu::GpuApi,
     painter::{PainterTreeBuilder, TreePainter},
     tree::ElementId,
-    user_interface::{ui_state::UIState, MutationResult, Rebuild, UserInterface},
-    widget::message_context::MessageCtx,
+    user_interface::{
+        ui_state::UIState, widget_tree::WidgetTree, widget_tree_builder::WidgetTreeBuilder,
+        MutationResult, Rebuild, UserInterface,
+    },
+    widget::{message_context::MessageCtx, Widget},
     window_request::WindowRequest,
 };
 use pollster::block_on;
@@ -60,6 +63,7 @@ pub struct EventResponse {
     pub messages: Vec<Message>,
     pub update_state: HashMap<ElementId, SetState>,
     pub animation_requests: HashMap<ElementId, Vec<AnimationRequest>>,
+    pub drag_widget: Option<Box<dyn Widget>>,
 }
 
 impl EventResponse {
@@ -70,6 +74,7 @@ impl EventResponse {
             messages: Vec::new(),
             update_state: HashMap::new(),
             animation_requests: HashMap::new(),
+            drag_widget: None,
         }
     }
 
@@ -102,6 +107,7 @@ pub struct EventResolution {
     pub new_states: HashMap<ElementId, Arc<dyn Any + Send>>,
     pub new_bounds: HashMap<ElementId, (Rect, Rect)>,
     pub rebuilds: Vec<Rebuild>,
+    pub drag_widget_tree: Option<WidgetTree>,
 }
 
 impl EventResolution {
@@ -112,6 +118,7 @@ impl EventResolution {
             new_states: HashMap::new(),
             new_bounds: HashMap::new(),
             rebuilds: Vec::new(),
+            drag_widget_tree: None,
         }
     }
 
@@ -351,7 +358,7 @@ impl Application {
         }
     }
 
-    fn handle_window_event_resolution(&mut self, event_response: &EventResponse) {
+    fn handle_window_event_resolution(&mut self, event_response: &mut EventResponse) {
         let window_id = event_response.window_id.unwrap();
         if let Some(ui) = self.user_interfaces.get_mut(&window_id) {
             let resolution = ui.resolve_event_response(event_response, &self.ui_state);
@@ -369,6 +376,17 @@ impl Application {
                         bounds,
                     }))
                     .expect("Bounds update message send failed");
+            }
+
+            if let Some(drag_tree) = resolution.drag_widget_tree {
+                let painter_tree = PainterTreeBuilder::build(&drag_tree, &self.ui_state);
+                self.io
+                    .painter_message_sender
+                    .send(RenderThreadMessage::DragWidgetCreated(
+                        window_id,
+                        painter_tree,
+                    ))
+                    .expect("Drag update message send failed");
             }
 
             if let Some(resize) = &event_response.resize {
@@ -414,7 +432,7 @@ impl Application {
             self.handle_event(&mut delegate, &mut event_response, control_flow, &event);
 
             if event_response.window_id.is_some() {
-                self.handle_window_event_resolution(&event_response);
+                self.handle_window_event_resolution(&mut event_response);
             }
 
             while let Some(request) = self.window_requests.pop() {

@@ -48,6 +48,7 @@ pub enum RenderThreadMessage {
     StateUpdates(StateUpdate),
     MergeUpdate(MergeResult),
     AnimationRequest(WindowId, ElementId, Vec<AnimationRequest>),
+    DragWidgetCreated(WindowId, PainterTree),
 }
 
 pub struct RenderSendersAndReceivers {
@@ -287,6 +288,10 @@ impl RenderThread {
                                     .add_driver(window_id, element_id, animation_id, duration),
                             }
                         }
+                    }
+                    RenderThreadMessage::DragWidgetCreated(window_id, painter_tree) => {
+                        let painter = self.painters.get_mut(&window_id).unwrap();
+                        painter.set_drag_painter_tree(painter_tree);
                     }
                 }
             }

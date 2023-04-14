@@ -155,7 +155,7 @@ impl UserInterface {
 
     pub fn resolve_event_response(
         &mut self,
-        response: &EventResponse,
+        response: &mut EventResponse,
         ui_state: &UIState,
     ) -> EventResolution {
         let mut resolution = EventResolution::default();
@@ -172,6 +172,10 @@ impl UserInterface {
 
         if let Some(resize) = &response.resize {
             resolution.new_bounds = self.resize(resize.logical_size(), ui_state)
+        }
+
+        if let Some(drag_widget) = response.drag_widget.take() {
+            resolution.drag_widget_tree = Some(WidgetTreeBuilder::new(drag_widget).build(ui_state));
         }
 
         resolution
@@ -262,11 +266,6 @@ impl UserInterface {
             if event_ctx.drag_data.is_some() {
                 self.drag_data = event_ctx.drag_data.take()
             }
-            if self.drag_data.is_some() {
-                println!("There is drag data");
-            } else {
-                println!("There is no drag data")
-            }
 
             let consume = event_ctx.consume();
             if let Some(set_state) = consume.set_state {
@@ -276,6 +275,10 @@ impl UserInterface {
             event_response
                 .animation_requests
                 .insert(element_id, consume.animation_requests);
+
+            if consume.drag_widget.is_some() {
+                event_response.drag_widget = consume.drag_widget;
+            }
         }
     }
 
