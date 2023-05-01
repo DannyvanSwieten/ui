@@ -77,8 +77,8 @@ impl CanvasRenderer {
                 // The layout of the texture
                 wgpu::ImageDataLayout {
                     offset: 0,
-                    bytes_per_row: std::num::NonZeroU32::new(stride as _),
-                    rows_per_image: std::num::NonZeroU32::new(self.size.height as _),
+                    bytes_per_row: Some(stride),
+                    rows_per_image: None,
                 },
                 texture_size,
             );
