@@ -33,9 +33,7 @@ pub trait Widget {
         None
     }
 
-    fn binding_changed(&self, _name: &str) -> Option<ChangeResponse> {
-        None
-    }
+    fn binding_changed(&self, event_context: &mut EventCtx) {}
 
     fn calculate_size(
         &self,

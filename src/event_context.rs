@@ -6,16 +6,18 @@ use crate::{
     },
     app::event::MouseEvent,
     tree::ElementId,
-    widget::Widget,
+    widget::Widget, user_interface::{ui_state, value::Var},
 };
 pub type SetState = Box<dyn Fn(&(dyn Any + Send)) -> Arc<dyn Any + Send>>;
 
 pub struct EventCtx<'a> {
     id: ElementId,
+    ui_state: &'a ui_state::UIState,
     is_mouse_over: bool,
     pub drag_data: Option<Box<dyn Any>>,
     pub drag_widget: Option<Box<dyn Widget>>,
     mouse_event: Option<&'a MouseEvent>,
+    binding_event: Option<&'a str>,
     animation_event: Option<&'a AnimationEvent>,
     animation_requests: Vec<AnimationRequest>,
     set_state: Option<SetState>,
@@ -34,14 +36,17 @@ impl<'a> EventCtx<'a> {
         id: ElementId,
         is_mouse_over: bool,
         mouse_event: Option<&'a MouseEvent>,
+        ui_state: &'a ui_state::UIState,
         state: Option<&'a (dyn Any + Send)>,
     ) -> Self {
         Self {
             id,
+            ui_state,
             is_mouse_over,
             drag_data: None,
             drag_widget: None,
             mouse_event,
+            binding_event: None,
             animation_event: None,
             set_state: None,
             state,
@@ -52,15 +57,39 @@ impl<'a> EventCtx<'a> {
     pub fn new_animation_event(
         id: ElementId,
         animation_event: Option<&'a AnimationEvent>,
+        ui_state: &'a ui_state::UIState,
         state: Option<&'a (dyn Any + Send)>,
     ) -> Self {
         Self {
             id,
+            ui_state,
             is_mouse_over: false,
             drag_data: None,
             drag_widget: None,
             mouse_event: None,
+            binding_event: None,
             animation_event,
+            set_state: None,
+            state,
+            animation_requests: Vec::new(),
+        }
+    }
+
+    pub fn new_binding_event(
+        id: ElementId,
+        binding_event: Option<&'a str>,
+        ui_state: &'a ui_state::UIState,
+        state: Option<&'a (dyn Any + Send)>,
+    ) -> Self {
+        Self {
+            id,
+            ui_state,
+            is_mouse_over: false,
+            drag_data: None,
+            drag_widget: None,
+            mouse_event: None,
+            binding_event,
+            animation_event: None,
             set_state: None,
             state,
             animation_requests: Vec::new(),
@@ -135,5 +164,9 @@ impl<'a> EventCtx<'a> {
 
     pub fn is_mouse_over(&self) -> bool {
         self.is_mouse_over
+    }
+
+    pub fn binding(&self) -> Option<&Var> {
+        self.ui_state.get(self.binding_event.unwrap())
     }
 }

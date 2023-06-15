@@ -37,7 +37,7 @@ impl AnimatedColorBox {
 impl Widget for AnimatedColorBox {
     fn calculate_size(
         &self,
-        children: &[usize],
+        _: &[usize],
         constraints: &BoxConstraints,
         _: &SizeCtx,
     ) -> Option<Size> {

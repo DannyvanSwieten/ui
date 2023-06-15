@@ -254,8 +254,13 @@ impl UserInterface {
         if let Some(node) = &self.root_tree.get(element_id) {
             let local_event = event.to_local(&node.global_bounds.position());
             let state = node.data.state();
-            let mut event_ctx =
-                EventCtx::new_mouse_event(element_id, true, Some(&local_event), state.as_deref());
+            let mut event_ctx = EventCtx::new_mouse_event(
+                element_id,
+                true,
+                Some(&local_event),
+                ui_state,
+                state.as_deref(),
+            );
             if self.drag_data.is_some() {
                 event_ctx.drag_data = self.drag_data.take()
             }
@@ -409,7 +414,7 @@ impl UserInterface {
 
         let state = node.data.state();
         let mut event_ctx =
-            EventCtx::new_animation_event(element_id, Some(event), state.as_deref());
+            EventCtx::new_animation_event(element_id, Some(event), ui_state, state.as_deref());
         node.data.widget().animation_event(&mut event_ctx, ui_state);
         let consume = event_ctx.consume();
         if let Some(set_state) = consume.set_state {
@@ -449,34 +454,36 @@ impl UserInterface {
         self.size.height as _
     }
 
-    fn notify_state_update(&self, id: ElementId, name: &str) -> Option<ChangeResponse> {
-        self.root_tree.nodes()[&id]
+    fn send_ui_state_event(
+        &self,
+        element_id: ElementId,
+        name: &str,
+        ui_state: &UIState,
+        event_response: &mut EventResponse,
+    ) {
+        let node = &self.root_tree[element_id];
+
+        let state = node.data.state();
+        let mut ctx =
+            EventCtx::new_binding_event(element_id, Some(name), ui_state, state.as_deref());
+        self.root_tree.nodes()[&element_id]
             .data()
             .widget()
-            .binding_changed(name)
+            .binding_changed(&mut ctx);
+
+        let consumed = ctx.consume();
+        if let Some(set_state) = consumed.set_state {
+            event_response.update_state.insert(element_id, set_state);
+        }
     }
 
-    pub fn handle_mutations(&mut self, ui_state: &mut UIState) -> MutationResult {
+    pub fn handle_mutations(&mut self, ui_state: &mut UIState) -> EventResponse {
         let updates = ui_state.updates();
-        let mut actions = HashMap::new();
+        let mut response = EventResponse::new();
         for (name, id) in updates {
-            actions.insert(*id, self.notify_state_update(*id, name));
+            self.send_ui_state_event(*id, name, ui_state, &mut response);
         }
-        let mut mutation_result = MutationResult::default();
-        for (id, action) in actions {
-            if let Some(action) = action {
-                match action {
-                    ChangeResponse::Build => {
-                        let rebuild = self.rebuild_element(id, ui_state);
-                        mutation_result.rebuilds.push(rebuild)
-                    }
-                    ChangeResponse::Layout => todo!(),
-                    ChangeResponse::Paint => todo!(),
-                }
-            }
-        }
-
-        mutation_result
+        response
     }
 
     /// Removes the node from the tree and from its parent then build a new subtree from the node's widget.

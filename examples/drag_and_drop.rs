@@ -1,7 +1,7 @@
 use ui::{
     app::{message::Message, Application, ApplicationDelegate},
     std::{
-        center::Center, drag_source::DragSource, drop_target::DropTarget, flex::Row,
+        drag_source::DragSource, drop_target::DropTarget, flex::Row,
         text_button::TextButton,
     },
     user_interface::ui_state::UIState,
@@ -21,7 +21,7 @@ impl ApplicationDelegate for AppDelegate {
                 .with_ui(|_| {
                     Row::new(|| {
                         vec![
-                            DragSource::<String>::new(|| TextButton::new("Drag source").into())
+                            DragSource::<String>::new(|| TextButton::new("Child not source").into())
                                 .with_child_when_dragging(|| {
                                     TextButton::new("Child when dragging").into()
                                 })

@@ -2,6 +2,7 @@ use std::{any::Any, sync::Arc};
 
 use crate::{
     canvas::{color::Color32f, font::Font, paint::Paint, text::Text, Canvas},
+    event_context::EventCtx,
     geo::{Rect, Size},
     painter::{PaintCtx, Painter},
     user_interface::{ui_state::UIState, value::Value},
@@ -27,8 +28,15 @@ impl Widget for Label {
         vec![]
     }
 
-    fn binding_changed(&self, _: &str) -> Option<ChangeResponse> {
-        Some(ChangeResponse::Build)
+    fn binding_changed(&self, event_context: &mut EventCtx) {
+        if let Value::Binding(_) = &self.text {
+            let text = event_context.binding().map(|text| text.to_string());
+
+            if let Some(text) = text {
+                event_context
+                    .set_state(move |_old_state| Text::new(&text, Font::new("Arial", 24.0)));
+            }
+        }
     }
 
     fn calculate_size(

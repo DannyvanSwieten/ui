@@ -12,10 +12,7 @@ use crate::{
     gpu::GpuApi,
     painter::{PainterTreeBuilder, TreePainter},
     tree::ElementId,
-    user_interface::{
-        ui_state::UIState, widget_tree::WidgetTree, widget_tree_builder::WidgetTreeBuilder,
-        MutationResult, Rebuild, UserInterface,
-    },
+    user_interface::{ui_state::UIState, widget_tree::WidgetTree, Rebuild, UserInterface},
     widget::{message_context::MessageCtx, Widget},
     window_request::WindowRequest,
 };
@@ -501,27 +498,29 @@ impl Application {
                 delegate.handle_message(message, &mut self.ui_state);
             }
 
-            let mutation_results: Vec<(WindowId, MutationResult)> = self
+            let mutation_results: Vec<(WindowId, EventResponse)> = self
                 .user_interfaces
                 .iter_mut()
                 .map(|(window_id, ui)| (*window_id, ui.handle_mutations(&mut self.ui_state)))
                 .collect();
 
-            for (window_id, result) in mutation_results {
+            for (window_id, mut event_response) in mutation_results {
                 let ui = self.user_interfaces.get_mut(&window_id).unwrap();
-                for rebuild in result.rebuilds {
+                let resolution = ui.resolve_event_response(&mut event_response, &self.ui_state);
+
+                for rebuild in resolution.rebuilds {
+                    let painter_tree = PainterTreeBuilder::build(&rebuild.tree, &self.ui_state);
                     let parent = rebuild.parent;
-                    let tree = PainterTreeBuilder::build(&rebuild.tree, &self.ui_state);
                     let bounds = ui.merge_rebuild(rebuild, &self.ui_state);
                     self.io
                         .painter_message_sender
                         .send(RenderThreadMessage::MergeUpdate(MergeResult {
                             window_id,
-                            tree,
-                            bounds,
                             parent,
+                            tree: painter_tree,
+                            bounds,
                         }))
-                        .expect("Merge result send failed");
+                        .expect("Bounds update message send failed");
                 }
             }
 

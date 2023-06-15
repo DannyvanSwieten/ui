@@ -83,7 +83,7 @@ impl Widget for TextButton {
         message_ctx: &mut MessageCtx,
     ) {
         match event_ctx.mouse_event() {
-            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| ButtonState::Hovered),
+            MouseEvent::MouseEnter(_) => event_ctx.set_state(|_| ButtonState::Hovered),
             MouseEvent::MouseDown(_) => event_ctx.set_state(|_| ButtonState::Active),
             MouseEvent::MouseUp(_) => {
                 if let Some(handler) = &self.click_handler {
