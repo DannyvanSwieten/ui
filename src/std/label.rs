@@ -6,7 +6,7 @@ use crate::{
     geo::{Rect, Size},
     painter::{PaintCtx, Painter},
     user_interface::{ui_state::UIState, value::Value},
-    widget::{constraints::BoxConstraints, BuildCtx, ChangeResponse, Children, SizeCtx, Widget},
+    widget::{constraints::BoxConstraints, BuildCtx, Children, SizeCtx, Widget},
 };
 
 pub struct Label {

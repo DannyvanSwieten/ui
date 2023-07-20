@@ -1,9 +1,6 @@
 use ui::{
     app::{message::Message, Application, ApplicationDelegate},
-    std::{
-        drag_source::DragSource, drop_target::DropTarget, flex::Row,
-        text_button::TextButton,
-    },
+    std::{drag_source::DragSource, drop_target::DropTarget, flex::Row, text_button::TextButton},
     user_interface::ui_state::UIState,
     window_request::WindowRequest,
 };
@@ -16,18 +13,20 @@ impl ApplicationDelegate for AppDelegate {
 
     fn app_will_start(&self, app: &mut Application) {
         app.request_window(
-            WindowRequest::new(480, 240)
+            WindowRequest::new(680, 240)
                 .with_title("Drag and Drop Example")
                 .with_ui(|_| {
                     Row::new(|| {
                         vec![
-                            DragSource::<String>::new(|| TextButton::new("Child not source").into())
-                                .with_child_when_dragging(|| {
-                                    TextButton::new("Child when dragging").into()
-                                })
-                                .with_dragging_child(|| TextButton::new("Dragged Widget").into())
-                                .with_drag_start(|| "Drag Data".to_string())
-                                .into(),
+                            DragSource::<String>::new(|| {
+                                TextButton::new("Child not source").into()
+                            })
+                            .with_child_when_dragging(|| {
+                                TextButton::new("Child when dragging").into()
+                            })
+                            .with_dragging_child(|| TextButton::new("Dragged Widget").into())
+                            .with_drag_start(|| "Drag Data".to_string())
+                            .into(),
                             DropTarget::<String>::new(|| TextButton::new("Drop Target").into())
                                 .with_child_on_accept(|| TextButton::new("Child on accept").into())
                                 .with_accept(|data| data == "Drag Data")
