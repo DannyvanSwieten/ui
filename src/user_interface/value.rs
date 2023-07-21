@@ -80,3 +80,33 @@ impl From<&str> for Var {
         Var::String(v.to_string())
     }
 }
+
+impl Var {
+    pub fn as_real(&self) -> Option<f32> {
+        match self {
+            Var::Real(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_integer(&self) -> Option<i32> {
+        match self {
+            Var::Integer(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&String> {
+        match self {
+            Var::String(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_array(&self) -> Option<&Array> {
+        match self {
+            Var::Array(v) => Some(v),
+            _ => None,
+        }
+    }
+}

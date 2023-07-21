@@ -375,32 +375,32 @@ impl UserInterface {
             self.send_mouse_event(*intercept, event, message_ctx, ui_state, event_response)
         }
 
-        match event {
-            MouseEvent::MouseUp(_) => {
-                for mouse_down in self.mouse_down_elements.clone() {
-                    self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
-                }
+        // match event {
+        //     MouseEvent::MouseUp(_) => {
+        //         for mouse_down in self.mouse_down_elements.clone() {
+        //             self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
+        //         }
 
-                self.mouse_down_elements.clear();
-            }
-            MouseEvent::MouseDown(_) => {
-                if let Some(hit) = hit {
-                    self.mouse_down_elements.push(hit);
-                }
-                self.mouse_down_elements.extend(intercepted.into_iter())
-            }
-            MouseEvent::MouseDrag(_) => {
-                for mouse_down in self.mouse_down_elements.clone() {
-                    self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
-                }
-            }
-            MouseEvent::MouseDragEnd(_) => {
-                for mouse_down in self.mouse_down_elements.clone() {
-                    self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
-                }
-            }
-            _ => {}
-        }
+        //         self.mouse_down_elements.clear();
+        //     }
+        //     MouseEvent::MouseDown(_) => {
+        //         if let Some(hit) = hit {
+        //             self.mouse_down_elements.push(hit);
+        //         }
+        //         self.mouse_down_elements.extend(intercepted.into_iter())
+        //     }
+        //     MouseEvent::MouseDrag(_) => {
+        //         for mouse_down in self.mouse_down_elements.clone() {
+        //             self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
+        //         }
+        //     }
+        //     MouseEvent::MouseDragEnd(_) => {
+        //         for mouse_down in self.mouse_down_elements.clone() {
+        //             self.send_mouse_event(mouse_down, event, message_ctx, ui_state, event_response)
+        //         }
+        //     }
+        //     _ => {}
+        // }
     }
 
     pub fn animation_event(

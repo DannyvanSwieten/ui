@@ -13,6 +13,10 @@ pub struct Label {
     text: Value,
 }
 
+pub fn label_with_bind(name: &str) -> Box<Label> {
+    Box::new(Label::new(Value::Binding(name.into())))
+}
+
 impl Label {
     pub fn new(text: impl Into<Value>) -> Self {
         Self { text: text.into() }

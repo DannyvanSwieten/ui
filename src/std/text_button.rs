@@ -25,6 +25,13 @@ pub struct TextButton {
     click_handler: ClickHandler,
 }
 
+pub fn button<F>(text: impl Into<Value>, on_click: F) -> Box<TextButton>
+where
+    F: Fn(&mut MessageCtx) + 'static,
+{
+    Box::new(TextButton::new(text).on_click(on_click))
+}
+
 impl TextButton {
     pub fn new(text: impl Into<Value>) -> Self {
         Self {
