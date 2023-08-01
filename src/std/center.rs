@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     geo::{Point, Rect, Size},
     user_interface::ui_state::UIState,
@@ -11,17 +13,17 @@ pub struct Center {
 impl Center {
     pub fn new<C>(child: C) -> Self
     where
-        C: Fn() -> Box<dyn Widget> + 'static,
+        C: Fn(&UIState) -> Box<dyn Widget> + 'static,
     {
         Self {
-            child: Box::new(child),
+            child: Rc::new(child),
         }
     }
 }
 
 impl Widget for Center {
-    fn build(&self, _build_ctx: &mut BuildCtx) -> Children {
-        vec![(*self.child)()]
+    fn build(&self, build_ctx: &mut BuildCtx) -> Children {
+        vec![(*self.child)(build_ctx.ui_state())]
     }
 
     fn calculate_size(

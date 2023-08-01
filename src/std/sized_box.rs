@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     geo::{Point, Rect, Size},
     user_interface::ui_state::UIState,
@@ -11,21 +13,28 @@ pub struct SizedBox {
     child: Option<Child>,
 }
 
+pub fn sized_box(size: Size) -> Box<SizedBox> {
+    Box::new(SizedBox::new(size))
+}
+
 impl SizedBox {
     pub fn new(size: Size) -> Self {
         Self { size, child: None }
     }
 
-    pub fn with_child(mut self, child: Child) -> Self {
-        self.child = Some(child);
+    pub fn with_child<C>(mut self, child: C) -> Self
+    where
+        C: Fn(&UIState) -> Box<dyn Widget> + 'static,
+    {
+        self.child = Some(Rc::new(child));
         self
     }
 }
 
 impl Widget for SizedBox {
-    fn build(&self, _: &mut crate::widget::BuildCtx) -> crate::widget::Children {
+    fn build(&self, build_ctx: &mut crate::widget::BuildCtx) -> crate::widget::Children {
         if let Some(child) = &self.child {
-            vec![child()]
+            vec![child(build_ctx.ui_state())]
         } else {
             vec![]
         }

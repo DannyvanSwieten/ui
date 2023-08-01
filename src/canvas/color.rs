@@ -1,6 +1,6 @@
 use std::ops::{Add, Mul};
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Color8u {
     pub r: u8,
     pub g: u8,

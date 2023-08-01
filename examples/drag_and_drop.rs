@@ -1,5 +1,5 @@
 use ui::{
-    app::{message::Message, Application, ApplicationDelegate},
+    app::{message::ApplicationMessage, Application, ApplicationDelegate},
     std::{drag_source::DragSource, drop_target::DropTarget, flex::Row, text_button::TextButton},
     user_interface::ui_state::UIState,
     window_request::WindowRequest,
@@ -18,17 +18,17 @@ impl ApplicationDelegate for AppDelegate {
                 .with_ui(|_| {
                     Row::new(|| {
                         vec![
-                            DragSource::<String>::new(|| {
+                            DragSource::<String>::new(|_| {
                                 TextButton::new("Child not source").into()
                             })
-                            .with_child_when_dragging(|| {
+                            .with_child_when_dragging(|_| {
                                 TextButton::new("Child when dragging").into()
                             })
-                            .with_dragging_child(|| TextButton::new("Dragged Widget").into())
+                            .with_dragging_child(|_| TextButton::new("Dragged Widget").into())
                             .with_drag_start(|| "Drag Data".to_string())
                             .into(),
-                            DropTarget::<String>::new(|| TextButton::new("Drop Target").into())
-                                .with_child_on_accept(|| TextButton::new("Child on accept").into())
+                            DropTarget::<String>::new(|_| TextButton::new("Drop Target").into())
+                                .with_child_on_accept(|_| TextButton::new("Child on accept").into())
                                 .with_accept(|data| data == "Drag Data")
                                 .into(),
                         ]
@@ -38,7 +38,7 @@ impl ApplicationDelegate for AppDelegate {
         );
     }
 
-    fn handle_message(&mut self, mut _message: Message, _state: &mut UIState) {}
+    fn handle_message(&mut self, mut _message: ApplicationMessage, _state: &mut UIState) {}
 }
 
 fn main() {

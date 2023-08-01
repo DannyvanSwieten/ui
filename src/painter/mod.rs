@@ -2,7 +2,7 @@ mod paint_ctx;
 mod painter_tree;
 mod painter_tree_builder;
 pub mod render_ctx;
-mod tree_painter;
+pub mod tree_painter;
 
 pub use paint_ctx::PaintCtx;
 pub use painter_tree::{PainterElement, PainterTree};

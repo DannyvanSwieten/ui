@@ -1,5 +1,7 @@
 use std::{any::Any, rc::Rc};
 
+use winit::window::WindowId;
+
 use crate::geo::Point;
 
 #[derive(PartialEq, Eq, Hash)]
@@ -21,23 +23,32 @@ pub enum MouseButton {
 
 #[derive(Clone)]
 pub struct MouseEventData {
+    window_id: WindowId,
     modifiers: u32,
     global_position: Point,
     local_position: Point,
     delta_position: Point,
     drag_start: Option<Point>,
     drag_data: Option<Rc<dyn Any>>,
+    scroll: Option<(f32, f32)>,
 }
 
 impl MouseEventData {
-    pub fn new(modifiers: u32, global_position: &Point, local_position: &Point) -> Self {
+    pub fn new(
+        window_id: WindowId,
+        modifiers: u32,
+        global_position: &Point,
+        local_position: &Point,
+    ) -> Self {
         Self {
+            window_id,
             modifiers,
             global_position: *global_position,
             local_position: *local_position,
             delta_position: Point::new(0., 0.),
             drag_start: None,
             drag_data: None,
+            scroll: None,
         }
     }
 
@@ -48,19 +59,27 @@ impl MouseEventData {
     }
 
     pub fn new_with_delta(
+        window_id: WindowId,
         modifiers: u32,
         global_position: &Point,
         local_position: &Point,
         delta_position: &Point,
     ) -> Self {
         Self {
+            window_id,
             modifiers,
             global_position: *global_position,
             local_position: *local_position,
             delta_position: *delta_position,
             drag_start: None,
             drag_data: None,
+            scroll: None,
         }
+    }
+
+    pub fn with_scroll(mut self, scroll: (f32, f32)) -> Self {
+        self.scroll = Some(scroll);
+        self
     }
 
     pub fn with_delta(mut self, delta: Point) -> Self {
@@ -77,6 +96,10 @@ impl MouseEventData {
         self.drag_start
             .as_ref()
             .map(|drag_start| self.global_position - *drag_start)
+    }
+
+    pub fn scroll(&self) -> Point {
+        Point::new(self.scroll.unwrap().0, self.scroll.unwrap().1)
     }
 
     pub fn drag_start(&self) -> &Option<Point> {

@@ -4,10 +4,10 @@ use crate::{
     event_context::EventCtx,
     geo::{Rect, Size},
     painter::{PaintCtx, Painter},
-    user_interface::{ui_state::UIState, value::Value},
+    user_interface::{ui_ctx::UIContext, ui_state::UIState, value::Value},
     widget::{
-        constraints::BoxConstraints, message_context::MessageCtx, BuildCtx, Children, LayoutCtx,
-        SizeCtx, Widget,
+        constraints::BoxConstraints, message_context::ApplicationCtx, BuildCtx, Children,
+        LayoutCtx, SizeCtx, Widget,
     },
 };
 use std::{any::Any, sync::Arc};
@@ -18,16 +18,16 @@ enum ButtonState {
     Hovered,
 }
 
-pub type ClickHandler = Option<Box<dyn Fn(&mut MessageCtx)>>;
+pub type ClickHandler = Option<Box<dyn Fn(&mut ApplicationCtx)>>;
 
 pub struct TextButton {
     text: Value,
     click_handler: ClickHandler,
 }
 
-pub fn button<F>(text: impl Into<Value>, on_click: F) -> Box<TextButton>
+pub fn text_button<F>(text: impl Into<Value>, on_click: F) -> Box<TextButton>
 where
-    F: Fn(&mut MessageCtx) + 'static,
+    F: Fn(&mut ApplicationCtx) + 'static,
 {
     Box::new(TextButton::new(text).on_click(on_click))
 }
@@ -42,7 +42,7 @@ impl TextButton {
 
     pub fn on_click<F>(mut self, click_handler: F) -> Self
     where
-        F: Fn(&mut MessageCtx) + 'static,
+        F: Fn(&mut ApplicationCtx) + 'static,
     {
         self.click_handler = Some(Box::new(click_handler));
         self
@@ -87,17 +87,18 @@ impl Widget for TextButton {
         &self,
         _ui_state: &UIState,
         event_ctx: &mut EventCtx,
-        message_ctx: &mut MessageCtx,
+        ui_ctx: &mut UIContext,
+        message_ctx: &mut ApplicationCtx,
     ) {
         match event_ctx.mouse_event() {
-            MouseEvent::MouseMove(_) => event_ctx.set_state(|_| ButtonState::Hovered),
-            MouseEvent::MouseDown(_) => event_ctx.set_state(|_| ButtonState::Active),
+            MouseEvent::MouseMove(_) => ui_ctx.set_state(|_| ButtonState::Hovered),
+            MouseEvent::MouseDown(_) => ui_ctx.set_state(|_| ButtonState::Active),
             MouseEvent::MouseUp(_) => {
                 if let Some(handler) = &self.click_handler {
                     (handler)(message_ctx)
                 }
 
-                event_ctx.set_state(|_| ButtonState::Inactive)
+                ui_ctx.set_state(|_| ButtonState::Inactive)
             }
             _ => (),
         }

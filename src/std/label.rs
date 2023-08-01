@@ -5,7 +5,7 @@ use crate::{
     event_context::EventCtx,
     geo::{Rect, Size},
     painter::{PaintCtx, Painter},
-    user_interface::{ui_state::UIState, value::Value},
+    user_interface::{ui_ctx::UIContext, ui_state::UIState, value::Value},
     widget::{constraints::BoxConstraints, BuildCtx, Children, SizeCtx, Widget},
 };
 
@@ -32,13 +32,12 @@ impl Widget for Label {
         vec![]
     }
 
-    fn binding_changed(&self, event_context: &mut EventCtx) {
+    fn binding_changed(&self, event_context: &mut EventCtx, ui_ctx: &mut UIContext) {
         if let Value::Binding(_) = &self.text {
             let text = event_context.binding().map(|text| text.to_string());
 
             if let Some(text) = text {
-                event_context
-                    .set_state(move |_old_state| Text::new(&text, Font::new("Arial", 24.0)));
+                ui_ctx.set_state(move |_old_state| Text::new(&text, Font::new("Arial", 24.0)));
             }
         }
     }

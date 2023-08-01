@@ -1,14 +1,17 @@
-use crate::user_interface::value::Var;
+use crate::{tree::ElementId, user_interface::value::Var};
 
-#[derive(Clone)]
-pub struct ApplicationMessage {
+pub struct UIMessage {
+    pub sender: ElementId,
+    pub receiver: ElementId,
     pub target: String,
     pub args: Vec<Var>,
 }
 
-impl ApplicationMessage {
-    pub fn new(target: &str) -> Self {
+impl UIMessage {
+    pub fn new(sender: usize, receiver: usize, target: &str) -> Self {
         Self {
+            sender,
+            receiver,
             target: target.into(),
             args: Vec::new(),
         }

@@ -23,5 +23,6 @@ pub trait Canvas: Send {
     fn draw_string(&mut self, rect: &Rect, text: &str, font: &Font, paint: &Paint);
     fn draw_text(&mut self, text: &Text, rect: &Rect, paint: &Paint);
     fn pixels(&mut self) -> Option<&[u8]>;
+    fn clip_rect(&mut self, rect: &Rect);
     // fn draw_paragraph(&mut self, pos: &Point, paragraph: &Paragraph);
 }

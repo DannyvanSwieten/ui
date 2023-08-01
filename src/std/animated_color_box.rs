@@ -51,10 +51,10 @@ impl Widget for AnimatedColorBox {
         ))
     }
 
-    fn build(&self, _: &mut BuildCtx) -> Children {
+    fn build(&self, build_ctx: &mut BuildCtx) -> Children {
         let mut children = Vec::new();
         if let Some(child) = &self.child {
-            children.push((*child)())
+            children.push((*child)(build_ctx.ui_state()))
         }
 
         children

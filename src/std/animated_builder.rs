@@ -3,7 +3,7 @@ use std::{any::Any, sync::Arc, time::Duration};
 use crate::{
     animation::animation_event::AnimationEvent,
     event_context::EventCtx,
-    user_interface::ui_state::UIState,
+    user_interface::{ui_ctx::UIContext, ui_state::UIState},
     widget::{constraints::BoxConstraints, BuildCtx, Children, Widget},
 };
 
@@ -45,7 +45,12 @@ impl Widget for AnimatedBuilder {
         (self.build)(build_ctx, state.phase)
     }
 
-    fn animation_event(&self, event_context: &mut EventCtx, _ui_state: &UIState) {
+    fn animation_event(
+        &self,
+        event_context: &mut EventCtx,
+        ui_ctx: &mut UIContext,
+        _ui_state: &UIState,
+    ) {
         let new_state = match event_context.animation_event() {
             AnimationEvent::Start(_) => AnimatedBuilderState {
                 phase: 0.0,
@@ -60,7 +65,7 @@ impl Widget for AnimatedBuilder {
                 started: true,
             },
         };
-        event_context.set_state(move |_old_state| new_state);
+        ui_ctx.set_state(move |_old_state| new_state);
     }
 
     fn calculate_size(

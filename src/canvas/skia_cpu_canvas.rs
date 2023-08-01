@@ -172,6 +172,11 @@ impl Canvas for SkiaCanvas {
         );
     }
 
+    fn clip_rect(&mut self, rect: &Rect) {
+        let rect: skia_safe::Rect = rect.into();
+        self.surface.canvas().clip_rect(rect, None, true);
+    }
+
     // fn draw_text_blob(&mut self, pos: &Point, blob: &skia_safe::TextBlob, paint: &Paint) {
     //     self.surface.canvas().draw_text_blob(blob, *pos, paint);
     // }

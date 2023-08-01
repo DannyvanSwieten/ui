@@ -1,16 +1,18 @@
-use crate::app::message::Message;
+use crate::app::{message::ApplicationMessage, Senders};
 
-#[derive(Default)]
-pub struct MessageCtx {
-    messages: Vec<Message>,
+pub struct ApplicationCtx {
+    senders: Senders,
 }
 
-impl MessageCtx {
-    pub fn dispatch(&mut self, message: Message) {
-        self.messages.push(message)
+impl ApplicationCtx {
+    pub fn new(senders: Senders) -> Self {
+        Self { senders }
     }
 
-    pub fn messages(self) -> Vec<Message> {
-        self.messages
+    pub fn send(&mut self, message: ApplicationMessage) {
+        self.senders
+            .application_message_queue()
+            .send(message)
+            .unwrap();
     }
 }

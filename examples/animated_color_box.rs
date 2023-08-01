@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use ui::{
-    app::{message::Message, Application, ApplicationDelegate},
+    app::{message::ApplicationMessage, Application, ApplicationDelegate},
     canvas::color::Color32f,
     std::animated_color_box::AnimatedColorBox,
     user_interface::ui_state::UIState,
@@ -34,7 +34,7 @@ impl ApplicationDelegate for AppDelegate {
         );
     }
 
-    fn handle_message(&mut self, _: Message, _: &mut UIState) {}
+    fn handle_message(&mut self, _: ApplicationMessage, _: &mut UIState) {}
 }
 
 fn main() {

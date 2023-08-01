@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use ui::{
-    app::{message::Message, Application, ApplicationDelegate},
+    app::{message::ApplicationMessage, Application, ApplicationDelegate},
     geo::Size,
     std::{animated_builder::AnimatedBuilder, flex::Row, label::Label, sized_box::SizedBox},
     user_interface::{ui_state::UIState, value::Value},
@@ -35,7 +35,7 @@ impl ApplicationDelegate for AppDelegate {
         );
     }
 
-    fn handle_message(&mut self, _: Message, _: &mut UIState) {}
+    fn handle_message(&mut self, _: ApplicationMessage, _: &mut UIState) {}
 }
 
 fn main() {

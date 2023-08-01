@@ -1,28 +1,32 @@
 pub mod build_result;
+pub mod ui_ctx;
 pub mod ui_state;
 pub mod value;
 pub mod widget_tree;
 pub mod widget_tree_builder;
 use std::{any::Any, collections::HashMap, sync::Arc};
 
+use winit::window::WindowId;
+
 use crate::{
     animation::animation_event::AnimationEvent,
     app::{
         event::{ApplicationEvent, MouseEvent},
-        EventResolution, EventResponse,
+        EventResolution, EventResponse, Senders,
     },
-    event_context::EventCtx,
+    event_context::{EventCtx, SetState, UIEvent},
     geo::{Point, Rect, Size},
     mouse_event::MouseEventData,
     tree::ElementId,
     widget::{
-        constraints::BoxConstraints, message_context::MessageCtx, BuildCtx, ChangeResponse,
-        LayoutCtx, SizeCtx, Widget,
+        constraints::BoxConstraints, message_context::ApplicationCtx, BuildCtx, LayoutCtx, SizeCtx,
+        Widget,
     },
 };
 
 use self::{
     build_result::BuildResult,
+    ui_ctx::UIContext,
     ui_state::UIState,
     widget_tree::{WidgetElement, WidgetTree},
     widget_tree_builder::WidgetTreeBuilder,
@@ -158,17 +162,9 @@ impl UserInterface {
         response: &mut EventResponse,
         ui_state: &UIState,
     ) -> EventResolution {
-        let mut resolution = EventResolution::default();
-        resolution.new_states = self.handle_state_updates(response);
-        if !resolution.new_states.is_empty() {
-            resolution.new_states.iter().for_each(|(id, new_state)| {
-                if let Some(node) = self.root_tree.get_mut(*id) {
-                    node.data.set_state(Some(new_state.clone()));
-                    let rebuild = self.rebuild_element(*id, ui_state);
-                    resolution.rebuilds.push(rebuild);
-                }
-            });
-        }
+        let mut resolution = EventResolution {
+            ..Default::default()
+        };
 
         if let Some(resize) = &response.resize {
             resolution.new_bounds = self.resize(resize.logical_size(), ui_state)
@@ -181,19 +177,15 @@ impl UserInterface {
         resolution
     }
 
-    pub fn handle_state_updates(
-        &mut self,
-        response: &EventResponse,
-    ) -> HashMap<usize, Arc<dyn Any + Send>> {
-        let mut results = HashMap::new();
-        for (id, modify) in &response.update_state {
-            let node = &self.root_tree[*id];
-            if let Some(old_state) = node.data.state() {
-                results.insert(*id, modify(old_state.as_ref()));
-            }
+    pub fn set_state(&mut self, id: ElementId, set_state: SetState, ui_state: &UIState) -> Rebuild {
+        let node = &mut self.root_tree[id];
+        if let Some(old_state) = node.data.state() {
+            node.data.set_state(Some(set_state(old_state.as_ref())))
+        } else {
+            panic!("No state for element {}", id)
         }
 
-        results
+        self.rebuild_element(id, ui_state)
     }
 
     pub fn process_state_results(
@@ -247,56 +239,93 @@ impl UserInterface {
         &mut self,
         element_id: ElementId,
         event: &MouseEvent,
-        message_ctx: &mut MessageCtx,
+        message_ctx: &mut ApplicationCtx,
         ui_state: &UIState,
         event_response: &mut EventResponse,
+        senders: Senders,
     ) {
         if let Some(node) = &self.root_tree.get(element_id) {
             let local_event = event.to_local(&node.global_bounds.position());
             let state = node.data.state();
-            let mut event_ctx = EventCtx::new_mouse_event(
+            let mut event_ctx = EventCtx::new(UIEvent::Mouse(&local_event), ui_state);
+
+            let mut ui_context = UIContext::new(
                 element_id,
-                true,
-                Some(&local_event),
-                ui_state,
                 state.as_deref(),
+                &self.root_tree,
+                senders.clone(),
             );
             if self.drag_data.is_some() {
                 event_ctx.drag_data = self.drag_data.take()
             }
             node.data
                 .widget()
-                .mouse_event(ui_state, &mut event_ctx, message_ctx);
+                .mouse_event(ui_state, &mut event_ctx, &mut ui_context, message_ctx);
 
             if event_ctx.drag_data.is_some() {
                 self.drag_data = event_ctx.drag_data.take()
             }
 
-            let consume = event_ctx.consume();
-            if let Some(set_state) = consume.set_state {
-                event_response.update_state.insert(element_id, set_state);
+            for message in ui_context.ui_messages {
+                self.send_internal_message(
+                    message.receiver,
+                    UIEvent::Internal(&message),
+                    ui_state,
+                    senders.clone(),
+                )
             }
-            // animation requests
-            event_response
-                .animation_requests
-                .insert(element_id, consume.animation_requests);
 
-            if consume.drag_widget.is_some() {
-                event_response.drag_widget = consume.drag_widget;
-            }
+            // let consume = event_ctx.consume();
+
+            // // animation requests
+            // event_response
+            //     .animation_requests
+            //     .insert(element_id, consume.animation_requests);
+
+            // if consume.drag_widget.is_some() {
+            //     event_response.drag_widget = consume.drag_widget;
+            // }
+        }
+    }
+
+    fn send_internal_message(
+        &mut self,
+        id: ElementId,
+        message: UIEvent,
+        ui_state: &UIState,
+        senders: Senders,
+    ) {
+        let state = self.root_tree[id].data.state();
+        let mut event_ctx = EventCtx::new(message, ui_state);
+        let mut ui_ctx = UIContext::new(id, state.as_deref(), &self.root_tree, senders.clone());
+        self.root_tree[id]
+            .data
+            .widget()
+            .internal_event(&mut event_ctx, &mut ui_ctx, ui_state);
+
+        for message in &ui_ctx.ui_messages {
+            self.send_internal_message(
+                message.receiver,
+                UIEvent::Internal(message),
+                ui_state,
+                senders.clone(),
+            )
         }
     }
 
     pub fn mouse_move(
         &mut self,
+        window_id: WindowId,
         location: Point,
-        message_ctx: &mut MessageCtx,
+        message_ctx: &mut ApplicationCtx,
         ui_state: &UIState,
         event_response: &mut EventResponse,
+        senders: Senders,
     ) {
         self.mouse_position = Some(location);
         let event_type = if self.mouse_down_elements.is_empty() {
             MouseEvent::MouseMove(MouseEventData::new(
+                window_id,
                 0,
                 &self.mouse_position.unwrap(),
                 &self.mouse_position.unwrap(),
@@ -304,12 +333,14 @@ impl UserInterface {
         } else if !self.dragging {
             self.dragging = true;
             MouseEvent::MouseDragStart(MouseEventData::new(
+                window_id,
                 0,
                 &self.mouse_position.unwrap(),
                 &self.mouse_position.unwrap(),
             ))
         } else {
             MouseEvent::MouseDrag(MouseEventData::new(
+                window_id,
                 0,
                 &self.mouse_position.unwrap(),
                 &self.mouse_position.unwrap(),
@@ -317,62 +348,117 @@ impl UserInterface {
         };
 
         let event = ApplicationEvent::Mouse(event_type);
-        self.event(&event, message_ctx, ui_state, event_response);
+        self.application_event(&event, message_ctx, ui_state, event_response, senders);
     }
 
     pub fn mouse_down(
         &mut self,
-        message_ctx: &mut MessageCtx,
+        window_id: WindowId,
+        message_ctx: &mut ApplicationCtx,
         ui_state: &UIState,
         event_response: &mut EventResponse,
+        senders: Senders,
     ) {
         let event = ApplicationEvent::Mouse(MouseEvent::MouseDown(MouseEventData::new(
+            window_id,
             0,
             &self.mouse_position.unwrap(),
             &self.mouse_position.unwrap(),
         )));
-        self.event(&event, message_ctx, ui_state, event_response)
+        self.application_event(&event, message_ctx, ui_state, event_response, senders)
     }
 
     pub fn mouse_up(
         &mut self,
-        message_ctx: &mut MessageCtx,
+        window_id: WindowId,
+        message_ctx: &mut ApplicationCtx,
         ui_state: &UIState,
         event_response: &mut EventResponse,
+        senders: Senders,
     ) {
         if self.dragging {
             self.dragging = false;
             let event = ApplicationEvent::Mouse(MouseEvent::MouseDragEnd(MouseEventData::new(
+                window_id,
                 0,
                 &self.mouse_position.unwrap(),
                 &self.mouse_position.unwrap(),
             )));
-            self.event(&event, message_ctx, ui_state, event_response)
+            self.application_event(
+                &event,
+                message_ctx,
+                ui_state,
+                event_response,
+                senders.clone(),
+            )
         }
         let event = ApplicationEvent::Mouse(MouseEvent::MouseUp(MouseEventData::new(
+            window_id,
             0,
             &self.mouse_position.unwrap(),
             &self.mouse_position.unwrap(),
         )));
-        self.event(&event, message_ctx, ui_state, event_response)
+        self.application_event(
+            &event,
+            message_ctx,
+            ui_state,
+            event_response,
+            senders.clone(),
+        )
+    }
+
+    pub fn mouse_scroll(
+        &mut self,
+        window_id: WindowId,
+        scroll: (f32, f32),
+        message_ctx: &mut ApplicationCtx,
+        ui_state: &UIState,
+        event_response: &mut EventResponse,
+        senders: Senders,
+    ) {
+        let event = ApplicationEvent::Mouse(MouseEvent::MouseScroll(
+            MouseEventData::new(
+                window_id,
+                0,
+                &self.mouse_position.unwrap(),
+                &self.mouse_position.unwrap(),
+            )
+            .with_scroll(scroll),
+        ));
+        self.application_event(&event, message_ctx, ui_state, event_response, senders)
     }
 
     pub fn mouse_event(
         &mut self,
         event: &MouseEvent,
-        message_ctx: &mut MessageCtx,
+        message_ctx: &mut ApplicationCtx,
         ui_state: &UIState,
         event_response: &mut EventResponse,
+        senders: Senders,
     ) {
         let mut intercepted = Vec::new();
         let mut hit = None;
         self.hit_test(event.local_position(), &mut intercepted, &mut hit);
         if let Some(hit) = hit {
-            self.send_mouse_event(hit, event, message_ctx, ui_state, event_response)
+            self.send_mouse_event(
+                hit,
+                event,
+                message_ctx,
+                ui_state,
+                event_response,
+                senders.clone(),
+            )
         }
 
         for intercept in &intercepted {
-            self.send_mouse_event(*intercept, event, message_ctx, ui_state, event_response)
+            self.send_mouse_event(
+                *intercept,
+                event,
+                message_ctx,
+                ui_state,
+                event_response,
+                senders.clone(),
+            )
         }
 
         // match event {
@@ -409,40 +495,45 @@ impl UserInterface {
         event: &AnimationEvent,
         ui_state: &UIState,
         event_response: &mut EventResponse,
+        senders: Senders,
     ) {
         let node = &self.root_tree[element_id];
 
         let state = node.data.state();
-        let mut event_ctx =
-            EventCtx::new_animation_event(element_id, Some(event), ui_state, state.as_deref());
-        node.data.widget().animation_event(&mut event_ctx, ui_state);
-        let consume = event_ctx.consume();
-        if let Some(set_state) = consume.set_state {
-            event_response.update_state.insert(element_id, set_state);
-        }
+        let mut event_ctx = EventCtx::new(UIEvent::Animation(event), ui_state);
+        let mut ui_ctx = UIContext::new(element_id, state.as_deref(), &self.root_tree, senders);
+        node.data
+            .widget()
+            .animation_event(&mut event_ctx, &mut ui_ctx, ui_state);
+        // let consume = event_ctx.consume();
 
-        event_response
-            .animation_requests
-            .insert(element_id, consume.animation_requests);
+        // event_response
+        //     .animation_requests
+        //     .insert(element_id, consume.animation_requests);
     }
 
-    pub fn event(
+    pub fn application_event(
         &mut self,
         event: &ApplicationEvent,
-        message_ctx: &mut MessageCtx,
+        message_ctx: &mut ApplicationCtx,
         ui_state: &UIState,
         event_response: &mut EventResponse,
+        senders: Senders,
     ) {
         match event {
             ApplicationEvent::Mouse(mouse_event) => {
-                self.mouse_event(mouse_event, message_ctx, ui_state, event_response);
+                self.mouse_event(mouse_event, message_ctx, ui_state, event_response, senders);
             }
             ApplicationEvent::Key(_) => (),
             ApplicationEvent::Resize(_) => (),
             ApplicationEvent::Focus(_) => (),
-            ApplicationEvent::Animation(element_id, animation_event) => {
-                self.animation_event(*element_id, animation_event, ui_state, event_response)
-            }
+            ApplicationEvent::Animation(element_id, animation_event) => self.animation_event(
+                *element_id,
+                animation_event,
+                ui_state,
+                event_response,
+                senders,
+            ),
         }
     }
 
@@ -460,28 +551,29 @@ impl UserInterface {
         name: &str,
         ui_state: &UIState,
         event_response: &mut EventResponse,
+        senders: Senders,
     ) {
         let node = &self.root_tree[element_id];
 
         let state = node.data.state();
-        let mut ctx =
-            EventCtx::new_binding_event(element_id, Some(name), ui_state, state.as_deref());
+        let mut event_ctx = EventCtx::new(UIEvent::Binding(name), ui_state);
+        let mut ui_ctx = UIContext::new(
+            element_id,
+            state.as_deref(),
+            &self.root_tree,
+            senders.clone(),
+        );
         self.root_tree.nodes()[&element_id]
             .data()
             .widget()
-            .binding_changed(&mut ctx);
-
-        let consumed = ctx.consume();
-        if let Some(set_state) = consumed.set_state {
-            event_response.update_state.insert(element_id, set_state);
-        }
+            .binding_changed(&mut event_ctx, &mut ui_ctx);
     }
 
-    pub fn handle_mutations(&mut self, ui_state: &mut UIState) -> EventResponse {
+    pub fn handle_mutations(&mut self, ui_state: &mut UIState, senders: Senders) -> EventResponse {
         let updates = ui_state.updates();
         let mut response = EventResponse::new();
         for (name, id) in updates {
-            self.send_ui_state_event(*id, name, ui_state, &mut response);
+            self.send_ui_state_event(*id, name, ui_state, &mut response, senders.clone());
         }
         response
     }
